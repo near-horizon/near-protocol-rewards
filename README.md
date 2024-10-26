@@ -1,34 +1,179 @@
 # NEAR Protocol Rewards SDK
 
-[![npm version](https://badge.fury.io/js/near-protocol-rewards.svg)](https://www.npmjs.com/package/near-protocol-rewards)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+<div align="center">
 
-An analytics SDK for tracking and calculating rewards for projects building on NEAR. This SDK automatically monitors GitHub development activity and NEAR blockchain interactions to provide transparent, real-time metrics and rewards calculations.
+  <p align="center">A transparent, metric-based rewards system for NEAR Protocol projects that directly ties incentives to development activity and user adoption.</p>
 
-## 🚀 Features
+  <div align="center">
 
-- **Automated Metrics Collection**:
-  - GitHub activity tracking (commits, PRs, issues)
-  - NEAR blockchain monitoring (transactions, contract calls)
-  - Real-time data validation
-- **Advanced Analytics**:
-  - Weighted scoring system
-  - User growth tracking
-  - Community engagement metrics
-- **Data Validation & Security**:
-  - Comprehensive error handling
-  - Rate limiting for API calls
-  - Data integrity checks
-- **Storage & Persistence**:
-  - PostgreSQL integration
-  - Historical data tracking
-  - Efficient querying
-- **Developer Dashboard**:
-  - Real-time metrics visualization
-  - Activity feeds
-  - Integration status monitoring
+  [![npm version](https://badge.fury.io/js/near-protocol-rewards.svg)](https://badge.fury.io/js/near-protocol-rewards)
+  [![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue.svg)](https://www.typescriptlang.org/)
+  [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+  [![Dependencies](https://img.shields.io/librariesio/release/npm/near-protocol-rewards)](https://libraries.io/npm/near-protocol-rewards)
+  [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 
-## 📦 Installation
+
+  </div>
+</div>
+
+## 🎯 Purpose
+
+The NEAR Protocol Rewards SDK helps projects implement a fair and transparent rewards system by:
+
+- **Tracking Development Activity**: Automatically collect and validate GitHub metrics like commits, PRs, and community engagement
+- **Measuring User Adoption**: Monitor on-chain metrics like transactions, contract usage, and user growth
+- **Calculating Fair Rewards**: Use weighted metrics to determine reward distributions based on actual project impact
+- **Providing Transparency**: Real-time dashboard showing how rewards are calculated and distributed
+
+## 🚀 Quick Start
+
+```bash
+# Install the SDK
+npm install near-protocol-rewards
+
+# Initialize in your project
+import { NEARProtocolRewardsSDK } from 'near-protocol-rewards';
+
+const sdk = new NEARProtocolRewardsSDK({
+  projectId: 'your-project-id',
+  nearAccount: 'your-project.near',
+  githubRepo: 'org/repo',
+  githubToken: 'your-github-token'
+});
+
+// Start tracking metrics
+await sdk.startTracking();
+```
+
+## 📊 Key Features
+
+### Development Metrics
+
+- Commit frequency and quality
+- Pull request activity
+- Community engagement
+- Code review participation
+
+### Adoption Metrics
+
+- Transaction volume
+- Contract usage
+- User growth
+- Network activity
+
+### Real-time Dashboard
+
+- Activity monitoring
+- Performance trends
+- Integration status
+- Validation checks
+
+### Automated Rewards
+
+- Fair distribution based on metrics
+- Transparent calculations
+- Customizable weights
+- Historical tracking
+
+## 💻 Developer Dashboard
+
+Access your metrics through our intuitive dashboard:
+
+```typescript
+// Set up the dashboard in your app
+import { Dashboard } from 'near-protocol-rewards/components';
+
+function App() {
+  return (
+    <Dashboard
+      projectId="your-project-id"
+      refreshInterval={300000} // 5 minutes
+    />
+  );
+}
+```
+
+## 🔧 Configuration
+
+Customize the SDK to match your project's needs:
+
+```typescript
+const sdk = new NEARProtocolRewardsSDK({
+  // Required
+  projectId: 'your-project-id',
+  nearAccount: 'your-project.near',
+  githubRepo: 'org/repo',
+  githubToken: 'your-github-token',
+  
+  // Optional
+  weights: {
+    github: {
+      commits: 0.4,
+      pullRequests: 0.3,
+      communityEngagement: 0.3
+    },
+    near: {
+      transactionVolume: 0.4,
+      contractUsage: 0.3,
+      userGrowth: 0.3
+    }
+  },
+  
+  // Validation thresholds
+  validation: {
+    github: {
+      minCommits: 1,
+      maxCommitsPerDay: 50
+    },
+    near: {
+      minTransactions: 1,
+      maxTransactionsPerDay: 1000
+    }
+  }
+});
+```
+
+## 📈 Example Usage
+
+```typescript
+// Listen for metric updates
+sdk.on('metrics:collected', (metrics) => {
+  console.log('New metrics:', metrics);
+  
+  // Example metrics structure:
+  {
+    github: {
+      commits: { count: 23, frequency: 3.2 },
+      pullRequests: { merged: 12, open: 5 },
+      community: { contributors: 8, engagement: 0.75 }
+    },
+    near: {
+      transactions: { count: 1250, volume: "5000" },
+      contracts: { calls: 850, uniqueUsers: 120 }
+    },
+    score: {
+      total: 85,
+      breakdown: {
+        development: 0.8,
+        adoption: 0.9
+      }
+    }
+  }
+});
+
+// Get current metrics
+const metrics = await sdk.getMetrics();
+
+// Get historical data
+const history = await sdk.getMetricsHistory({
+  startTime: Date.now() - (30 * 24 * 60 * 60 * 1000), // 30 days ago
+  endTime: Date.now()
+});
+```
+
+## 🛠 Installation
+
+1. Install the package:
 
 ```bash
 npm install near-protocol-rewards
@@ -36,201 +181,33 @@ npm install near-protocol-rewards
 yarn add near-protocol-rewards
 ```
 
-## 🔧 Quick Start
+2. Set up environment variables:
 
-```typescript
-import { NEARProtocolRewardsSDK } from 'near-protocol-rewards';
-
-// Initialize the SDK
-const sdk = new NEARProtocolRewardsSDK({
-  projectId: 'my-project',
-  nearAccount: 'myproject.near',
-  githubRepo: 'myorg/myproject',
-  githubToken: process.env.GITHUB_TOKEN,
-  logLevel: 'info'
-});
-
-// Start tracking
-await sdk.startTracking();
-
-// Get metrics
-const metrics = await sdk.getMetrics();
-console.log('Project Score:', metrics.score.total);
+```env
+NEAR_ACCOUNT=your-project.near
+GITHUB_REPO=org/repo
+GITHUB_TOKEN=your-token
 ```
 
-## 📊 Metrics & Validation
+3. Initialize the SDK in your project
 
-### GitHub Metrics
+## 📖 Documentation
 
-```typescript
-interface GitHubMetrics {
-  commits: {
-    count: number;
-    frequency: number;
-    authors: string[];
-  };
-  pullRequests: {
-    open: number;
-    merged: number;
-    authors: string[];
-  };
-  issues: {
-    open: number;
-    closed: number;
-    participants: string[];
-  };
-  metadata: {
-    collectionTimestamp: number;
-    repoDetails: {
-      stars: number;
-      forks: number;
-    };
-  };
-}
-```
-
-### NEAR Chain Metrics
-
-```typescript
-interface NEARMetrics {
-  transactions: {
-    count: number;
-    volume: string;
-    uniqueUsers: string[];
-  };
-  contract: {
-    calls: number;
-    uniqueCallers: string[];
-  };
-  metadata: {
-    collectionTimestamp: number;
-    blockHeight: number;
-  };
-}
-```
-
-## 💾 Data Storage
-
-The SDK uses PostgreSQL for persistent storage. Configure your database connection:
-
-```typescript
-const sdk = new NEARProtocolRewardsSDK({
-  // ... other config
-  storage: {
-    host: 'localhost',
-    port: 5432,
-    database: 'near_rewards',
-    user: 'postgres',
-    password: 'your-password'
-  }
-});
-```
-
-## 🌐 API Server
-
-Start the API server to expose metrics endpoints:
-
-```typescript
-import { APIServer } from 'near-protocol-rewards/api';
-
-const server = new APIServer({
-  port: 3000,
-  storage: sdk.storage,
-  calculator: sdk.calculator,
-  logger: sdk.logger
-});
-
-await server.start();
-```
-
-Available endpoints:
-
-- `GET /api/v1/projects/:projectId/metrics/current`
-- `GET /api/v1/projects/:projectId/metrics/history`
-- `GET /api/v1/projects/:projectId/status`
-- `GET /api/v1/projects/:projectId/validation`
-
-## 📈 Dashboard Integration
-
-```typescript
-import { DashboardLayout, MetricsCard, ActivityFeed } from 'near-protocol-rewards/components';
-
-function Dashboard() {
-  const { metrics, activities, integrations } = useDashboard({
-    projectId: 'my-project'
-  });
-
-  return (
-    <DashboardLayout>
-      <MetricsCard 
-        title="GitHub Activity"
-        value={metrics.github.commits.count}
-        change={metrics.score.breakdown.githubActivity}
-        data={metrics.history.githubActivity}
-      />
-      <ActivityFeed activities={activities} />
-    </DashboardLayout>
-  );
-}
-```
-
-## ⚙️ Configuration Options
-
-```typescript
-interface SDKConfig {
-  // Required
-  projectId: string;
-  nearAccount: string;
-  githubRepo: string;
-  githubToken: string;
-
-  // Optional
-  logLevel?: 'debug' | 'info' | 'warn' | 'error';
-  trackingInterval?: number; // milliseconds
-  storage?: PostgresConfig;
-  validation?: {
-    github?: GitHubValidatorConfig;
-    near?: NEARValidatorConfig;
-  };
-  weights?: {
-    github?: MetricsWeights;
-    near?: MetricsWeights;
-  };
-}
-```
-
-## 🔍 Error Handling
-
-```typescript
-sdk.on('error', (error) => {
-  if (error instanceof ValidationError) {
-    console.error('Validation failed:', error.message);
-  } else if (error instanceof CollectionError) {
-    console.error('Data collection failed:', error.message);
-  } else if (error instanceof APIError) {
-    console.error('API request failed:', error.message);
-  }
-});
-
-sdk.on('metrics:collected', (metrics) => {
-  console.log('New metrics collected:', metrics);
-});
-```
-
-## 📝 License
-
-MIT License - see the [LICENSE](LICENSE) file for details.
+- [API Reference](docs/api-reference.md)
+- [Configuration Guide](docs/configuration.md)
+- [Dashboard Components](docs/components.md)
+- [Metrics & Calculations](docs/metrics.md)
 
 ## 🤝 Contributing
 
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+We welcome contributions! See our [Contributing Guide](CONTRIBUTING.md) for details.
 
-## 🆘 Support
+## 📄 License
 
-- Documentation: [docs.near.org](https://docs.near.org)
-- Discord: [NEAR Discord](https://near.chat)
-- GitHub Issues: [Create an issue](https://github.com/near/protocol-rewards/issues)
+MIT © [NEAR Protocol](LICENSE)
+
+## 🔗 Links
+
+- [NEAR Protocol](https://near.org)
+- [Documentation](https://docs.near.org)
+- [Discord Community](https://near.chat)

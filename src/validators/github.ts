@@ -1,5 +1,6 @@
 import { GitHubMetrics, ValidationResult, ValidationError, ValidationWarning } from '../types';
 import { Logger } from '../utils/logger';
+import { ErrorCode } from '../utils/errors';
 
 interface GitHubValidatorConfig {
   logger: Logger;
@@ -18,10 +19,10 @@ export class GitHubValidator {
   constructor(config: GitHubValidatorConfig) {
     this.logger = config.logger;
     this.thresholds = {
-      minCommits: config.thresholds?.minCommits || 1,
-      maxCommitsPerDay: config.thresholds?.maxCommitsPerDay || 50,
-      minAuthors: config.thresholds?.minAuthors || 1,
-      suspiciousAuthorRatio: config.thresholds?.suspiciousAuthorRatio || 0.8
+      minCommits: config.thresholds?.minCommits ?? 1,
+      maxCommitsPerDay: config.thresholds?.maxCommitsPerDay ?? 50,
+      minAuthors: config.thresholds?.minAuthors ?? 1,
+      suspiciousAuthorRatio: config.thresholds?.suspiciousAuthorRatio ?? 0.8
     };
   }
 
@@ -67,22 +68,28 @@ export class GitHubValidator {
     errors: ValidationError[],
     warnings: ValidationWarning[]
   ): void {
-    const { commits } = metrics;
+    const commits = metrics.commits;
+    const count = commits?.count ?? 0;
+    const frequency = commits?.frequency ?? 0;
+    const authors = commits?.authors ?? [];
 
     // Check minimum commits
-    if (commits.count < this.thresholds.minCommits) {
+    if (count < this.thresholds.minCommits) {
       warnings.push({
-        code: 'LOW_COMMIT_COUNT',
-        message: `Commit count (${commits.count}) below minimum threshold`,
-        context: { threshold: this.thresholds.minCommits }
+        code: ErrorCode.LOW_COMMIT_COUNT,
+        message: `Commit count (${count}) below minimum threshold`,
+        context: { 
+          count,
+          threshold: this.thresholds.minCommits 
+        }
       });
     }
 
     // Check for suspicious commit frequency
-    const commitsPerDay = commits.frequency * 7;
+    const commitsPerDay = frequency * 7;
     if (commitsPerDay > this.thresholds.maxCommitsPerDay) {
       errors.push({
-        code: 'SUSPICIOUS_COMMIT_FREQUENCY',
+        code: ErrorCode.SUSPICIOUS_COMMIT_FREQUENCY,
         message: 'Unusually high commit frequency detected',
         context: { 
           commitsPerDay,
@@ -92,12 +99,12 @@ export class GitHubValidator {
     }
 
     // Check author diversity
-    if (commits.authors.length < this.thresholds.minAuthors) {
+    if (authors.length < this.thresholds.minAuthors) {
       warnings.push({
-        code: 'LOW_AUTHOR_DIVERSITY',
+        code: ErrorCode.LOW_AUTHOR_DIVERSITY,
         message: 'Low number of unique commit authors',
         context: { 
-          authors: commits.authors.length,
+          authorCount: authors.length,
           threshold: this.thresholds.minAuthors
         }
       });
@@ -109,15 +116,35 @@ export class GitHubValidator {
     errors: ValidationError[],
     warnings: ValidationWarning[]
   ): void {
-    const { pullRequests } = metrics;
+    const prs = metrics.pullRequests;
+    const open = prs?.open ?? 0;
+    const merged = prs?.merged ?? 0;
+    const authors = prs?.authors ?? [];
 
     // Check for suspicious PR patterns
-    const totalPRs = pullRequests.open + pullRequests.merged;
-    if (totalPRs > 0 && pullRequests.authors.length === 1) {
+    const totalPRs = open + merged;
+    if (totalPRs > 0 && authors.length === 1) {
       warnings.push({
-        code: 'SINGLE_PR_AUTHOR',
+        code: ErrorCode.SINGLE_PR_AUTHOR,
         message: 'All PRs from single author',
-        context: { totalPRs, author: pullRequests.authors[0] }
+        context: { 
+          totalPRs, 
+          author: authors[0],
+          threshold: this.thresholds.minAuthors
+        }
+      });
+    }
+
+    // Check PR merge ratio
+    if (totalPRs > 10 && (merged / totalPRs) < 0.3) {
+      warnings.push({
+        code: ErrorCode.LOW_PR_MERGE_RATE,
+        message: 'Low PR merge rate detected',
+        context: {
+          totalPRs,
+          mergedPRs: merged,
+          mergeRate: merged / totalPRs
+        }
       });
     }
   }
@@ -127,17 +154,34 @@ export class GitHubValidator {
     errors: ValidationError[],
     warnings: ValidationWarning[]
   ): void {
-    const { issues } = metrics;
+    const issues = metrics.issues;
+    const open = issues?.open ?? 0;
+    const closed = issues?.closed ?? 0;
+    const participants = issues?.participants ?? [];
 
     // Check for healthy issue engagement
-    const totalIssues = issues.open + issues.closed;
-    if (totalIssues > 0 && issues.participants.length === 1) {
+    const totalIssues = open + closed;
+    if (totalIssues > 0 && participants.length === 1) {
       warnings.push({
-        code: 'LOW_ISSUE_ENGAGEMENT',
+        code: ErrorCode.LOW_ISSUE_ENGAGEMENT,
         message: 'Low community engagement in issues',
         context: { 
           totalIssues,
-          participants: issues.participants.length
+          participantCount: participants.length,
+          threshold: this.thresholds.minAuthors
+        }
+      });
+    }
+
+    // Check issue resolution rate
+    if (totalIssues > 10 && (closed / totalIssues) < 0.5) {
+      warnings.push({
+        code: ErrorCode.LOW_ISSUE_RESOLUTION_RATE,
+        message: 'Low issue resolution rate',
+        context: {
+          totalIssues,
+          closedIssues: closed,
+          resolutionRate: closed / totalIssues
         }
       });
     }
@@ -147,16 +191,27 @@ export class GitHubValidator {
     metrics: GitHubMetrics,
     errors: ValidationError[]
   ): void {
+    const timestamp = metrics.metadata?.collectionTimestamp;
+    if (!timestamp) {
+      errors.push({
+        code: ErrorCode.MISSING_TIMESTAMP,
+        message: 'Missing collection timestamp',
+        context: { metadata: metrics.metadata }
+      });
+      return;
+    }
+
     const now = Date.now();
     const maxAge = 24 * 60 * 60 * 1000; // 24 hours
 
-    if (now - metrics.metadata.collectionTimestamp > maxAge) {
+    if (now - timestamp > maxAge) {
       errors.push({
-        code: 'STALE_DATA',
+        code: ErrorCode.STALE_DATA,
         message: 'Metrics data is too old',
         context: { 
-          timestamp: metrics.metadata.collectionTimestamp,
-          maxAge
+          timestamp,
+          maxAge,
+          age: now - timestamp
         }
       });
     }
