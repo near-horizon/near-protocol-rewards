@@ -1,17 +1,12 @@
 # NEAR Protocol Rewards SDK
 
-<div align="center">
-
-  <p align="center">A transparent, metric-based rewards system for NEAR Protocol projects that directly ties incentives to development activity and user adoption.</p>
-
-  <div align="center">
+A transparent, metric-based rewards system for NEAR Protocol projects that directly ties incentives to development activity and user adoption.
 
   [![npm version](https://badge.fury.io/js/near-protocol-rewards.svg)](https://badge.fury.io/js/near-protocol-rewards)
   [![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue.svg)](https://www.typescriptlang.org/)
   [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
   [![Dependencies](https://img.shields.io/librariesio/release/npm/near-protocol-rewards)](https://libraries.io/npm/near-protocol-rewards)
   [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
-
 
   </div>
 </div>
@@ -173,7 +168,7 @@ const history = await sdk.getMetricsHistory({
 
 ## 🛠 Installation
 
-1. Install the package:
+### Install the package
 
 ```bash
 npm install near-protocol-rewards
@@ -181,7 +176,7 @@ npm install near-protocol-rewards
 yarn add near-protocol-rewards
 ```
 
-2. Set up environment variables:
+### Set up environment variables
 
 ```env
 NEAR_ACCOUNT=your-project.near
@@ -189,7 +184,7 @@ GITHUB_REPO=org/repo
 GITHUB_TOKEN=your-token
 ```
 
-3. Initialize the SDK in your project
+### Initialize the SDK in your project
 
 ## 📖 Documentation
 
