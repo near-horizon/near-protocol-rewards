@@ -316,15 +316,14 @@ export interface CollectorConfig {
 
 export interface BaseCollectorConfig {
   logger: Logger;
+  maxRequestsPerSecond?: number;  // Match base collector
 }
 
 export interface GitHubCollectorConfig extends BaseCollectorConfig {
   repo: string;
   token: string;
-  rateLimit?: number; 
 }
 
 export interface NEARCollectorConfig extends BaseCollectorConfig {
   account: string;
-  rateLimit?: number; 
 }

@@ -14,7 +14,7 @@ describe('Collectors Integration', () => {
       repo: process.env.GITHUB_REPO!,
       token: process.env.GITHUB_TOKEN!,
       logger,
-      rateLimit: 1  // Changed to match interface
+      maxRequestsPerSecond: 1
     });
 
     const metrics = await collector.collectMetrics();
@@ -27,7 +27,7 @@ describe('Collectors Integration', () => {
     const collector = new NEARCollector({
       account: process.env.NEAR_ACCOUNT!,
       logger,
-      rateLimit: 1  // Changed to match interface
+      maxRequestsPerSecond: 1
     });
 
     const metrics = await collector.collectMetrics();

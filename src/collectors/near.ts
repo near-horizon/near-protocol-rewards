@@ -32,6 +32,7 @@ interface NEARCollectorConfig {
   token?: string;  
   logger: Logger;
   endpoint?: string;
+  maxRequestsPerSecond?: number;  // Add this
 }
 
 interface NEARPrice {
@@ -82,8 +83,11 @@ export class NEARCollector extends BaseCollector {
   private lastKnownPrice: NEARPrice | null = null;
 
   constructor(config: NEARCollectorConfig) {
-    // NEARBlocks API has a default rate limit of 30 requests per minute
-    super(config.logger, 25, 60 * 1000);
+    // Pass config to BaseCollector with rate limit settings
+    super({
+      logger: config.logger,
+      maxRequestsPerSecond: config.maxRequestsPerSecond || 25 // NEARBlocks API default rate limit
+    });
     
     this.account = config.account;
     this.api = axios.create({

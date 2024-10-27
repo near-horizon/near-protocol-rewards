@@ -4,16 +4,23 @@ import { RateLimiter, RateLimitConfig } from '../utils/rate-limiter';
 import { formatError } from '../utils/format-error';
 import { JSONValue } from '../types/common';
 
+export interface CollectorConfig {
+  logger: Logger;
+  maxRequestsPerSecond?: number;
+}
+
 export class BaseCollector {
   protected readonly logger: Logger;
   protected readonly rateLimiter: RateLimiter;
   protected readonly retryAttempts = 3;
   protected readonly batchSize: number = 50;
   protected readonly retryDelay = 1000; // ms
-  
-  constructor(logger: Logger, rateLimit: RateLimitConfig) {
-    this.logger = logger;
-    this.rateLimiter = new RateLimiter(rateLimit);
+
+  constructor(config: CollectorConfig) {
+    this.logger = config.logger;
+    this.rateLimiter = new RateLimiter({
+      requestsPerSecond: config.maxRequestsPerSecond || 1
+    });
   }
 
   // Add performance monitoring

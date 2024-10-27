@@ -25,7 +25,6 @@ export class RateLimiter {
     const timePassed = (now - this.lastCheck) / 1000;
     this.lastCheck = now;
 
-    // Replenish tokens based on time passed
     this.tokens = Math.min(
       this.burstSize,
       this.tokens + timePassed * this.requestsPerSecond

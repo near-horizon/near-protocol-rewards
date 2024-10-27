@@ -21,6 +21,7 @@ interface GitHubCollectorConfig {
   repo: string;
   token: string;
   logger: Logger;
+  maxRequestsPerSecond?: number;  // Add this
 }
 
 export class GitHubCollector {
