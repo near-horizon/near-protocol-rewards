@@ -22,83 +22,30 @@ interface RateLimiterConfig {
 }
 
 export class RateLimiter {
-  private client: Redis;
-  private readonly logger: Logger;
-  private readonly limits: RateLimiterConfig['limits'];
+  private timestamps: number[] = [];
+  private readonly limit: number;
+  private readonly interval: number;
 
-  constructor(config: RateLimiterConfig) {
-    this.client = new Redis(config.redis);
-    this.logger = config.logger;
-    this.limits = config.limits;
+  constructor(limit: number, interval: number) {
+    this.limit = limit;
+    this.interval = interval;
   }
 
-  async checkLimit(key: string, type: 'github' | 'near'): Promise<boolean> {
-    const limit = this.limits[type];
-    if (!limit) return true;
-
-    const current = await this.getCurrentCount(key);
-    return current < limit.requests;
-  }
-
-  async incrementCount(key: string, type: 'github' | 'near'): Promise<void> {
-    const limit = this.limits[type];
-    if (!limit) return;
-
-    const multi = this.client.multi();
-    multi.incr(key);
-    multi.expire(key, limit.window);
-    await multi.exec();
-  }
-
-  private async getCurrentCount(key: string): Promise<number> {
-    const count = await this.client.get(key);
-    return count ? parseInt(count, 10) : 0;
-  }
-
-  async executeWithRetry<T>(
-    operation: () => Promise<T>,
-    options: {
-      key: string;
-      type: 'github' | 'near';
-      maxRetries?: number;
-      backoff?: number;
+  async checkLimit(): Promise<boolean> {
+    const now = Date.now();
+    this.timestamps = this.timestamps.filter(t => now - t < this.interval);
+    
+    if (this.timestamps.length >= this.limit) {
+      return false;
     }
-  ): Promise<T> {
-    const { key, type, maxRetries = 3, backoff = 1000 } = options;
-    let retries = 0;
+    
+    this.timestamps.push(now);
+    return true;
+  }
 
-    while (retries <= maxRetries) {
-      try {
-        if (await this.checkLimit(key, type)) {
-          await this.incrementCount(key, type);
-          return await operation();
-        }
-
-        const waitTime = Math.min(backoff * Math.pow(2, retries), 60000);
-        this.logger.warn(`Rate limit reached, waiting ${waitTime}ms`, {
-          key,
-          type,
-          retries
-        });
-
-        await new Promise(resolve => setTimeout(resolve, waitTime));
-        retries++;
-      } catch (error) {
-        if (retries === maxRetries) {
-          throw new APIError(
-            'Rate limit exceeded after retries',
-            ErrorCode.RATE_LIMIT_EXCEEDED,
-            { key, type, retries }
-          );
-        }
-        retries++;
-      }
+  async waitForLimit(): Promise<void> {
+    while (!(await this.checkLimit())) {
+      await new Promise(resolve => setTimeout(resolve, 1000));
     }
-
-    throw new APIError(
-      'Rate limit exceeded',
-      ErrorCode.RATE_LIMIT_EXCEEDED,
-      { key, type }
-    );
   }
 }

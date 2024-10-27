@@ -96,3 +96,44 @@ export class MigrationManager {
     }
   }
 }
+
+export async function runMigrations(pool: Pool, logger: Logger) {
+  const client = await pool.connect();
+  
+  try {
+    await client.query('BEGIN');
+
+    // Create migrations table
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS migrations (
+        id SERIAL PRIMARY KEY,
+        name VARCHAR(255) NOT NULL,
+        applied_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+
+    // Read and execute initial schema
+    const schemaPath = join(__dirname, '001_initial.sql');
+    const schema = readFileSync(schemaPath, 'utf8');
+    await client.query(schema);
+
+    // Record migration
+    await client.query(
+      'INSERT INTO migrations (name) VALUES ($1) ON CONFLICT DO NOTHING',
+      ['001_initial']
+    );
+
+    await client.query('COMMIT');
+    logger.info('Migrations completed successfully');
+  } catch (error) {
+    await client.query('ROLLBACK');
+    logger.error('Migration failed', { error });
+    throw new BaseError(
+      'Database migration failed',
+      ErrorCode.DATABASE_ERROR,
+      { error }
+    );
+  } finally {
+    client.release();
+  }
+}

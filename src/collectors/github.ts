@@ -1,7 +1,8 @@
 import axios, { AxiosInstance } from 'axios';
+import { BaseCollector } from './base';
 import { GitHubMetrics } from '../types';
 import { Logger } from '../utils/logger';
-import { APIError, CollectionError } from '../utils/errors';
+import { BaseError, ErrorCode } from '../utils/errors';
 
 interface GitHubCollectorConfig {
   repo: string;
@@ -9,46 +10,15 @@ interface GitHubCollectorConfig {
   logger: Logger;
 }
 
-interface GitHubCommit {
-  sha: string;
-  commit: {
-    author: {
-      name: string;
-      date: string;
-    };
-  };
-}
-
-interface GitHubPR {
-  number: number;
-  state: string;
-  user: {
-    login: string;
-  };
-  merged_at: string | null;
-}
-
-interface GitHubIssue {
-  number: number;
-  state: string;
-  user: {
-    login: string;
-  };
-  closed_at: string | null;
-}
-
-interface GitHubRepo {
-  stargazers_count: number;
-  forks_count: number;
-}
-
-export class GitHubCollector {
+export class GitHubCollector extends BaseCollector {
   private readonly api: AxiosInstance;
   private readonly repo: string;
 
   constructor(config: GitHubCollectorConfig) {
+    // GitHub API allows 5000 requests per hour = ~83 per minute
+    super(config.logger, 80, 60 * 1000);
+    
     this.repo = config.repo;
-
     this.api = axios.create({
       baseURL: 'https://api.github.com',
       headers: {
@@ -60,86 +30,98 @@ export class GitHubCollector {
 
   async collectMetrics(): Promise<GitHubMetrics> {
     try {
-      const timestamp = Date.now();
-      const [commits, prs, issues, repoDetails] = await Promise.all([
+      const [commits, prs, issues] = await Promise.all([
         this.fetchCommits(),
         this.fetchPullRequests(),
-        this.fetchIssues(),
-        this.fetchRepoDetails()
+        this.fetchIssues()
       ]);
+
+      const timestamp = Date.now();
 
       return {
         commits: {
           count: commits.length,
           frequency: this.calculateCommitFrequency(commits),
-          authors: this.extractUniqueAuthors(commits),
-          timestamp
+          authors: this.extractUniqueAuthors(commits)
         },
         pullRequests: {
           open: prs.filter(pr => pr.state === 'open').length,
           merged: prs.filter(pr => pr.merged_at !== null).length,
-          authors: this.extractPRAuthors(prs),
-          timestamp
+          authors: this.extractPRAuthors(prs)
         },
         issues: {
           open: issues.filter(issue => issue.state === 'open').length,
-          closed: issues.filter(issue => issue.closed_at !== null).length,
-          participants: this.extractIssueParticipants(issues),
-          timestamp
+          closed: issues.filter(issue => issue.state === 'closed').length,
+          participants: this.extractIssueParticipants(issues)
         },
         metadata: {
           collectionTimestamp: timestamp,
-          repoDetails: {
-            stars: repoDetails.stargazers_count,
-            forks: repoDetails.forks_count
-          }
+          source: 'github',
+          projectId: this.repo,
+          periodStart: timestamp - (30 * 24 * 60 * 60 * 1000),
+          periodEnd: timestamp
         }
       };
     } catch (error) {
-      if (axios.isAxiosError(error)) {
-        throw new APIError(
-          'GitHub API request failed',
-          error.response?.status || 500,
-          {
-            message: error.message,
-            repo: this.repo
-          }
-        );
-      }
-      throw new CollectionError('Failed to collect GitHub metrics', {
-        repo: this.repo,
-        error
-      });
+      throw new BaseError(
+        'Failed to collect GitHub metrics',
+        ErrorCode.COLLECTION_ERROR,
+        { error, repo: this.repo }
+      );
     }
   }
 
-  private async fetchCommits(): Promise<GitHubCommit[]> {
-    const { data } = await this.api.get(`/repos/${this.repo}/commits`, {
-      params: { per_page: 100 }
+  private async fetchCommits(days = 30): Promise<any[]> {
+    const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
+    return this.fetchAllPages(`/repos/${this.repo}/commits`, { since });
+  }
+
+  private async fetchPullRequests(): Promise<any[]> {
+    return this.fetchAllPages(`/repos/${this.repo}/pulls`, {
+      state: 'all',
+      sort: 'updated',
+      direction: 'desc'
     });
-    return data;
   }
 
-  private async fetchPullRequests(): Promise<GitHubPR[]> {
-    const { data } = await this.api.get(`/repos/${this.repo}/pulls`, {
-      params: { state: 'all', per_page: 100 }
+  private async fetchIssues(): Promise<any[]> {
+    return this.fetchAllPages(`/repos/${this.repo}/issues`, {
+      state: 'all',
+      sort: 'updated',
+      direction: 'desc'
     });
-    return data;
   }
 
-  private async fetchIssues(): Promise<GitHubIssue[]> {
-    const { data } = await this.api.get(`/repos/${this.repo}/issues`, {
-      params: { state: 'all', per_page: 100 }
-    });
-    return data;
+  private async fetchAllPages(endpoint: string, params: any = {}): Promise<any[]> {
+    let page = 1;
+    const perPage = this.batchSize;
+    const allItems: any[] = [];
+
+    while (true) {
+      const response = await this.withRetry(
+        () => this.api.get(endpoint, {
+          params: {
+            ...params,
+            page,
+            per_page: perPage
+          }
+        }),
+        `Fetching ${endpoint} page ${page}`
+      );
+
+      const items = response.data;
+      if (!items || items.length === 0) break;
+      
+      allItems.push(...items);
+      if (items.length < perPage) break;
+      
+      page++;
+    }
+
+    return allItems;
   }
 
-  private async fetchRepoDetails(): Promise<GitHubRepo> {
-    const { data } = await this.api.get(`/repos/${this.repo}`);
-    return data;
-  }
-
-  private calculateCommitFrequency(commits: GitHubCommit[]): number {
+  private calculateCommitFrequency(commits: any[]): number {
     if (commits.length < 2) return 0;
     
     const dates = commits.map(c => new Date(c.commit.author.date).getTime());
@@ -150,15 +132,15 @@ export class GitHubCollector {
     return commits.length / Math.max(weeks, 1);
   }
 
-  private extractUniqueAuthors(commits: GitHubCommit[]): string[] {
+  private extractUniqueAuthors(commits: any[]): string[] {
     return [...new Set(commits.map(c => c.commit.author.name))];
   }
 
-  private extractPRAuthors(prs: GitHubPR[]): string[] {
+  private extractPRAuthors(prs: any[]): string[] {
     return [...new Set(prs.map(pr => pr.user.login))];
   }
 
-  private extractIssueParticipants(issues: GitHubIssue[]): string[] {
+  private extractIssueParticipants(issues: any[]): string[] {
     return [...new Set(issues.map(issue => issue.user.login))];
   }
 }

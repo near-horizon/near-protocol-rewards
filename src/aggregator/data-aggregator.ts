@@ -1,87 +1,133 @@
-import { GitHubMetrics, NEARMetrics, ProcessedMetrics } from '../types';
 import { Logger } from '../utils/logger';
-import { MetricsAggregator } from './metrics-aggregator';
 import { PostgresStorage } from '../storage/postgres';
-import { EventEmitter } from 'events';
+import { GitHubMetrics, NEARMetrics, ProcessedMetrics } from '../types';
+import { MetricsAggregator } from './metrics-aggregator';
 import { BaseError, ErrorCode } from '../utils/errors';
 
 interface DataAggregatorConfig {
   logger: Logger;
   storage: PostgresStorage;
   metricsAggregator: MetricsAggregator;
+  sampling?: { rate: number };
 }
 
-export class DataAggregator extends EventEmitter {
+export class DataAggregator {
   private readonly logger: Logger;
   private readonly storage: PostgresStorage;
   private readonly metricsAggregator: MetricsAggregator;
-
+  private readonly samplingRate: number;
+  
   constructor(config: DataAggregatorConfig) {
-    super();
     this.logger = config.logger;
     this.storage = config.storage;
     this.metricsAggregator = config.metricsAggregator;
+    this.samplingRate = config.sampling?.rate ?? 1.0; // 100%
+    
+    if (this.samplingRate < 1.0) {
+      this.logger.info(`Sampling enabled at ${this.samplingRate * 100}%`);
+    }
   }
 
   async aggregateData(
     projectId: string,
-    github: GitHubMetrics,
-    near: NEARMetrics
+    githubMetrics: GitHubMetrics,
+    nearMetrics: NEARMetrics
   ): Promise<ProcessedMetrics> {
     try {
-      // Calculate scores using MetricsAggregator
-      const aggregatedMetrics = this.metricsAggregator.aggregateMetrics(github, near);
+      // Handle sampling by creating a minimal metrics object if sampled out
+      if (Math.random() > this.samplingRate) {
+        this.logger.info('Skipping detailed metrics collection due to sampling', { projectId });
+        const timestamp = Date.now();
+        return {
+          timestamp,
+          github: githubMetrics,
+          near: nearMetrics,
+          score: {
+            total: 0,
+            breakdown: {
+              github: 0,
+              near: 0
+            }
+          },
+          validation: {
+            isValid: true,
+            errors: [],
+            warnings: [{
+              code: 'SAMPLED_OUT',
+              message: 'Metrics sampled out based on configuration',
+              context: { samplingRate: this.samplingRate }
+            }],
+            timestamp,
+            metadata: {
+              source: 'github',
+              validationType: 'data'
+            }
+          },
+          metadata: {
+            collectionTimestamp: timestamp,
+            source: 'github',
+            projectId,
+            periodStart: Math.min(
+              githubMetrics.metadata.collectionTimestamp,
+              nearMetrics.metadata.collectionTimestamp
+            ),
+            periodEnd: timestamp
+          }
+        };
+      }
 
-      // Create processed metrics
+      const aggregated = this.metricsAggregator.aggregateMetrics(
+        githubMetrics,
+        nearMetrics
+      );
+
+      const timestamp = Date.now();
       const processedMetrics: ProcessedMetrics = {
-        timestamp: Date.now(),
-        github,
-        near,
+        timestamp,
+        github: githubMetrics,
+        near: nearMetrics,
+        score: {
+          total: aggregated.total,
+          breakdown: {
+            github: aggregated.github.total,
+            near: aggregated.near.total
+          }
+        },
         validation: {
           isValid: true,
           errors: [],
           warnings: [],
-          timestamp: Date.now(),
+          timestamp,
           metadata: {
             source: 'github',
             validationType: 'data'
           }
         },
         metadata: {
+          collectionTimestamp: timestamp,
+          source: 'github',
           projectId,
-          calculationTimestamp: Date.now(),
-          periodStart: this.getPeriodStart(),
-          periodEnd: Date.now()
+          periodStart: Math.min(
+            githubMetrics.metadata.collectionTimestamp,
+            nearMetrics.metadata.collectionTimestamp
+          ),
+          periodEnd: timestamp
         }
       };
 
-      // Store in database
       await this.storage.saveMetrics(projectId, processedMetrics);
-
-      // Emit event for real-time updates
-      this.emit('metrics:processed', processedMetrics);
-
       return processedMetrics;
     } catch (error) {
       this.logger.error('Failed to aggregate data', { error, projectId });
       throw new BaseError(
         'Data aggregation failed',
-        ErrorCode.COLLECTION_ERROR,
-        { error }
+        ErrorCode.AGGREGATION_ERROR,
+        { error, projectId }
       );
     }
   }
 
-  private getPeriodStart(): number {
-    // Default to 30 days ago
-    return Date.now() - (30 * 24 * 60 * 60 * 1000);
-  }
-
-  async getHistoricalData(
-    projectId: string,
-    startTime: number,
-    endTime: number
-  ): Promise<ProcessedMetrics[]> {
-    return this.storage.getMetricsHistory(projectId, startTime, endTime);
+  async getLatestMetrics(projectId: string): Promise<ProcessedMetrics | null> {
+    return this.storage.getLatestMetrics(projectId);
   }
 }

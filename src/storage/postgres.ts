@@ -1,143 +1,106 @@
 import { Pool, PoolConfig } from 'pg';
 import { Logger } from '../utils/logger';
-import { GitHubMetrics, NEARMetrics, AggregatedMetrics } from '../types';
+import { GitHubMetrics, NEARMetrics, ProcessedMetrics } from '../types';
 import { BaseError, ErrorCode } from '../utils/errors';
 
-interface StorageConfig {
-  logger: Logger;
-  connectionConfig: PoolConfig;
+export interface StoredMetrics {
+  github: GitHubMetrics;
+  near: NEARMetrics;
+  processed: ProcessedMetrics;
+  signature: string;
 }
 
 export class PostgresStorage {
   private readonly pool: Pool;
   private readonly logger: Logger;
 
-  constructor(config: StorageConfig) {
+  constructor(config: { connectionConfig: PoolConfig; logger: Logger }) {
+    this.pool = new Pool(config.connectionConfig);
     this.logger = config.logger;
-    this.pool = new Pool({
-      ...config.connectionConfig,
-      max: 20,
-      idleTimeoutMillis: 30000,
-      connectionTimeoutMillis: 2000
-    });
-
-    // Handle pool errors
-    this.pool.on('error', (err) => {
-      this.logger.error('Unexpected error on idle client', { error: err });
-    });
   }
 
   async initialize(): Promise<void> {
-    try {
-      await this.createTables();
-      this.logger.info('PostgreSQL storage initialized');
-    } catch (error) {
-      this.logger.error('Failed to initialize storage', { error });
-      throw new BaseError(
-        'Storage initialization failed',
-        ErrorCode.DATABASE_ERROR,
-        { error }
-      );
-    }
-  }
-
-  private async createTables(): Promise<void> {
     const client = await this.pool.connect();
     try {
-      await client.query('BEGIN');
-
-      // Metrics table
       await client.query(`
         CREATE TABLE IF NOT EXISTS metrics (
           id SERIAL PRIMARY KEY,
           project_id VARCHAR(255) NOT NULL,
-          timestamp BIGINT NOT NULL,
           github_metrics JSONB NOT NULL,
           near_metrics JSONB NOT NULL,
-          aggregated_metrics JSONB NOT NULL,
-          created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-        )
-      `);
-
-      // Projects table
-      await client.query(`
-        CREATE TABLE IF NOT EXISTS projects (
-          id VARCHAR(255) PRIMARY KEY,
-          near_account VARCHAR(255) NOT NULL,
-          github_repo VARCHAR(255) NOT NULL,
+          processed_metrics JSONB NOT NULL,
+          signature VARCHAR(255) NOT NULL,
           created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-          updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-        )
+          UNIQUE(project_id, created_at)
+        );
+        
+        CREATE INDEX IF NOT EXISTS idx_metrics_project_date 
+        ON metrics(project_id, created_at DESC);
       `);
-
-      // Indexes for efficient queries
-      await client.query(`
-        CREATE INDEX IF NOT EXISTS idx_metrics_project_timestamp 
-        ON metrics(project_id, timestamp)
-      `);
-
-      await client.query('COMMIT');
-    } catch (error) {
-      await client.query('ROLLBACK');
-      throw error;
     } finally {
       client.release();
     }
   }
 
-  async saveMetrics(
-    projectId: string,
-    metrics: AggregatedMetrics
-  ): Promise<void> {
-    const query = `
-      INSERT INTO metrics (
-        project_id, 
-        timestamp, 
-        github_metrics, 
-        near_metrics, 
-        aggregated_metrics
-      ) VALUES ($1, $2, $3, $4, $5)
-    `;
+  async getProjectStatus(projectId: string) {
+    const result = await this.pool.query(
+      `SELECT 
+        MAX(created_at) as last_collection,
+        COUNT(*) FILTER (WHERE created_at > NOW() - INTERVAL '24 hours') as collection_count,
+        bool_or(processed_metrics->>'isHealthy') as is_healthy
+       FROM metrics 
+       WHERE project_id = $1`,
+      [projectId]
+    );
 
+    return {
+      lastCollection: result.rows[0].last_collection,
+      isHealthy: result.rows[0].is_healthy,
+      recentErrors: [],
+      nextScheduledCollection: Date.now() + (60 * 60 * 1000) // 1 hour from now
+    };
+  }
+
+  async saveMetrics(projectId: string, metrics: StoredMetrics): Promise<void> {
     try {
-      await this.executeWithRetry(() => 
-        this.pool.query(query, [
+      await this.pool.query(
+        `INSERT INTO metrics 
+         (project_id, github_metrics, near_metrics, processed_metrics, signature)
+         VALUES ($1, $2, $3, $4, $5)`,
+        [
           projectId,
-          metrics.timestamp,
           metrics.github,
           metrics.near,
-          metrics
-        ])
+          metrics.processed,
+          metrics.signature
+        ]
       );
-      this.logger.info('Metrics saved successfully', { projectId });
     } catch (error) {
       this.logger.error('Failed to save metrics', { error, projectId });
       throw new BaseError(
-        'Failed to save metrics',
+        'Database operation failed',
         ErrorCode.DATABASE_ERROR,
         { error }
       );
     }
   }
 
-  async getLatestMetrics(projectId: string): Promise<AggregatedMetrics | null> {
-    const query = `
-      SELECT aggregated_metrics 
-      FROM metrics 
-      WHERE project_id = $1 
-      ORDER BY timestamp DESC 
-      LIMIT 1
-    `;
-
+  async getLatestMetrics(projectId: string): Promise<ProcessedMetrics | null> {
     try {
-      const result = await this.executeWithRetry(() =>
-        this.pool.query(query, [projectId])
+      const result = await this.pool.query(
+        `SELECT processed_metrics 
+         FROM metrics 
+         WHERE project_id = $1 
+         ORDER BY created_at DESC 
+         LIMIT 1`,
+        [projectId]
       );
-      return result.rows[0]?.aggregated_metrics || null;
+
+      return result.rows[0]?.processed_metrics || null;
     } catch (error) {
       this.logger.error('Failed to get latest metrics', { error, projectId });
       throw new BaseError(
-        'Failed to get metrics',
+        'Database query failed',
         ErrorCode.DATABASE_ERROR,
         { error }
       );
@@ -146,54 +109,26 @@ export class PostgresStorage {
 
   async getMetricsHistory(
     projectId: string,
-    startTime: number,
-    endTime: number
-  ): Promise<AggregatedMetrics[]> {
-    const query = `
-      SELECT aggregated_metrics 
-      FROM metrics 
-      WHERE project_id = $1 
-        AND timestamp >= $2 
-        AND timestamp <= $3 
-      ORDER BY timestamp ASC
-    `;
-
+    limit: number = 30
+  ): Promise<ProcessedMetrics[]> {
     try {
-      const result = await this.executeWithRetry(() =>
-        this.pool.query(query, [projectId, startTime, endTime])
+      const result = await this.pool.query(
+        `SELECT processed_metrics 
+         FROM metrics 
+         WHERE project_id = $1 
+         ORDER BY created_at DESC 
+         LIMIT $2`,
+        [projectId, limit]
       );
-      return result.rows.map(row => row.aggregated_metrics);
+
+      return result.rows.map(row => row.processed_metrics);
     } catch (error) {
       this.logger.error('Failed to get metrics history', { error, projectId });
       throw new BaseError(
-        'Failed to get metrics history',
+        'Database query failed',
         ErrorCode.DATABASE_ERROR,
         { error }
       );
-    }
-  }
-
-  private async executeWithRetry<T>(
-    operation: () => Promise<T>,
-    retries = 3,
-    delay = 1000
-  ): Promise<T> {
-    try {
-      return await operation();
-    } catch (error) {
-      if (retries > 0) {
-        this.logger.warn('Retrying database operation', {
-          retriesLeft: retries - 1,
-          delay
-        });
-        await new Promise(resolve => setTimeout(resolve, delay));
-        return this.executeWithRetry(
-          operation,
-          retries - 1,
-          delay * 2
-        );
-      }
-      throw error;
     }
   }
 

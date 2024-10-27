@@ -8,25 +8,21 @@ CREATE TABLE IF NOT EXISTS projects (
 
 CREATE TABLE IF NOT EXISTS metrics (
   id SERIAL PRIMARY KEY,
-  project_id VARCHAR(255) REFERENCES projects(id),
+  project_id VARCHAR(255) NOT NULL,
   timestamp BIGINT NOT NULL,
   github_metrics JSONB NOT NULL,
   near_metrics JSONB NOT NULL,
   score JSONB NOT NULL,
   validation JSONB NOT NULL,
   metadata JSONB NOT NULL,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  
+  -- Indexes for better query performance
+  INDEX idx_project_timestamp (project_id, timestamp DESC),
+  INDEX idx_created_at (created_at DESC)
 );
 
-CREATE TABLE IF NOT EXISTS validations (
-  id SERIAL PRIMARY KEY,
-  project_id VARCHAR(255) REFERENCES projects(id),
-  timestamp BIGINT NOT NULL,
-  source VARCHAR(50) NOT NULL,
-  type VARCHAR(50) NOT NULL,
-  result JSONB NOT NULL,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE INDEX idx_metrics_project_timestamp ON metrics(project_id, timestamp);
-CREATE INDEX idx_validations_project_timestamp ON validations(project_id, timestamp);
+-- Add any necessary constraints
+ALTER TABLE metrics
+  ADD CONSTRAINT metrics_project_id_timestamp_unique 
+  UNIQUE (project_id, timestamp);

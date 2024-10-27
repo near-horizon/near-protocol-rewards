@@ -1,145 +1,149 @@
 import { Logger } from '../utils/logger';
-import { GitHubMetrics, NEARMetrics } from '../types';
-import { CollectionError } from '../utils/errors';
+import { GitHubMetrics, NEARMetrics, RewardCalculation } from '../types';
+import { BaseError, ErrorCode } from '../utils/errors';
 
-interface MetricsWeights {
-  github: {
-    commitActivity: number;
-    prQuality: number;
-    communityEngagement: number;
-  };
-  near: {
-    transactionVolume: number;
-    contractUsage: number;
-    userGrowth: number;
-  };
-}
-
-interface CalculatorConfig {
+interface MetricsCalculatorConfig {
   logger: Logger;
-  weights?: Partial<MetricsWeights>;
+  weights: {
+    github: {
+      commits: number;
+      pullRequests: number;
+      issues: number;
+    };
+    near: {
+      transactions: number;
+      contractCalls: number;
+      uniqueUsers: number;
+    };
+  };
+  thresholds?: {
+    minimumScore?: number;  // Minimum score required for rewards
+    minimumUsdReward?: number;  // Minimum USD reward amount
+    maximumUsdReward?: number;  // Maximum USD reward amount
+  };
 }
 
 export class MetricsCalculator {
   private readonly logger: Logger;
-  private readonly weights: Required<MetricsWeights>;
+  private readonly weights: Required<MetricsCalculatorConfig['weights']>;
+  private readonly thresholds: Required<NonNullable<MetricsCalculatorConfig['thresholds']>>;
 
-  constructor(config: CalculatorConfig) {
+  constructor(config: MetricsCalculatorConfig) {
     this.logger = config.logger;
-    
-    // Set default weights with required properties
     this.weights = {
       github: {
-        commitActivity: config.weights?.github?.commitActivity ?? 0.4,
-        prQuality: config.weights?.github?.prQuality ?? 0.3,
-        communityEngagement: config.weights?.github?.communityEngagement ?? 0.3
+        commits: config.weights.github.commits,
+        pullRequests: config.weights.github.pullRequests,
+        issues: config.weights.github.issues
       },
       near: {
-        transactionVolume: config.weights?.near?.transactionVolume ?? 0.4,
-        contractUsage: config.weights?.near?.contractUsage ?? 0.3,
-        userGrowth: config.weights?.near?.userGrowth ?? 0.3
+        transactions: config.weights.near.transactions,
+        contractCalls: config.weights.near.contractCalls,
+        uniqueUsers: config.weights.near.uniqueUsers
       }
     };
-
-    // Validate weights sum to 1
-    this.validateWeights();
-  }
-
-  private validateWeights(): void {
-    const githubSum = Object.values(this.weights.github).reduce((a, b) => a + b, 0);
-    const nearSum = Object.values(this.weights.near).reduce((a, b) => a + b, 0);
-
-    if (Math.abs(githubSum - 1) > 0.001) {
-      this.logger.warn('GitHub weights do not sum to 1', { 
-        sum: githubSum, 
-        weights: this.weights.github 
-      });
-    }
-
-    if (Math.abs(nearSum - 1) > 0.001) {
-      this.logger.warn('NEAR weights do not sum to 1', { 
-        sum: nearSum, 
-        weights: this.weights.near 
-      });
-    }
+    
+    // Set default thresholds
+    this.thresholds = {
+      minimumScore: config.thresholds?.minimumScore ?? 10, // Minimum 10% score
+      minimumUsdReward: config.thresholds?.minimumUsdReward ?? 100, // Minimum $100 USD
+      maximumUsdReward: config.thresholds?.maximumUsdReward ?? 10000 // Maximum $10,000 USD
+    };
   }
 
   calculateMetrics(github: GitHubMetrics, near: NEARMetrics): {
-    github: ReturnType<typeof this.calculateGitHubScore>;
-    near: ReturnType<typeof this.calculateNEARScore>;
+    github: { total: number };
+    near: { total: number };
     total: number;
+    reward?: RewardCalculation;
   } {
     try {
       const githubScore = this.calculateGitHubScore(github);
       const nearScore = this.calculateNEARScore(near);
+      const totalScore = Math.round((githubScore + nearScore) / 2);
+
+      // Check if score meets minimum threshold
+      if (totalScore < this.thresholds.minimumScore) {
+        this.logger.info('Score below minimum threshold', {
+          score: totalScore,
+          minimum: this.thresholds.minimumScore
+        });
+        return {
+          github: { total: githubScore },
+          near: { total: nearScore },
+          total: totalScore
+        };
+      }
+
+      // Calculate reward if price data is available
+      if (near.metadata.priceData) {
+        const reward = this.calculateReward(totalScore, near.metadata.priceData.usd);
+        return {
+          github: { total: githubScore },
+          near: { total: nearScore },
+          total: totalScore,
+          reward
+        };
+      }
 
       return {
-        github: githubScore,
-        near: nearScore,
-        total: Math.round((githubScore.total + nearScore.total) / 2)
+        github: { total: githubScore },
+        near: { total: nearScore },
+        total: totalScore
       };
     } catch (error) {
       this.logger.error('Failed to calculate metrics', { error });
-      throw new CollectionError('Metrics calculation failed', { error });
+      throw new BaseError(
+        'Metrics calculation failed',
+        ErrorCode.CALCULATION_ERROR,
+        { error }
+      );
     }
   }
 
-  private calculateGitHubScore(metrics: GitHubMetrics) {
-    // Calculate individual scores
-    const commitActivity = Math.min(1, metrics.commits.frequency / 10) * 
-      this.weights.github.commitActivity;
+  private calculateReward(score: number, nearPrice: number): RewardCalculation {
+    // Calculate base USD reward
+    const baseUsdReward = (score / 100) * this.thresholds.maximumUsdReward;
+    
+    // Apply thresholds
+    const usdAmount = Math.min(
+      Math.max(baseUsdReward, this.thresholds.minimumUsdReward),
+      this.thresholds.maximumUsdReward
+    );
 
-    const prQuality = Math.min(1, metrics.pullRequests.merged / 
-      Math.max(1, metrics.pullRequests.open + metrics.pullRequests.merged)) * 
-      this.weights.github.prQuality;
-
-    // Community engagement score (0-1)
-    const uniqueContributors = new Set([
-      ...metrics.commits.authors,
-      ...metrics.pullRequests.authors,
-      ...metrics.issues.participants
-    ]).size;
-
-    const communityEngagement = Math.min(1, uniqueContributors / 10) * 
-      this.weights.github.communityEngagement;
+    // Convert to NEAR
+    const nearAmount = usdAmount / nearPrice;
 
     return {
-      commitActivity,
-      prQuality,
-      communityEngagement,
-      total: Math.round((commitActivity + prQuality + communityEngagement) * 100)
+      usdAmount,
+      nearAmount,
+      score,
+      timestamp: Date.now()
     };
   }
 
-  private calculateNEARScore(metrics: NEARMetrics) {
-    // Transaction volume score (0-1)
-    const volume = parseFloat(metrics.transactions.volume);
-    const transactionVolume = Math.min(1, volume / 10000) * 
-      this.weights.near.transactionVolume;
+  private calculateGitHubScore(metrics: GitHubMetrics): number {
+    const commitScore = Math.min(100, (metrics.commits.count / 100) * 100);
+    const prScore = Math.min(100, (metrics.pullRequests.merged / 20) * 100);
+    const issueScore = Math.min(100, (metrics.issues.closed / 30) * 100);
 
-    // Contract usage score (0-1)
-    const contractUsage = Math.min(1, metrics.contract.calls / 1000) * 
-      this.weights.near.contractUsage;
-
-    // User growth score (0-1)
-    const uniqueUsers = new Set([
-      ...metrics.transactions.uniqueUsers,
-      ...metrics.contract.uniqueCallers
-    ]).size;
-
-    const userGrowth = Math.min(1, uniqueUsers / 100) * 
-      this.weights.near.userGrowth;
-
-    return {
-      transactionVolume,
-      contractUsage,
-      userGrowth,
-      total: Math.round((transactionVolume + contractUsage + userGrowth) * 100)
-    };
+    return Math.round(
+      (commitScore * this.weights.github.commits) +
+      (prScore * this.weights.github.pullRequests) +
+      (issueScore * this.weights.github.issues)
+    );
   }
 
-  // Helper method to get current weights configuration
-  getWeights(): Required<MetricsWeights> {
-    return { ...this.weights };
+  private calculateNEARScore(metrics: NEARMetrics): number {
+    const volumeNum = parseFloat(metrics.transactions.volume);
+    const txScore = Math.min(100, (metrics.transactions.count / 1000) * 100);
+    const volumeScore = Math.min(100, (volumeNum / 10000) * 100);
+    const userScore = Math.min(100, (metrics.transactions.uniqueUsers.length / 100) * 100);
+
+    return Math.round(
+      (txScore * this.weights.near.transactions) +
+      (volumeScore * this.weights.near.contractCalls) +
+      (userScore * this.weights.near.uniqueUsers)
+    );
   }
 }

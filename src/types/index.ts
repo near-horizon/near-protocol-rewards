@@ -1,10 +1,90 @@
 import { z } from 'zod';
-import { SDKConfigSchema } from '../validators/schema';
+
+// Storage configuration
+export interface StorageConfig {
+  type: 'postgres';
+  config: {
+    host: string;
+    port: number;
+    database: string;
+    user: string;
+    password: string;
+  };
+}
+
+// Weight configurations
+export interface GitHubWeights {
+  commits: number;
+  pullRequests: number;
+  issues: number;
+}
+
+export interface NEARWeights {
+  transactions: number;
+  contractCalls: number;
+  uniqueUsers: number;
+}
+
+// Validation configurations
+export interface ValidationConfig {
+  github?: {
+    minCommits?: number;
+    maxCommitsPerDay?: number;
+    minAuthors?: number;
+  };
+  near?: {
+    minTransactions?: number;
+    maxTransactionsPerDay?: number;
+    minUniqueUsers?: number;
+  };
+}
+
+// SDK Configuration Schema
+export const SDKConfigSchema = z.object({
+  projectId: z.string(),
+  nearAccount: z.string(),
+  githubRepo: z.string(),
+  githubToken: z.string(),
+  storage: z.object({
+    type: z.literal('postgres'),
+    config: z.object({
+      host: z.string(),
+      port: z.number(),
+      database: z.string(),
+      user: z.string(),
+      password: z.string()
+    })
+  }).optional(),
+  weights: z.object({
+    github: z.object({
+      commits: z.number(),
+      pullRequests: z.number(),
+      issues: z.number()
+    }).partial().optional(),
+    near: z.object({
+      transactions: z.number(),
+      contractCalls: z.number(),
+      uniqueUsers: z.number()
+    }).partial().optional()
+  }).optional(),
+  validation: z.object({
+    github: z.object({
+      minCommits: z.number(),
+      maxCommitsPerDay: z.number(),
+      minAuthors: z.number()
+    }).partial().optional(),
+    near: z.object({
+      minTransactions: z.number(),
+      maxTransactionsPerDay: z.number(),
+      minUniqueUsers: z.number()
+    }).partial().optional()
+  }).optional()
+});
 
 // Export the SDK configuration type
 export type SDKConfig = z.infer<typeof SDKConfigSchema>;
 
-// Metrics types
+// Metric types
 export interface GitHubMetrics {
   commits: {
     count: number;
@@ -22,27 +102,31 @@ export interface GitHubMetrics {
     participants: string[];
   };
   metadata: {
-    repo: string;
     collectionTimestamp: number;
+    source: 'github';
+    projectId: string;
+    periodStart: number;
+    periodEnd: number;
   };
 }
 
 export interface NEARMetrics {
   transactions: {
     count: number;
-    volume: string;
+    volume: string;  // Volume in USD
     uniqueUsers: string[];
-    timestamp: number;
   };
   contract: {
     calls: number;
     uniqueCallers: string[];
-    timestamp: number;
   };
   metadata: {
-    account: string;
     collectionTimestamp: number;
-    blockHeight: number;
+    source: 'near';
+    projectId: string;
+    periodStart: number;
+    periodEnd: number;
+    priceData: NEARPrice;  // Add price data to metadata
   };
 }
 
@@ -50,7 +134,6 @@ export interface ProcessedMetrics {
   timestamp: number;
   github: GitHubMetrics;
   near: NEARMetrics;
-  validation: ValidationResult;
   score: {
     total: number;
     breakdown: {
@@ -58,6 +141,7 @@ export interface ProcessedMetrics {
       near: number;
     };
   };
+  validation: ValidationResult;
   metadata: MetricsMetadata;
 }
 
@@ -84,63 +168,31 @@ export interface ValidationWarning {
   context?: Record<string, any>;
 }
 
-export interface SDKConfig {
+export interface MetricsMetadata {
+  collectionTimestamp: number;
+  source: 'github' | 'near';
   projectId: string;
-  nearAccount: string;
-  githubRepo: string;
-  githubToken: string;
-  nearApiEndpoint?: string;
-  logLevel?: 'debug' | 'info' | 'warn' | 'error';
-  trackingInterval?: number;
-  validation?: ValidationConfig;
-  storage?: StorageConfig;
-  weights?: WeightConfig;
-  logger?: Logger;
+  periodStart: number;
+  periodEnd: number;
 }
 
-export interface StorageSchema {
-  metrics: ProcessedMetrics;
-  validations: ValidationResult[];
-  projects: {
-    id: string;
-    nearAccount: string;
-    githubRepo: string;
-    createdAt: number;
-    updatedAt: number;
-  };
-}
-
-// Event types
-export type SDKEventMap = {
-  'error': SDKError;
-  'metrics:collected': ProcessedMetrics;
-  'validation:failed': ValidationError[];
-  'tracking:started': void;
-  'tracking:stopped': void;
-  'collection:failed': Error;
-};
-
-export interface SDKError extends Error {
-  code: string;
-  context?: Record<string, any>;
-}
-
-export interface AggregatedMetrics {
+export interface NEARPrice {
+  usd: number;
   timestamp: number;
-  github: GitHubMetrics;
-  near: NEARMetrics;
-  score: {
-    total: number;
-    breakdown: {
-      github: number;
-      near: number;
-    };
-  };
-  validation: ValidationResult;
-  metadata: {
-    projectId: string;
-    calculationTimestamp: number;
-    periodStart: number;
-    periodEnd: number;
-  };
+}
+
+// Add reward calculation types
+export interface RewardCalculation {
+  usdAmount: number;
+  nearAmount: number;
+  score: number;
+  timestamp: number;
+}
+
+// Update ErrorCode enum
+export enum ErrorCode {
+  // ... existing error codes ...
+  CALCULATION_ERROR = 'CALCULATION_ERROR',
+  PRICE_DATA_ERROR = 'PRICE_DATA_ERROR',
+  VALIDATION_ERROR = 'VALIDATION_ERROR'
 }
