@@ -1,4 +1,3 @@
-import '@testing-library/jest-dom';
 import dotenv from 'dotenv';
 import { Pool } from 'pg';
 import { Logger } from '../utils/logger';
