@@ -10,9 +10,10 @@
   "scripts": {
     "build": "tsc",
     "prebuild": "npm run clean",
-    "test": "jest --setupFiles dotenv/config",
-    "test:watch": "jest --watch",
-    "test:coverage": "jest --coverage",
+    "test": "jest --config jest.config.js",
+    "test:watch": "jest --config jest.config.js --watch",
+    "test:coverage": "jest --config jest.config.js --coverage",
+    "test:ci": "jest --ci",
     "prepublishOnly": "npm run build && npm run test",
     "lint": "eslint src --ext .ts",
     "clean": "rimraf dist"
@@ -64,24 +65,5 @@
     "dist",
     "README.md",
     "LICENSE"
-  ],
-  "jest": {
-    "preset": "ts-jest",
-    "testEnvironment": "node",
-    "setupFilesAfterEnv": [
-      "<rootDir>/src/tests/setup.ts"
-    ],
-    "testMatch": [
-      "**/?(*.)+(spec|test).ts"
-    ],
-    "moduleFileExtensions": [
-      "ts",
-      "js"
-    ],
-    "globals": {
-      "ts-jest": {
-        "tsconfig": "tsconfig.json"
-      }
-    }
-  }
+  ]
 }

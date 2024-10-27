@@ -8,12 +8,11 @@
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
-    "rootDir": "./src"
+    "rootDir": "."
   },
   "include": [
     "src/**/*.ts",
-    "src/**/*.tsx",
-    "src/**/*.test.ts"
+    "tests/**/*.ts"
   ],
   "exclude": [
     "node_modules",
