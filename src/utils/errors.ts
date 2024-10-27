@@ -28,7 +28,8 @@ export enum ErrorCode {
   KEY_ROTATION_ERROR = 'KEY_ROTATION_ERROR',
   
   // Storage Errors
-  DATABASE_ERROR = 'DATABASE_ERROR'
+  DATABASE_ERROR = 'DATABASE_ERROR',
+  AGGREGATION_ERROR = 'AGGREGATION_ERROR'
 }
 
 export class BaseError extends Error {

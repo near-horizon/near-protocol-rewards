@@ -1,8 +1,10 @@
-import { GitHubMetrics, NEARMetrics } from '../../types';
+import { GitHubMetrics, NEARMetrics, StoredMetrics, ProcessedMetrics } from '../../src/types';
 
 export const createMockGitHubMetrics = (
   overrides: Partial<GitHubMetrics> = {}
 ): GitHubMetrics => ({
+  timestamp: Date.now(),
+  projectId: 'test-project',
   commits: {
     count: 10,
     frequency: 2.5,
@@ -31,6 +33,8 @@ export const createMockGitHubMetrics = (
 export const createMockNEARMetrics = (
   overrides: Partial<NEARMetrics> = {}
 ): NEARMetrics => ({
+  timestamp: Date.now(),
+  projectId: 'test-project',
   transactions: {
     count: 100,
     volume: "1000",
@@ -38,6 +42,10 @@ export const createMockNEARMetrics = (
   },
   contract: {
     calls: 50,
+    uniqueCallers: ['user1.near', 'user2.near']
+  },
+  contractCalls: {
+    count: 50,
     uniqueCallers: ['user1.near', 'user2.near']
   },
   metadata: {
@@ -53,3 +61,47 @@ export const createMockNEARMetrics = (
   },
   ...overrides
 });
+
+export const createMockStoredMetrics = (
+  overrides: Partial<StoredMetrics> = {}
+): StoredMetrics => {
+  const timestamp = Date.now();
+  const projectId = 'test-project';
+
+  return {
+    projectId,
+    timestamp,
+    github: createMockGitHubMetrics(),
+    near: createMockNEARMetrics(),
+    score: {
+      total: 85,
+      breakdown: { github: 80, near: 90 }
+    },
+    processed: {
+      timestamp,
+      collectionTimestamp: timestamp,
+      source: 'github',
+      projectId,
+      periodStart: timestamp - 1000,
+      periodEnd: timestamp,
+      github: createMockGitHubMetrics(),
+      near: createMockNEARMetrics(),
+      score: {
+        total: 85,
+        breakdown: { github: 80, near: 90 }
+      },
+      validation: {
+        isValid: true,
+        errors: [],
+        warnings: [],
+        timestamp,
+        metadata: {
+          source: 'github',
+          validationType: 'data'
+        }
+      }
+    },
+    signature: 'test-signature',
+    ...overrides
+  };
+};

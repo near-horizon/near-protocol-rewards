@@ -24,6 +24,7 @@
 - [Beta Testing Guide](docs/beta-testing.md) - Guide for beta testers
 - [Beta Checklist](docs/beta-checklist.md) - Pre-testing requirements
 - [Known Limitations](docs/quick-start.md#known-limitations-beta) - Current beta limitations
+- [Testing Setup](tests/setup.ts) - Setup for testing
 
 ### Technical Documentation
 
