@@ -4,6 +4,16 @@ import { testConfig } from '../setup';
 import { MetricsAggregator } from '../../src/aggregator/metrics-aggregator';
 import { GitHubMetrics, NEARMetrics } from '../../src/types';
 
+// Mock PostgresStorage
+jest.mock('../../src/storage/postgres', () => ({
+  PostgresStorage: jest.fn().mockImplementation(() => ({
+    initialize: jest.fn().mockResolvedValue(undefined),
+    saveMetrics: jest.fn().mockResolvedValue(undefined),
+    getLatestMetrics: jest.fn().mockResolvedValue(null),
+    cleanup: jest.fn().mockResolvedValue(undefined)
+  }))
+}));
+
 jest.mock('../../src/collectors/github', () => ({
   GitHubCollector: jest.fn().mockImplementation(() => ({
     collectMetrics: jest.fn().mockResolvedValue(createMockGitHubMetrics())

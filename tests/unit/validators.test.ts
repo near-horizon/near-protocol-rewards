@@ -15,7 +15,14 @@ describe('Validators Unit Tests', () => {
       error: jest.fn()
     } as unknown as Logger;
 
-    validator = new GitHubValidator({ logger });
+    validator = new GitHubValidator({ 
+      logger,
+      thresholds: {
+        minCommits: 10,
+        maxCommitsPerDay: 50,
+        minAuthors: 2  // Set explicit threshold
+      }
+    });
   });
 
   it('should detect suspicious commit patterns', () => {
@@ -23,7 +30,7 @@ describe('Validators Unit Tests', () => {
       commits: {
         count: 100,
         frequency: 10,
-        authors: ['user1'] // Single author to trigger warning
+        authors: ['user1'] // Single author
       },
       pullRequests: {
         open: 5,
@@ -33,6 +40,7 @@ describe('Validators Unit Tests', () => {
     });
 
     const result = validator.validate(metrics);
+    
     expect(result.warnings).toContainEqual(
       expect.objectContaining({
         code: ErrorCode.LOW_AUTHOR_DIVERSITY
