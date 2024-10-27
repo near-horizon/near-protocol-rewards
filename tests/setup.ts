@@ -5,6 +5,7 @@ import { Pool } from 'pg';
 import { Logger } from '../src/utils/logger';
 import { PostgresStorage } from '../src/storage/postgres';
 import { GitHubMetrics } from '../src/types';
+import { formatError } from '../src/utils/format-error';
 
 // Load test environment variables
 dotenv.config({ path: '.env.test' });
@@ -75,18 +76,35 @@ afterAll(async () => {
 
 // Database setup and cleanup functions
 export async function setupTestDb() {
+  const poolConfig = {
+    host: process.env.POSTGRES_HOST,
+    port: parseInt(process.env.POSTGRES_PORT!),
+    database: process.env.POSTGRES_DB,
+    user: process.env.POSTGRES_USER,
+    password: process.env.POSTGRES_PASSWORD
+  };
+
+  const pool = new Pool(poolConfig);
   const logger = new Logger({ projectId: 'test' });
-  const storage = new PostgresStorage({
-    connectionConfig: testConfig.storage.config,
-    logger
-  });
-  
+
   try {
-    await storage.initialize();
+    // Create test tables
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS metrics (
+        id SERIAL PRIMARY KEY,
+        project_id VARCHAR(255) NOT NULL,
+        data JSONB NOT NULL,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
   } catch (error) {
-    // eslint-disable-next-line no-console
-    console.error('Failed to setup test database:', error);
+    logger.error('Failed to setup test database', {
+      error: formatError(error),
+      context: { operation: 'setup' }
+    });
     throw error;
+  } finally {
+    await pool.end();
   }
 }
 

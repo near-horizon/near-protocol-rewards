@@ -83,19 +83,19 @@ export class NEARCollector extends BaseCollector {
   private lastKnownPrice: NEARPrice | null = null;
 
   constructor(config: NEARCollectorConfig) {
-    // Pass config to BaseCollector with rate limit settings
     super({
       logger: config.logger,
-      maxRequestsPerSecond: config.maxRequestsPerSecond || 25 // NEARBlocks API default rate limit
+      maxRequestsPerSecond: 5  // NEARBlocks rate limit
     });
     
     this.account = config.account;
     this.api = axios.create({
-      baseURL: config.endpoint || 'https://api.nearblocks.io/v1',
+      baseURL: 'https://api.nearblocks.io/v1',
       headers: {
         'Accept': 'application/json',
-        ...(config.token && { 'Authorization': `Bearer ${config.token}` })
-      }
+        'Authorization': `Bearer ${config.token}`
+      },
+      timeout: 10000
     });
   }
 
