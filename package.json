@@ -17,7 +17,8 @@
     "prepublishOnly": "npm run build && npm run test",
     "lint": "eslint src --ext .ts",
     "clean": "rimraf dist",
-    "verify-token": "ts-node scripts/verify-github-token.ts"
+    "verify-token": "ts-node scripts/verify-github-token.ts",
+    "verify-near-api": "ts-node scripts/verify-near-api.ts"
   },
   "keywords": [
     "near",

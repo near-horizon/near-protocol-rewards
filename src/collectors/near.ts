@@ -25,135 +25,82 @@ import { NEARMetrics } from '../types';
 import { Logger } from '../utils/logger';
 import { BaseError, ErrorCode } from '../utils/errors';
 import { formatError } from '../utils/format-error';
-import { ErrorDetail, JSONValue } from '../types/common';
-
-interface NEARCollectorConfig {
-  account: string;
-  token?: string;  
-  logger: Logger;
-  endpoint?: string;
-  maxRequestsPerSecond?: number;  // Add this
-}
-
-interface NEARPrice {
-  usd: number;
-  timestamp: number;
-}
-
-// Convert NEARPrice to a JSONValue compatible type
-interface NEARPriceLog {
-  usd: number;
-  timestamp: number;
-  [key: string]: JSONValue;
-}
-
-// Add response type definitions
-interface NEARTransactionResponse {
-  txns: {
-    hash: string;
-    signer_id: string;
-    receiver_id: string;
-    amount: string;
-    block_timestamp: number;
-  }[];
-}
-
-interface NEARFTTransferResponse {
-  transfers: {
-    token_id: string;
-    from: string;
-    to: string;
-    amount: string;
-    timestamp: number;
-  }[];
-}
-
-interface NEARPriceResponse {
-  price: {
-    near: {
-      usd: number;
-      last_updated_at: number;
-    };
-  };
-}
 
 export class NEARCollector extends BaseCollector {
   private readonly api: AxiosInstance;
   private readonly account: string;
-  private lastKnownPrice: NEARPrice | null = null;
 
-  constructor(config: NEARCollectorConfig) {
+  constructor(config: {
+    account: string;
+    logger: Logger;
+    maxRequestsPerSecond?: number;
+  }) {
     super({
       logger: config.logger,
-      maxRequestsPerSecond: 5
+      maxRequestsPerSecond: config.maxRequestsPerSecond || 5
     });
 
-    // Add API key from environment
+    this.account = config.account;
     this.api = axios.create({
       baseURL: process.env.NEAR_API_URL || 'https://api.nearblocks.io/v1',
       headers: {
         'Accept': 'application/json',
-        'X-API-Key': process.env.NEAR_API_KEY // Add this to .env.test
+        'X-API-Key': process.env.NEAR_API_KEY
       },
       timeout: 10000
     });
-    
-    this.account = config.account;
   }
 
   async collectMetrics(): Promise<NEARMetrics> {
     try {
-      const [txResponse, contractResponse] = await Promise.all([
+      const [txResponse, contractResponse, priceResponse] = await Promise.all([
         this.api.get(`/account/${this.account}/txns`),
-        this.api.get(`/account/${this.account}/contracts`)
+        this.api.get(`/account/${this.account}/contract`),
+        this.api.get('/stats/price')
       ]);
 
-      // Add better error handling
-      if (!txResponse.data || !contractResponse.data) {
+      if (!txResponse.data || !contractResponse.data || !priceResponse.data) {
         throw new Error('Invalid API response');
       }
 
-      const timestamp = Date.now();
-      const [txns, ftTransfers, price] = await Promise.all([
-        this.fetchTransactions(),
-        this.fetchFTTransfers(),
-        this.fetchNEARPrice()
-      ]);
-
-      const totalVolumeNEAR = this.calculateTotalVolume(txns);
-      const volumeUSD = (totalVolumeNEAR * price.usd).toFixed(2);
+      const txns = txResponse.data.txns || [];
+      const contract = contractResponse.data.contract || {};
+      const price = priceResponse.data.near?.usd || 0;
+      const priceTimestamp = priceResponse.data.near?.timestamp || Date.now();
 
       return {
-        timestamp,
+        timestamp: Date.now(),
         projectId: this.account,
         transactions: {
-          count: txns.length,
-          volume: volumeUSD,
-          uniqueUsers: this.extractUniqueUsers(txns)
+          count: parseInt(contract.transactions_count || '0'),
+          volume: txResponse.data.total_amount || "0",
+          uniqueUsers: Array.from(new Set(txns.map((tx: any) => tx.signer_account_id)))
         },
         contract: {
-          calls: ftTransfers.length,
-          uniqueCallers: this.extractUniqueCalls(ftTransfers)
+          calls: parseInt(contract.transactions_count || '0'),
+          uniqueCallers: Array.from(new Set(txns.map((tx: any) => tx.signer_account_id)))
         },
         contractCalls: {
-          count: ftTransfers.length,
-          uniqueCallers: this.extractUniqueCalls(ftTransfers)
+          count: parseInt(contract.transactions_count || '0'),
+          uniqueCallers: Array.from(new Set(txns.map((tx: any) => tx.signer_account_id)))
         },
         metadata: {
-          collectionTimestamp: timestamp,
+          collectionTimestamp: Date.now(),
           source: 'near',
           projectId: this.account,
-          periodStart: timestamp - (30 * 24 * 60 * 60 * 1000),
-          periodEnd: timestamp,
-          priceData: price
+          periodStart: Date.now() - (7 * 24 * 60 * 60 * 1000),
+          periodEnd: Date.now(),
+          blockHeight: parseInt(contract.block_height || '0'),
+          priceData: {
+            usd: price,
+            timestamp: priceTimestamp 
+          }
         }
       };
     } catch (error) {
       this.logger.error('Failed to collect NEAR metrics', {
         error: formatError(error),
-        context: {
-          account: this.account
-        }
+        context: { account: this.account }
       });
       throw new BaseError(
         'NEAR metrics collection failed',
@@ -161,168 +108,5 @@ export class NEARCollector extends BaseCollector {
         { error: formatError(error) }
       );
     }
-  }
-
-  private async fetchTransactions(): Promise<any[]> {
-    return this.withRetry(async () => {
-      try {
-        const response = await this.api.get<NEARTransactionResponse>(`/account/${this.account}/txns`, {
-          params: {
-            limit: 100,
-            order: 'desc'
-          }
-        });
-
-        if (!response.data?.txns) {
-          throw new BaseError(
-            'Invalid transaction data format',
-            ErrorCode.API_ERROR,
-            { account: this.account }
-          );
-        }
-
-        return response.data.txns;
-      } catch (error) {
-        if (axios.isAxiosError(error)) {
-          if (error.response?.status === 429) {
-            throw new BaseError(
-              'Rate limit exceeded',
-              ErrorCode.RATE_LIMIT,
-              { account: this.account }
-            );
-          }
-          if (error.response?.status === 404) {
-            throw new BaseError(
-              'Account not found',
-              ErrorCode.NOT_FOUND,
-              { account: this.account }
-            );
-          }
-        }
-        throw error;
-      }
-    }, 'Fetching NEAR transactions');
-  }
-
-  private async fetchFTTransfers(): Promise<any[]> {
-    return this.withRetry(async () => {
-      try {
-        const response = await this.api.get<NEARFTTransferResponse>(`/account/${this.account}/ft-transfers`, {
-          params: {
-            limit: 100,
-            order: 'desc'
-          }
-        });
-
-        if (!response.data?.transfers) {
-          throw new BaseError(
-            'Invalid FT transfers data format',
-            ErrorCode.API_ERROR,
-            { account: this.account }
-          );
-        }
-
-        return response.data.transfers;
-      } catch (error) {
-        if (axios.isAxiosError(error)) {
-          if (error.response?.status === 429) {
-            throw new BaseError(
-              'Rate limit exceeded',
-              ErrorCode.RATE_LIMIT,
-              { account: this.account }
-            );
-          }
-        }
-        throw error;
-      }
-    }, 'Fetching FT transfers');
-  }
-
-  private async fetchNEARPrice(): Promise<NEARPrice> {
-    try {
-      // Check if we have a recent price (less than 5 minutes old)
-      if (
-        this.lastKnownPrice && 
-        Date.now() - this.lastKnownPrice.timestamp < 5 * 60 * 1000
-      ) {
-        return this.lastKnownPrice;
-      }
-
-      const response = await this.withRetry(
-        async () => {
-          try {
-            const res = await this.api.get<NEARPriceResponse>('/stats/price');
-            return res;
-          } catch (error) {
-            if (axios.isAxiosError(error) && error.response?.status === 429) {
-              throw new BaseError(
-                'Rate limit exceeded for price API',
-                ErrorCode.RATE_LIMIT
-              );
-            }
-            throw error;
-          }
-        },
-        'Fetching NEAR price'
-      );
-
-      if (!response.data?.price?.near?.usd) {
-        throw new BaseError(
-          'Invalid price data format',
-          ErrorCode.API_ERROR
-        );
-      }
-
-      this.lastKnownPrice = {
-        usd: response.data.price.near.usd,
-        timestamp: Date.now()
-      };
-
-      return this.lastKnownPrice;
-    } catch (error) {
-      if (this.lastKnownPrice) {
-        // Convert NEARPrice to JSONValue compatible format
-        const priceLog: NEARPriceLog = {
-          usd: this.lastKnownPrice.usd,
-          timestamp: this.lastKnownPrice.timestamp
-        };
-
-        this.logger.warn('Using last known NEAR price', {
-          error: formatError(error),
-          context: {
-            lastKnownPrice: priceLog,
-            account: this.account
-          }
-        });
-        return this.lastKnownPrice;
-      }
-      throw error;
-    }
-  }
-
-  private calculateTotalVolume(txns: any[]): number {
-    return txns.reduce((sum, txn) => {
-      const amount = parseFloat(txn.amount_deposited || '0');
-      return sum + amount;
-    }, 0);
-  }
-
-  private extractUniqueUsers(txns: any[]): string[] {
-    const users = new Set<string>();
-    txns.forEach(txn => {
-      if (txn.signer_account_id) users.add(txn.signer_account_id);
-      if (txn.receiver_account_id) users.add(txn.receiver_account_id);
-    });
-    return Array.from(users);
-  }
-
-  private extractUniqueCalls(transfers: any[]): string[] {
-    return [...new Set(transfers.map(t => t.signer_account_id))];
-  }
-
-  // Helper method to get latest NEAR price for reward calculations
-  async getNEARPrice(): Promise<number> {
-    const price = await this.fetchNEARPrice();
-    return price.usd;
   }
 }
