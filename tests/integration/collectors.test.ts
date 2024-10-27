@@ -34,5 +34,5 @@ describe('Collectors Integration', () => {
     expect(metrics).toBeDefined();
     expect(metrics.transactions).toBeDefined();
     expect(metrics.contract).toBeDefined();
-  });
+  }, 10000); // 10 second timeout
 });

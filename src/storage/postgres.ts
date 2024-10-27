@@ -142,9 +142,9 @@ export class PostgresStorage {
 
   async saveMetrics(projectId: string, metrics: StoredMetrics): Promise<void> {
     const client = await this.pool.connect();
+    
     try {
       await client.query('BEGIN');
-
       await client.query(
         `INSERT INTO metrics (
           project_id,
@@ -167,24 +167,18 @@ export class PostgresStorage {
           metrics.signature
         ]
       );
-
       await client.query('COMMIT');
     } catch (error) {
       await client.query('ROLLBACK');
-      this.logger.error('Failed to save metrics', {
-        error: formatError(error),
-        context: { 
-          operation: 'saveMetrics',
-          projectId 
-        }
-      });
       throw new BaseError(
         'Failed to save metrics',
         ErrorCode.DATABASE_ERROR,
         { error: formatError(error) }
       );
     } finally {
-      client.release();
+      if (client) {
+        client.release();
+      }
     }
   }
 
