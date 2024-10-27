@@ -1,6 +1,7 @@
 import { GitHubMetrics, NEARMetrics, ProcessedMetrics } from '../types';
 import { Logger } from '../utils/logger';
 import { BaseError, ErrorCode } from '../utils/errors';
+import { formatError } from '../utils/format-error';
 
 interface WeightConfig {
   github: {
@@ -56,11 +57,15 @@ export class MetricsAggregator {
         }
       };
     } catch (error) {
-      this.logger.error('Failed to aggregate metrics', { error });
+      this.logger.error('Failed to aggregate metrics', {
+        error: formatError(error),
+        context: { operation: 'aggregate' }
+      });
+
       throw new BaseError(
-        'Metrics aggregation failed',
-        ErrorCode.AGGREGATION_ERROR,
-        { error }
+        'Failed to aggregate metrics',
+        ErrorCode.COLLECTION_ERROR,
+        { error: formatError(error) }
       );
     }
   }

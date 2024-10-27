@@ -11,12 +11,9 @@ export class BaseCollector {
   protected readonly batchSize: number = 50;
   protected readonly retryDelay = 1000; // ms
   
-  constructor(logger: Logger, requestsPerSecond: number) {
+  constructor(logger: Logger, rateLimit: RateLimitConfig) {
     this.logger = logger;
-    this.rateLimiter = new RateLimiter({ 
-      requestsPerSecond,
-      burstSize: requestsPerSecond * 2
-    });
+    this.rateLimiter = new RateLimiter(rateLimit);
   }
 
   // Add performance monitoring
@@ -43,7 +40,7 @@ export class BaseCollector {
 
     for (let attempt = 1; attempt <= this.retryAttempts; attempt++) {
       try {
-        await this.rateLimiter.wait();  // Changed from acquire to wait
+        await this.rateLimiter.wait();
         return await operation();
       } catch (error) {
         lastError = error instanceof Error ? error : new Error(String(error));

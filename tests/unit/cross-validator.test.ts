@@ -1,7 +1,7 @@
-import { CrossValidator } from '../../validators/cross-validator';
+import { CrossValidator } from '../../src/validators/cross-validator';
 import { createMockGitHubMetrics, createMockNEARMetrics } from '../helpers/mock-data';
-import { Logger } from '../../utils/logger';
-import { ErrorCode } from '../../utils/errors';
+import { Logger } from '../../src/utils/logger';
+import { ErrorCode } from '../../src/utils/errors';
 
 describe('CrossValidator', () => {
   let validator: CrossValidator;
@@ -15,7 +15,12 @@ describe('CrossValidator', () => {
       error: jest.fn()
     } as unknown as Logger;
 
-    validator = new CrossValidator(logger);
+    validator = new CrossValidator({
+      maxTimeDrift: 3600000,    // 1 hour
+      maxDataAge: 86400000,     // 24 hours
+      minActivityCorrelation: 0.5,
+      maxUserDiffRatio: 0.5
+    });
   });
 
   describe('validate', () => {

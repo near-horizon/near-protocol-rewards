@@ -1,4 +1,5 @@
 import { ErrorCode } from '../utils/errors';
+import { Logger } from '../utils/logger';
 
 export type MetricsSource = 'github' | 'near';
 export type ValidationType = 'data' | 'security';
@@ -25,8 +26,12 @@ export interface ValidationResult {
 }
 
 export interface ValidationThresholds {
-  maxTimeDrift: number;
-  minActivityCorrelation: number;
-  maxDataAge: number;
-  maxUserDiffRatio: number;
+  timeDriftThreshold: number;    // milliseconds
+  staleDataThreshold: number;    // milliseconds
+  minCorrelation: number;        // 0-1
+}
+
+export interface ValidationConfig {
+  thresholds?: Partial<ValidationThresholds>;
+  logger?: Logger;
 }

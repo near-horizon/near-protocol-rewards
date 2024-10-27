@@ -14,6 +14,7 @@
  */
 
 import { z } from 'zod';
+import { Logger } from '../utils/logger';
 
 // Storage configuration
 export interface StorageConfig {
@@ -52,6 +53,9 @@ export interface ValidationConfig {
     maxTransactionsPerDay?: number;
     minUniqueUsers?: number;
   };
+  maxTimeDrift?: number;    // milliseconds
+  maxDataAge?: number;      // milliseconds
+  minCorrelation?: number;  // 0-1
 }
 
 // SDK Configuration Schema
@@ -299,4 +303,28 @@ export interface BaseMetrics {
 export interface ValidationMetadata {
   source: MetricsSource;
   validationType: 'data' | 'security';
+}
+
+export interface RateLimitConfig {
+  requestsPerSecond: number;
+}
+
+export interface CollectorConfig {
+  logger: Logger;
+  rateLimit?: number;  
+}
+
+export interface BaseCollectorConfig {
+  logger: Logger;
+}
+
+export interface GitHubCollectorConfig extends BaseCollectorConfig {
+  repo: string;
+  token: string;
+  rateLimit?: number; 
+}
+
+export interface NEARCollectorConfig extends BaseCollectorConfig {
+  account: string;
+  rateLimit?: number; 
 }
