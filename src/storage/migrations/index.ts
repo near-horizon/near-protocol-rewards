@@ -3,9 +3,8 @@ import { Logger } from '../../utils/logger';
 import { BaseError, ErrorCode } from '../../utils/errors';
 import { readdir } from 'fs/promises';
 import { join } from 'path';
-import { readFileSync } from 'fs';
 import { formatError } from '../../utils/format-error';
-import { LogContext } from '../../types/common';
+import { readFileSync } from 'fs';
 
 interface Migration {
   id: number;
@@ -84,8 +83,10 @@ export class MigrationManager {
     try {
       await client.query('BEGIN');
       
-      const { up } = require(join(this.migrationsPath, migration.name));
-      await up(client);
+      // Use dynamic import instead of require
+      const migrationPath = join(this.migrationsPath, migration.name);
+      const migrationModule = await import(migrationPath);
+      await migrationModule.up(client);
       
       await client.query(
         'INSERT INTO migrations (name, timestamp) VALUES ($1, $2)',
