@@ -1,40 +1,60 @@
-import winston from 'winston';
-
-export interface LoggerConfig {
-  projectId: string;
-  level?: string;
-}
+import { LogContext } from '../types/common';
+import { formatError } from './format-error';
 
 export class Logger {
-  private logger: winston.Logger;
+  private readonly projectId: string;
 
-  constructor(config: LoggerConfig) {
-    this.logger = winston.createLogger({
-      level: config.level || 'info',
-      format: winston.format.combine(
-        winston.format.timestamp(),
-        winston.format.json()
-      ),
-      defaultMeta: { projectId: config.projectId },
-      transports: [
-        new winston.transports.Console()
-      ]
-    });
+  constructor(config: { projectId: string }) {
+    this.projectId = config.projectId;
   }
 
-  info(message: string, meta?: Record<string, any>): void {
-    this.logger.info(message, meta);
+  info(message: string, context?: LogContext): void {
+    process.stdout.write(
+      JSON.stringify({
+        level: 'info',
+        message,
+        projectId: this.projectId,
+        ...context,
+        timestamp: new Date().toISOString()
+      }) + '\n'
+    );
   }
 
-  error(message: string, meta?: Record<string, any>): void {
-    this.logger.error(message, meta);
+  error(message: string, context: { error: unknown } & Partial<LogContext>): void {
+    const { error, ...restContext } = context;
+    process.stderr.write(
+      JSON.stringify({
+        level: 'error',
+        message,
+        projectId: this.projectId,
+        ...restContext,
+        error: formatError(error),
+        timestamp: new Date().toISOString()
+      }) + '\n'
+    );
   }
 
-  warn(message: string, meta?: Record<string, any>): void {
-    this.logger.warn(message, meta);
+  warn(message: string, context?: LogContext): void {
+    process.stdout.write(
+      JSON.stringify({
+        level: 'warn',
+        message,
+        projectId: this.projectId,
+        ...context,
+        timestamp: new Date().toISOString()
+      }) + '\n'
+    );
   }
 
-  debug(message: string, meta?: Record<string, any>): void {
-    this.logger.debug(message, meta);
+  debug(message: string, context?: LogContext): void {
+    process.stdout.write(
+      JSON.stringify({
+        level: 'debug',
+        message,
+        projectId: this.projectId,
+        ...context,
+        timestamp: new Date().toISOString()
+      }) + '\n'
+    );
   }
 }

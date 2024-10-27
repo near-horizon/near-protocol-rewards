@@ -1,3 +1,18 @@
+/**
+ * Core Type Definitions
+ * 
+ * Contains all shared types used throughout the SDK.
+ * Maintains type safety and consistency across components.
+ * 
+ * Key type hierarchies:
+ * - Metrics (GitHub, NEAR, Processed)
+ * - Validation (Results, Errors)
+ * - Configuration (Settings, Options)
+ * 
+ * @important
+ * Update these types carefully as they affect the entire SDK
+ */
+
 import { z } from 'zod';
 
 // Storage configuration
@@ -84,8 +99,16 @@ export const SDKConfigSchema = z.object({
 // Export the SDK configuration type
 export type SDKConfig = z.infer<typeof SDKConfigSchema>;
 
-// Metric types
+// Base metrics interface
+export interface BaseMetrics {
+  timestamp: number;
+  projectId: string;
+}
+
+// GitHub metrics
 export interface GitHubMetrics {
+  timestamp: number;
+  projectId: string;
   commits: {
     count: number;
     frequency: number;
@@ -101,35 +124,35 @@ export interface GitHubMetrics {
     closed: number;
     participants: string[];
   };
-  metadata: {
-    collectionTimestamp: number;
-    source: 'github';
-    projectId: string;
-    periodStart: number;
-    periodEnd: number;
+  metadata: MetricsMetadata & {
+    repoDetails?: {
+      stars: number;
+      forks: number;
+    };
   };
 }
 
+// NEAR metrics
 export interface NEARMetrics {
+  contractCalls: any;
+  timestamp: number;
+  projectId: string;
   transactions: {
     count: number;
-    volume: string;  // Volume in USD
+    volume: string;
     uniqueUsers: string[];
   };
   contract: {
     calls: number;
     uniqueCallers: string[];
   };
-  metadata: {
-    collectionTimestamp: number;
-    source: 'near';
-    projectId: string;
-    periodStart: number;
-    periodEnd: number;
-    priceData: NEARPrice;  // Add price data to metadata
+  metadata: MetricsMetadata & {
+    blockHeight?: number;
+    priceData?: NEARPrice;
   };
 }
 
+// Processed metrics
 export interface ProcessedMetrics {
   timestamp: number;
   github: GitHubMetrics;
@@ -142,7 +165,28 @@ export interface ProcessedMetrics {
     };
   };
   validation: ValidationResult;
-  metadata: MetricsMetadata;
+  collectionTimestamp: number;
+  source: MetricsSource;
+  projectId: string;
+  periodStart: number;
+  periodEnd: number;
+}
+
+// Storage type
+export interface StoredMetrics {
+  projectId: string;
+  timestamp: number;
+  github: GitHubMetrics;
+  near: NEARMetrics;
+  processed: ProcessedMetrics;
+  signature: string;
+  score: {
+    total: number;
+    breakdown: {
+      github: number;
+      near: number;
+    };
+  };
 }
 
 export interface ValidationResult {
@@ -151,8 +195,8 @@ export interface ValidationResult {
   warnings: ValidationWarning[];
   timestamp: number;
   metadata: {
-    source: 'github' | 'near';
-    validationType: 'data' | 'security';
+    source: MetricsSource;
+    validationType: ValidationType;
   };
 }
 
@@ -170,7 +214,7 @@ export interface ValidationWarning {
 
 export interface MetricsMetadata {
   collectionTimestamp: number;
-  source: 'github' | 'near';
+  source: MetricsSource;
   projectId: string;
   periodStart: number;
   periodEnd: number;
@@ -195,4 +239,64 @@ export enum ErrorCode {
   CALCULATION_ERROR = 'CALCULATION_ERROR',
   PRICE_DATA_ERROR = 'PRICE_DATA_ERROR',
   VALIDATION_ERROR = 'VALIDATION_ERROR'
+}
+
+export interface ValidationMetadata {
+  source: MetricsSource;
+  validationType: 'data' | 'security';
+}
+
+export interface Metrics {
+  timestamp: number;
+  projectId: string;
+  github: {
+    commits: {
+      count: number;
+      frequency: number;
+      authors: string[];
+    };
+    pullRequests: {
+      open: number;
+      merged: number;
+      authors: string[];
+    };
+    issues: {
+      open: number;
+      closed: number;
+      participants: string[];
+    };
+  };
+  near: {
+    transactions: {
+      count: number;
+      volume: string;
+      uniqueUsers: string[];
+    };
+    contract: {
+      calls: number;
+      uniqueCallers: string[];
+    };
+  };
+}
+
+// Export all types from their respective files
+export * from './metrics';
+export * from './validation';
+export * from './pipeline';
+export * from './errors';
+
+// Define shared types
+export type MetricsSource = 'github' | 'near' | 'sdk';
+export type ValidationType = 'data' | 'security' | 'config';
+
+// Define base interfaces
+export interface BaseMetrics {
+  timestamp: number;
+  projectId: string;
+}
+
+// Define validation metadata
+export interface ValidationMetadata {
+  source: MetricsSource;
+  validationType: 'data' | 'security';
 }

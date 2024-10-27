@@ -2,41 +2,35 @@ module.exports = {
   parser: '@typescript-eslint/parser',
   extends: [
     'eslint:recommended',
-    'plugin:@typescript-eslint/recommended',
-    'plugin:react/recommended',
-    'plugin:react-hooks/recommended',
-    'prettier'
+    'plugin:@typescript-eslint/recommended'
   ],
-  plugins: [
-    '@typescript-eslint',
-    'react',
-    'react-hooks'
-  ],
+  plugins: ['@typescript-eslint'],
   env: {
     node: true,
-    browser: true,
-    jest: true,
-    es2021: true
+    es6: true,
+    jest: true
   },
-  settings: {
-    react: {
-      version: 'detect'
-    }
+  parserOptions: {
+    ecmaVersion: 2020,
+    sourceType: 'module',
+    project: './tsconfig.json'  // Add this for no-floating-promises
   },
   rules: {
-    'react/react-in-jsx-scope': 'off',
     '@typescript-eslint/explicit-function-return-type': 'off',
     '@typescript-eslint/no-explicit-any': 'warn',
-    'react/prop-types': 'off',
-    'react-hooks/rules-of-hooks': 'error',
-    'react-hooks/exhaustive-deps': 'warn'
+    '@typescript-eslint/no-unused-vars': ['warn', { 
+      argsIgnorePattern: '^_',
+      varsIgnorePattern: '^_'
+    }],
+    '@typescript-eslint/no-non-null-assertion': 'warn',
+    'no-console': 'warn',
+    'no-debugger': 'error',
+    'no-duplicate-imports': 'error'
   },
-  overrides: [
-    {
-      files: ['**/*.tsx'],
-      rules: {
-        'react/prop-types': 'off'
-      }
-    }
+  ignorePatterns: [
+    'dist',
+    'coverage',
+    'node_modules',
+    '*.js'
   ]
 };

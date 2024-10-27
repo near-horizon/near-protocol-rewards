@@ -1,11 +1,11 @@
 # Source
 src/
-test/
+tests/
 docs/
 examples/
 
 # Config files
-.eslintrc
+.eslintrc.js
 .prettierrc
 .gitignore
 tsconfig.json
@@ -19,8 +19,8 @@ coverage/
 .idea/
 
 # Logs
-logs/
 *.log
 
 # Misc
 .DS_Store
+.env*

@@ -1,41 +1,32 @@
-import { Redis } from 'ioredis';
 import { Logger } from './logger';
-import { APIError, ErrorCode } from './errors';
+import { BaseError, ErrorCode } from './errors';
 
-interface RateLimiterConfig {
-  redis: {
-    host: string;
-    port: number;
-    password?: string;
-  };
+interface RateLimitConfig {
+  windowMs: number;
+  maxRequests: number;
   logger: Logger;
-  limits: {
-    github?: {
-      requests: number;
-      window: number;
-    };
-    near?: {
-      requests: number;
-      window: number;
-    };
-  };
 }
 
 export class RateLimiter {
   private timestamps: number[] = [];
-  private readonly limit: number;
-  private readonly interval: number;
+  private readonly windowMs: number;
+  private readonly maxRequests: number;
+  private readonly logger: Logger;
 
-  constructor(limit: number, interval: number) {
-    this.limit = limit;
-    this.interval = interval;
+  constructor(config: RateLimitConfig) {
+    this.windowMs = config.windowMs;
+    this.maxRequests = config.maxRequests;
+    this.logger = config.logger;
   }
 
   async checkLimit(): Promise<boolean> {
     const now = Date.now();
-    this.timestamps = this.timestamps.filter(t => now - t < this.interval);
+    this.timestamps = this.timestamps.filter(t => now - t < this.windowMs);
     
-    if (this.timestamps.length >= this.limit) {
+    if (this.timestamps.length >= this.maxRequests) {
+      const oldestTimestamp = this.timestamps[0];
+      const waitTime = this.windowMs - (now - oldestTimestamp);
+      this.logger.warn('Rate limit reached', { waitTime, windowMs: this.windowMs });
       return false;
     }
     
@@ -43,7 +34,7 @@ export class RateLimiter {
     return true;
   }
 
-  async waitForLimit(): Promise<void> {
+  async waitForSlot(): Promise<void> {
     while (!(await this.checkLimit())) {
       await new Promise(resolve => setTimeout(resolve, 1000));
     }

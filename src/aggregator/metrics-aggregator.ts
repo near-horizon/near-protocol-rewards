@@ -1,92 +1,101 @@
-import { GitHubMetrics, NEARMetrics } from '../types';
+import { GitHubMetrics, NEARMetrics, ProcessedMetrics } from '../types';
 import { Logger } from '../utils/logger';
+import { BaseError, ErrorCode } from '../utils/errors';
 
-// Define weight interfaces
-interface GitHubWeights {
-  commits: number;
-  pullRequests: number;
-  issues: number;
-}
-
-interface NEARWeights {
-  transactions: number;
-  contractCalls: number;
-  uniqueUsers: number;
-}
-
-interface MetricsAggregatorConfig {
-  logger: Logger;
-  weights?: {
-    github?: Partial<GitHubWeights>;
-    near?: Partial<NEARWeights>;
+interface WeightConfig {
+  github: {
+    commits: number;
+    pullRequests: number;
+    issues: number;
   };
+  near: {
+    transactions: number;
+    contractCalls: number;
+    uniqueUsers: number;
+  };
+}
+
+interface AggregatorConfig {
+  logger: Logger;
+  weights?: Partial<WeightConfig>;
 }
 
 export class MetricsAggregator {
   private readonly logger: Logger;
-  private readonly weights: {
-    github: GitHubWeights;
-    near: NEARWeights;
-  };
+  private readonly weights: WeightConfig;
 
-  constructor(config: MetricsAggregatorConfig) {
+  constructor(config: AggregatorConfig) {
     this.logger = config.logger;
+    // Initialize weights with default values
     this.weights = {
       github: {
-        commits: config.weights?.github?.commits ?? 0.4,
-        pullRequests: config.weights?.github?.pullRequests ?? 0.3,
-        issues: config.weights?.github?.issues ?? 0.3
+        commits: 0.4,
+        pullRequests: 0.4,
+        issues: 0.2,
+        ...config.weights?.github
       },
       near: {
-        transactions: config.weights?.near?.transactions ?? 0.4,
-        contractCalls: config.weights?.near?.contractCalls ?? 0.3,
-        uniqueUsers: config.weights?.near?.uniqueUsers ?? 0.3
+        transactions: 0.4,
+        contractCalls: 0.4,
+        uniqueUsers: 0.2,
+        ...config.weights?.near
       }
     };
-
-    this.logger.info('Initialized MetricsAggregator with weights', { weights: this.weights });
   }
 
-  aggregateMetrics(
-    github: GitHubMetrics,
-    near: NEARMetrics
-  ): { github: { total: number }; near: { total: number }; total: number } {
+  aggregate(github: GitHubMetrics, near: NEARMetrics): ProcessedMetrics['score'] {
     try {
       const githubScore = this.calculateGitHubScore(github);
       const nearScore = this.calculateNEARScore(near);
       
       return {
-        github: { total: githubScore },
-        near: { total: nearScore },
-        total: Math.round((githubScore + nearScore) / 2)
+        total: (githubScore + nearScore) / 2,
+        breakdown: {
+          github: githubScore,
+          near: nearScore
+        }
       };
     } catch (error) {
       this.logger.error('Failed to aggregate metrics', { error });
-      throw error;
+      throw new BaseError(
+        'Metrics aggregation failed',
+        ErrorCode.AGGREGATION_ERROR,
+        { error }
+      );
     }
   }
 
   private calculateGitHubScore(metrics: GitHubMetrics): number {
-    const commitScore = Math.min(100, (metrics.commits.count / 100) * 100);
-    const prScore = Math.min(100, (metrics.pullRequests.merged / 20) * 100);
-    const issueScore = Math.min(100, (metrics.issues.closed / 30) * 100);
+    const { commits, pullRequests, issues } = metrics;
+    
+    // Handle potential division by zero
+    const prRatio = pullRequests.open + pullRequests.merged > 0
+      ? pullRequests.merged / (pullRequests.open + pullRequests.merged)
+      : 0;
 
-    return Math.round(
-      (commitScore * this.weights.github.commits) +
-      (prScore * this.weights.github.pullRequests) +
-      (issueScore * this.weights.github.issues)
-    );
+    const issueRatio = issues.open + issues.closed > 0
+      ? issues.closed / (issues.open + issues.closed)
+      : 0;
+
+    // Use the defined weights directly
+    return (
+      (commits.count * this.weights.github.commits) +
+      (prRatio * this.weights.github.pullRequests) +
+      (issueRatio * this.weights.github.issues)
+    ) / 3;
   }
 
   private calculateNEARScore(metrics: NEARMetrics): number {
-    const txScore = Math.min(100, (metrics.transactions.count / 1000) * 100);
-    const contractScore = Math.min(100, (metrics.contract.calls / 500) * 100);
-    const userScore = Math.min(100, (metrics.transactions.uniqueUsers.length / 100) * 100);
-
-    return Math.round(
-      (txScore * this.weights.near.transactions) +
-      (contractScore * this.weights.near.contractCalls) +
-      (userScore * this.weights.near.uniqueUsers)
-    );
+    const { transactions, contract } = metrics;
+    
+    // Ensure volume is a number and handle potential NaN
+    const volumeScore = Number(transactions.volume) || 0;
+    
+    // Use the defined weights directly
+    return (
+      (volumeScore * this.weights.near.transactions) +
+      (contract.calls * this.weights.near.contractCalls) +
+      (transactions.uniqueUsers.length * this.weights.near.uniqueUsers)
+    ) / 3;
   }
 }

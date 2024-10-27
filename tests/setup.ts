@@ -1,6 +1,7 @@
-import { PostgresStorage } from '../src/storage/postgres';
+import { Pool } from 'pg';
 import { Logger } from '../src/utils/logger';
-import { NEARProtocolRewardsSDK } from '../src/sdk';
+import { PostgresStorage } from '../src/storage/postgres';
+import { GitHubMetrics } from '../src/types';
 import dotenv from 'dotenv';
 
 // Load test environment variables
@@ -45,19 +46,43 @@ export const testConfig = {
 // Setup test database
 export async function setupTestDb() {
   const logger = new Logger({ projectId: 'test' });
-  const storage = new PostgresStorage(testConfig.storage.config, logger);
+  const storage = new PostgresStorage({
+    connectionConfig: testConfig.storage.config,
+    logger
+  });
   
   try {
-    // Run migrations
-    const migrationQueries = [
-      // Add migration queries here
-    ];
-    
-    for (const query of migrationQueries) {
-      await storage.pool.query(query);
-    }
+    await storage.initialize();
   } catch (error) {
     console.error('Failed to setup test database:', error);
     throw error;
   }
 }
+
+// Mock data generators
+export const createMockGitHubMetrics = (): GitHubMetrics => ({
+  commits: {
+    count: 10,
+    frequency: 2.5,
+    authors: ['user1', 'user2']
+  },
+  pullRequests: {
+    open: 5,
+    merged: 15,
+    authors: ['user1', 'user2']
+  },
+  issues: {
+    open: 3,
+    closed: 12,
+    participants: ['user1', 'user2', 'user3']
+  },
+  metadata: {
+    collectionTimestamp: Date.now(),
+    source: 'github',
+    projectId: 'test-project',
+    periodStart: Date.now() - (7 * 24 * 60 * 60 * 1000),
+    periodEnd: Date.now()
+  },
+  timestamp: 0,
+  projectId: ''
+});

@@ -1,5 +1,7 @@
-import { NEARProtocolRewardsSDK, ProcessedMetrics } from '../sdk';
+import { NEARProtocolRewardsSDK } from '../sdk';
 import { SDKConfig } from '../types';
+import { Logger } from '../utils/logger';
+import { formatError } from '../utils/format-error';
 
 export interface DashboardMetrics {
   github: {
@@ -13,7 +15,7 @@ export interface DashboardMetrics {
       merged: number;
     };
     issues: {
-      opened: number;
+      open: number;
       closed: number;
     };
   };
@@ -34,22 +36,36 @@ export interface DashboardMetrics {
 }
 
 export class DashboardService {
-  private sdk: NEARProtocolRewardsSDK;
-  private metrics: ProcessedMetrics | null = null;
+  private readonly sdk: NEARProtocolRewardsSDK;
+  private readonly logger: Logger;
+  private updateTimer?: NodeJS.Timeout;
   private readonly updateInterval = 5 * 60 * 1000; // 5 minutes
-  private updateTimer: NodeJS.Timer;
 
   constructor(config: SDKConfig) {
     this.sdk = new NEARProtocolRewardsSDK(config);
-    
-    // Subscribe to real-time metrics updates
-    this.sdk.on('metrics:collected', (metrics: ProcessedMetrics) => {
-      this.metrics = metrics;
-    });
-    
+    this.logger = new Logger({ projectId: config.projectId });
+    this.setupEventListeners();
+  }
+
+  setupEventListeners(): void {
+    // Implementation will be added later
     this.sdk.on('error', (error) => {
-      console.error('SDK Error:', error);
+      this.logger.error('SDK error occurred', {
+        error: formatError(error),
+        context: { service: 'dashboard' }
+      });
     });
+  }
+
+  private async refreshMetrics(): Promise<void> {
+    try {
+      // Implementation
+    } catch (error) {
+      this.logger.error('Failed to refresh metrics', {
+        error: formatError(error),
+        context: { service: 'dashboard' }
+      });
+    }
   }
 
   async initialize(): Promise<void> {
@@ -57,43 +73,41 @@ export class DashboardService {
   }
 
   async getMetrics(): Promise<DashboardMetrics> {
-    if (!this.metrics) {
-      this.metrics = await this.sdk.getMetrics();
-    }
-
-    if (!this.metrics) {
+    const metrics = await this.sdk.getMetrics();
+    
+    if (!metrics) {
       throw new Error('Failed to fetch metrics');
     }
 
     return {
       github: {
         commits: {
-          count: this.metrics.github.commits.count,
-          frequency: this.metrics.github.commits.frequency,
-          authors: this.metrics.github.commits.authors,
+          count: metrics.github.commits.count,
+          frequency: metrics.github.commits.frequency,
+          authors: metrics.github.commits.authors,
         },
         pullRequests: {
-          count: this.metrics.github.pullRequests.total,
-          merged: this.metrics.github.pullRequests.merged,
+          count: metrics.github.pullRequests.open + metrics.github.pullRequests.merged,
+          merged: metrics.github.pullRequests.merged,
         },
         issues: {
-          opened: this.metrics.github.issues.opened,
-          closed: this.metrics.github.issues.closed,
+          open: metrics.github.issues.open,
+          closed: metrics.github.issues.closed,
         },
       },
       near: {
         transactions: {
-          count: this.metrics.near.transactions.count,
-          volume: this.metrics.near.transactions.volume,
+          count: metrics.near.transactions.count,
+          volume: parseFloat(metrics.near.transactions.volume),
         },
         contracts: {
-          calls: this.metrics.near.contractCalls.count,
-          unique: this.metrics.near.contractCalls.uniqueContracts,
+          calls: metrics.near.contract.calls,
+          unique: metrics.near.contract.uniqueCallers.length,
         },
       },
       validation: {
-        errors: this.metrics.validation.errors,
-        warnings: this.metrics.validation.warnings,
+        errors: metrics.validation.errors,
+        warnings: metrics.validation.warnings,
       },
     };
   }
@@ -114,7 +128,7 @@ export class DashboardService {
         id: `commit-${index}`,
         type: 'commit' as const,
         title: `New commit by ${author}`,
-        timestamp: new Date().toISOString(), // You'll want to get actual timestamps
+        timestamp: new Date().toISOString(),
         details: 'Code contribution to repository',
       })),
       
@@ -166,14 +180,15 @@ export class DashboardService {
   }
 
   startAutoRefresh(): void {
-    this.updateTimer = setInterval(async () => {
-      await this.refreshMetrics();
+    this.updateTimer = setInterval(() => {
+      void this.refreshMetrics();
     }, this.updateInterval);
   }
 
   stopAutoRefresh(): void {
     if (this.updateTimer) {
       clearInterval(this.updateTimer);
+      this.updateTimer = undefined;
     }
   }
 }

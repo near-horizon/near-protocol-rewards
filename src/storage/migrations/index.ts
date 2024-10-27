@@ -3,6 +3,9 @@ import { Logger } from '../../utils/logger';
 import { BaseError, ErrorCode } from '../../utils/errors';
 import { readdir } from 'fs/promises';
 import { join } from 'path';
+import { readFileSync } from 'fs';
+import { formatError } from '../../utils/format-error';
+import { LogContext } from '../../types/common';
 
 interface Migration {
   id: number;
@@ -27,11 +30,17 @@ export class MigrationManager {
         await this.runMigration(migration);
       }
     } catch (error) {
-      this.logger.error('Migration failed', { error });
+      this.logger.error('Migration failed', {
+        error: formatError(error),
+        context: {
+          operation: 'migrate',
+          migrationsPath: this.migrationsPath
+        }
+      });
       throw new BaseError(
         'Migration failed',
         ErrorCode.DATABASE_ERROR,
-        { error }
+        { error: formatError(error) }
       );
     }
   }
@@ -97,12 +106,11 @@ export class MigrationManager {
   }
 }
 
-export async function runMigrations(pool: Pool, logger: Logger) {
+export async function runMigrations(pool: Pool, logger: Logger): Promise<void> {
   const client = await pool.connect();
   
   try {
     await client.query('BEGIN');
-
     // Create migrations table
     await client.query(`
       CREATE TABLE IF NOT EXISTS migrations (
@@ -127,11 +135,17 @@ export async function runMigrations(pool: Pool, logger: Logger) {
     logger.info('Migrations completed successfully');
   } catch (error) {
     await client.query('ROLLBACK');
-    logger.error('Migration failed', { error });
+    logger.error('Migration failed', {
+      error: formatError(error),
+      context: { 
+        operation: 'runMigrations',
+        phase: 'execution'
+      }
+    });
     throw new BaseError(
       'Database migration failed',
       ErrorCode.DATABASE_ERROR,
-      { error }
+      { error: formatError(error) }
     );
   } finally {
     client.release();

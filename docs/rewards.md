@@ -1,6 +1,7 @@
 # NEAR Protocol Rewards System
 
 ## Overview
+
 The NEAR Protocol Rewards SDK implements a transparent, metric-based rewards system that calculates rewards based on both GitHub development activity and NEAR blockchain usage.
 
 ## Reward Calculation
@@ -59,6 +60,7 @@ nearReward = finalUsdReward / currentNearPrice
 ## Security Measures
 
 ### Reward Verification
+
 All reward calculations include a cryptographic signature to prevent tampering:
 
 ```typescript
@@ -70,12 +72,14 @@ if (!isValid) {
 ```
 
 ### Data Validation
+
 - All metrics are validated before processing
 - Timestamps are checked for freshness
 - Price data is verified against multiple sources
 - Activity metrics are cross-validated
 
 ### Rate Limiting
+
 - GitHub API: 80 requests per minute
 - NEAR API: 25 requests per minute
 - Price updates: Every 5 minutes
@@ -110,6 +114,7 @@ sdk.on('reward:calculated', async (reward, signature) => {
 ```
 
 ## Best Practices
+
 1. Always verify reward signatures
 2. Store reward calculations with their signatures
 3. Implement rate limiting

@@ -1,64 +1,41 @@
-import { GitHubMetrics, NEARMetrics } from '../types';
+import { ProcessedMetrics } from '../types';
+import { JSONValue, ErrorDetail } from '../types/common';
 
-export interface APIResponse<T = any> {
+// API Response types
+export interface APIResponse<T = unknown> {
   success: boolean;
   data?: T;
-  error?: {
-    code: string;
-    message: string;
-    details?: any;
-  };
+  error?: APIError;
 }
 
+export interface APIError {
+  code: string;
+  message: string;
+  details?: Record<string, JSONValue>;
+}
+
+// Metrics response types
 export interface MetricsResponse {
-  current: {
-    github: GitHubMetrics;
-    near: NEARMetrics;
-    score: {
-      total: number;
-      breakdown: {
-        githubActivity: number;
-        nearActivity: number;
-        userGrowth: number;
-      };
-    };
-  };
-  history: {
-    timestamps: number[];
-    scores: number[];
-    githubActivity: number[];
-    nearActivity: number[];
-  };
+  metrics: ProcessedMetrics;
 }
 
 export interface ProjectStatusResponse {
   projectId: string;
-  nearAccount: string;
-  githubRepo: string;
   status: {
-    githubIntegration: 'active' | 'error' | 'inactive';
-    nearIntegration: 'active' | 'error' | 'inactive';
+    isActive: boolean;
     lastSync: number;
-    validationStatus: 'valid' | 'warning' | 'error';
+    hasErrors: boolean;
   };
 }
 
-export interface ValidationStatusResponse {
-  github: {
-    status: 'valid' | 'warning' | 'error';
-    messages: Array<{
-      type: 'error' | 'warning';
-      code: string;
-      message: string;
-    }>;
-  };
-  near: {
-    status: 'valid' | 'warning' | 'error';
-    messages: Array<{
-      type: 'error' | 'warning';
-      code: string;
-      message: string;
-    }>;
-  };
-  lastChecked: number;
+// Request logging types without extending Record
+export interface RequestLogContext {
+  method: string;
+  path: string;
+  statusCode: number;
+  duration: number;
+  // Make ip a string or null instead of undefined
+  ip: string | null;
+  // Allow additional properties
+  [key: string]: JSONValue | null;
 }

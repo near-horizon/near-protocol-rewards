@@ -1,11 +1,33 @@
-export * from './types';
-export * from './collectors/github';
-export * from './collectors/near';
-export * from './validators/github';
-export * from './validators/near';
-export * from './validators/cross-validator';
-export * from './api/router';
-export * from './components/Dashboard';
+/**
+ * NEAR Protocol Rewards SDK
+ * Public exports for SDK integration
+ * 
+ * Exports:
+ * 1. Main SDK class
+ * 2. Essential types for configuration and metrics
+ * 3. Error handling utilities
+ * 
+ * Note: Internal components like collectors and validators
+ * are not exported as they're managed by the SDK.
+ */
 
-// Main SDK class
+// Main SDK class - primary integration point
 export { NEARProtocolRewardsSDK } from './sdk';
+
+// Essential types for configuration and responses
+export type {
+  // Configuration
+  SDKConfig,
+  
+  // Core metrics types
+  ProcessedMetrics,
+  GitHubMetrics,
+  NEARMetrics,
+  
+  // Validation
+  ValidationResult
+} from './types';
+
+// Error handling
+export { BaseError, ErrorCode } from './utils/errors';
+

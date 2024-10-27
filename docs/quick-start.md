@@ -1,29 +1,123 @@
 # Quick Start Guide - NEAR Protocol Rewards SDK (Beta)
 
 ## Prerequisites
+
 - Node.js 16 or higher
 - A GitHub account and repository
 - A NEAR testnet account
 
-## Setup Steps
+## Installation
 
-### 1. Install the SDK
 ```bash
 npm install near-protocol-rewards
 ```
 
-### 2. Set up Environment Variables
-Create a `.env` file in your project root:
+## Recommended Implementation
+
+1. Create a new file `rewards-tracker.ts` (or .js):
+
+```typescript
+// rewards-tracker.ts
+import { NEARProtocolRewardsSDK } from 'near-protocol-rewards';
+import dotenv from 'dotenv';
+
+// Load environment variables
+dotenv.config();
+
+// Validate required environment variables
+const requiredEnvVars = [
+  'PROJECT_ID',
+  'NEAR_ACCOUNT',
+  'GITHUB_REPO',
+  'GITHUB_TOKEN'
+];
+
+requiredEnvVars.forEach(envVar => {
+  if (!process.env[envVar]) {
+    throw new Error(`Missing required environment variable: ${envVar}`);
+  }
+});
+
+export class RewardsTracker {
+  private sdk: NEARProtocolRewardsSDK;
+
+  constructor() {
+    this.sdk = new NEARProtocolRewardsSDK({
+      projectId: process.env.PROJECT_ID!,
+      nearAccount: process.env.NEAR_ACCOUNT!,
+      githubRepo: process.env.GITHUB_REPO!,
+      githubToken: process.env.GITHUB_TOKEN!,
+      storage: process.env.POSTGRES_HOST ? {
+        type: 'postgres',
+        config: {
+          host: process.env.POSTGRES_HOST,
+          port: parseInt(process.env.POSTGRES_PORT || '5432'),
+          database: process.env.POSTGRES_DB || 'near_rewards',
+          user: process.env.POSTGRES_USER || 'postgres',
+          password: process.env.POSTGRES_PASSWORD || 'postgres'
+        }
+      } : undefined
+    });
+
+    // Setup event listeners
+    this.setupEventListeners();
+  }
+
+  private setupEventListeners(): void {
+    // Listen for new metrics
+    this.sdk.on('metrics:collected', (metrics) => {
+      console.log('New metrics collected:', {
+        github: {
+          commits: metrics.github.commits.count,
+          prs: metrics.github.pullRequests.merged,
+          contributors: metrics.github.commits.authors.length
+        },
+        near: {
+          transactions: metrics.near.transactions.count,
+          volume: metrics.near.transactions.volume,
+          users: metrics.near.transactions.uniqueUsers.length
+        },
+        score: metrics.score
+      });
+    });
+
+    // Handle errors
+    this.sdk.on('error', (error) => {
+      console.error('Error in rewards tracking:', {
+        code: error.code,
+        message: error.message,
+        context: error.context
+      });
+    });
+  }
+
+  async start(): Promise<void> {
+    try {
+      await this.sdk.startTracking();
+      console.log('Rewards tracking started successfully');
+    } catch (error) {
+      console.error('Failed to start rewards tracking:', error);
+      throw error;
+    }
+  }
+
+  async stop(): Promise<void> {
+    await this.sdk.stopTracking();
+    console.log('Rewards tracking stopped');
+  }
+}
+```
+
+Create a `.env` file:
+
 ```env
-# Required: Your GitHub personal access token
-# Generate at: https://github.com/settings/tokens
+# Required
+PROJECT_ID=my-project
+NEAR_ACCOUNT=your-account.testnet
+GITHUB_REPO=owner/repo
 GITHUB_TOKEN=your_github_token
 
-# Required: Your NEAR testnet account
-# Create at: https://wallet.testnet.near.org/
-NEAR_ACCOUNT=your-account.testnet
-
-# Optional: PostgreSQL configuration (if using storage)
+# Optional: PostgreSQL Configuration
 POSTGRES_HOST=localhost
 POSTGRES_PORT=5432
 POSTGRES_DB=near_rewards
@@ -31,70 +125,58 @@ POSTGRES_USER=postgres
 POSTGRES_PASSWORD=your_password
 ```
 
-### 3. Initialize the SDK
+Usage in your application:
+
 ```typescript
-import { NEARProtocolRewardsSDK } from 'near-protocol-rewards';
-import dotenv from 'dotenv';
+// index.ts or app.ts
+import { RewardsTracker } from './rewards-tracker';
 
-// Load environment variables
-dotenv.config();
-
-const sdk = new NEARProtocolRewardsSDK({
-  projectId: 'my-first-near-project',
-  nearAccount: process.env.NEAR_ACCOUNT!,
-  githubRepo: 'myorg/myrepo',
-  githubToken: process.env.GITHUB_TOKEN!
-});
-```
-
-### 4. Track Metrics
-```typescript
-// Listen for new metrics
-sdk.on('metrics:collected', (metrics) => {
-  console.log('New metrics:', {
-    github: {
-      commits: metrics.github.commits.count,
-      prs: metrics.github.pullRequests.merged,
-      contributors: metrics.github.commits.authors.length
-    },
-    near: {
-      transactions: metrics.near.transactions.count,
-      volume: metrics.near.transactions.volume,
-      users: metrics.near.transactions.uniqueUsers.length
-    }
+async function main() {
+  const tracker = new RewardsTracker();
+  
+  // Handle application shutdown
+  process.on('SIGINT', async () => {
+    await tracker.stop();
+    process.exit(0);
   });
-});
 
-// Handle errors
-sdk.on('error', (error) => {
-  console.error('Error:', error.message);
-});
+  // Start tracking
+  await tracker.start();
+}
 
-// Start tracking
-await sdk.startTracking();
+main().catch(console.error);
 ```
 
-### 5. Get Current Metrics
+## Configuration Options
+
 ```typescript
-const metrics = await sdk.getMetrics();
-console.log('Current metrics:', metrics);
+interface SDKConfig {
+  projectId: string;          // Required: Unique project identifier
+  nearAccount: string;        // Required: NEAR account (e.g., "account.testnet")
+  githubRepo: string;         // Required: GitHub repo (e.g., "owner/repo")
+  githubToken: string;        // Required: GitHub personal access token
+  storage?: {                 // Optional: PostgreSQL storage configuration
+    type: 'postgres';
+    config: {
+      host: string;
+      port: number;
+      database: string;
+      user: string;
+      password: string;
+    };
+  };
+  trackingInterval?: number;  // Optional: Interval in ms (default: 6 hours)
+}
 ```
 
-## Common Issues & Solutions
+## Common Issues
 
-### GitHub Rate Limiting
-If you see GitHub API rate limit errors:
-- Ensure your token has the correct permissions
-- Consider increasing collection intervals
-- Check your rate limit status at api.github.com/rate_limit
+- Ensure GitHub token has required permissions (repo scope)
+- NEAR account must be valid and accessible
+- PostgreSQL connection requires proper credentials
 
-### NEAR API Issues
-If you experience NEAR API connection issues:
-- Verify your NEAR account exists
-- Check network status at status.near.org
-- Ensure you're using the correct network (testnet/mainnet)
+For more details:
 
-## Next Steps
-- Review the [API Reference](./api-reference.md) for advanced usage
-- Join our [Discord](https://near.chat) for support
-- Check out example projects in the `/examples` directory
+- [API Reference](./api-reference.md)
+- [Error Codes](./api-reference.md#error-codes)
+- [Examples](../examples/)

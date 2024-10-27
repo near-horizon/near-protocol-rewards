@@ -80,3 +80,9 @@ export class PerformanceOptimizer {
     return result;
   }
 }
+
+export class PerformanceMonitor {
+  constructor(private readonly logger: Logger) {}
+
+  // ... rest of implementation ...
+}

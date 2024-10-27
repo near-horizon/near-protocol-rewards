@@ -1,24 +1,55 @@
-import { GitHubMetrics, NEARMetrics, ValidationResult } from '../types';
-import { Logger } from '../utils/logger';
-import { ValidationError, ErrorCode } from '../utils/errors';
+/**
+ * Cross Validator
+ * 
+ * Validates metrics across different data sources (GitHub and NEAR)
+ * to ensure data consistency and reliability. Performs checks on:
+ * - Timestamp consistency
+ * - Activity correlation
+ * - User engagement patterns
+ * 
+ * @remarks
+ * This is a critical component for ensuring data quality before
+ * reward calculations are performed.
+ */
 
-interface CrossValidatorConfig {
-  logger: Logger;
-  thresholds?: {
-    maxTimeDrift?: number; // Maximum allowed time difference between metrics
-    minActivityCorrelation?: number; // Minimum correlation between GitHub and NEAR activity
-  };
+import {
+  GitHubMetrics,
+  NEARMetrics,
+  ValidationResult,
+  ValidationError
+} from '../types';
+import { ErrorCode } from '../utils/errors';
+
+export enum ValidationErrorCode {
+  LOW_ACTIVITY_CORRELATION = 'LOW_ACTIVITY_CORRELATION',
+  TIMESTAMP_DRIFT = 'TIMESTAMP_DRIFT',
+  STALE_DATA = 'STALE_DATA',
+  USER_COUNT_DISCREPANCY = 'USER_COUNT_DISCREPANCY'
 }
 
-export class CrossValidator {
-  private readonly logger: Logger;
-  private readonly thresholds: Required<CrossValidatorConfig['thresholds']>;
+interface ValidationThresholds {
+  maxTimeDrift: number;
+  minActivityCorrelation: number;
+  maxDataAge: number;
+  maxUserDiffRatio: number;
+}
 
-  constructor(config: CrossValidatorConfig) {
-    this.logger = config.logger;
+const DEFAULT_THRESHOLDS: Required<ValidationThresholds> = {
+  maxTimeDrift: 6 * 60 * 60 * 1000,
+  minActivityCorrelation: 0.3,
+  maxDataAge: 24 * 60 * 60 * 1000,
+  maxUserDiffRatio: 0.5
+};
+
+export class CrossValidator {
+  private readonly thresholds: Required<ValidationThresholds>;
+
+  constructor(
+    thresholds: Partial<ValidationThresholds> = {}
+  ) {
     this.thresholds = {
-      maxTimeDrift: config.thresholds?.maxTimeDrift ?? 3600000, // 1 hour default
-      minActivityCorrelation: config.thresholds?.minActivityCorrelation ?? 0.3
+      ...DEFAULT_THRESHOLDS,
+      ...thresholds
     };
   }
 
@@ -27,20 +58,51 @@ export class CrossValidator {
     const warnings: ValidationError[] = [];
 
     this.validateTimestamps(github, near, errors);
+    this.validateDataFreshness(github, near, errors);
     this.validateActivityCorrelation(github, near, warnings);
-
-    const isValid = errors.length === 0;
+    this.validateUserEngagement(github, near, warnings);
 
     return {
-      isValid,
+      isValid: errors.length === 0,
       errors,
       warnings,
       timestamp: Date.now(),
       metadata: {
-        source: 'github', // Using github as default source
-        validationType: 'data'  // Using data as default type
+        source: 'github',
+        validationType: 'data'
       }
     };
+  }
+
+  private createValidationError(
+    code: ValidationErrorCode,
+    message: string,
+    context: Record<string, unknown>
+  ): ValidationError {
+    return {
+      code,
+      message,
+      context
+    };
+  }
+
+  private validateActivityCorrelation(
+    github: GitHubMetrics,
+    near: NEARMetrics,
+    warnings: ValidationError[]
+  ): void {
+    const correlation = this.calculateActivityCorrelation(github, near);
+    
+    if (correlation < this.thresholds.minActivityCorrelation) {
+      warnings.push(this.createValidationError(
+        ValidationErrorCode.LOW_ACTIVITY_CORRELATION,
+        'Low correlation between GitHub and NEAR activity',
+        {
+          correlation,
+          threshold: this.thresholds.minActivityCorrelation
+        }
+      ));
+    }
   }
 
   private validateTimestamps(
@@ -48,11 +110,11 @@ export class CrossValidator {
     near: NEARMetrics,
     errors: ValidationError[]
   ): void {
-    const githubTimestamp = github.metadata?.collectionTimestamp ?? 0;
-    const nearTimestamp = near.metadata?.collectionTimestamp ?? 0;
+    const githubTimestamp = github.metadata.collectionTimestamp;
+    const nearTimestamp = near.metadata.collectionTimestamp;
     const timeDiff = Math.abs(githubTimestamp - nearTimestamp);
 
-    if (timeDiff > (this.thresholds?.maxTimeDrift ?? 3600000)) {
+    if (timeDiff > this.thresholds.maxTimeDrift) {
       errors.push({
         code: ErrorCode.TIMESTAMP_DRIFT,
         message: 'Significant time drift between GitHub and NEAR metrics',
@@ -66,29 +128,66 @@ export class CrossValidator {
     }
   }
 
-  private validateActivityCorrelation(
+  private validateDataFreshness(
+    github: GitHubMetrics,
+    near: NEARMetrics,
+    errors: ValidationError[]
+  ): void {
+    const now = Date.now();
+
+    if (now - github.metadata.collectionTimestamp > this.thresholds.maxDataAge) {
+      errors.push({
+        code: ErrorCode.STALE_DATA,
+        message: 'GitHub data is too old',
+        context: {
+          timestamp: github.metadata.collectionTimestamp,
+          age: now - github.metadata.collectionTimestamp,
+          threshold: this.thresholds.maxDataAge
+        }
+      });
+    }
+
+    if (now - near.metadata.collectionTimestamp > this.thresholds.maxDataAge) {
+      errors.push({
+        code: ErrorCode.STALE_DATA,
+        message: 'NEAR data is too old',
+        context: {
+          timestamp: near.metadata.collectionTimestamp,
+          age: now - near.metadata.collectionTimestamp,
+          threshold: this.thresholds.maxDataAge
+        }
+      });
+    }
+  }
+
+  private validateUserEngagement(
     github: GitHubMetrics,
     near: NEARMetrics,
     warnings: ValidationError[]
   ): void {
-    const correlation = this.calculateActivityCorrelation(github, near);
+    const githubUsers = new Set([
+      ...github.commits.authors,
+      ...github.pullRequests.authors,
+      ...github.issues.participants
+    ]);
 
-    if (correlation < (this.thresholds?.minActivityCorrelation ?? 0.3)) {
+    const nearUsers = new Set([
+      ...near.transactions.uniqueUsers,
+      ...near.contract.uniqueCallers
+    ]);
+
+    const userDiff = Math.abs(githubUsers.size - nearUsers.size);
+    const maxDiff = Math.max(githubUsers.size, nearUsers.size) * this.thresholds.maxUserDiffRatio;
+
+    if (userDiff > maxDiff) {
       warnings.push({
-        code: ErrorCode.LOW_ACTIVITY_CORRELATION,
-        message: 'Low correlation between GitHub and NEAR activity',
+        code: ErrorCode.USER_COUNT_DISCREPANCY,
+        message: 'Large discrepancy between GitHub and NEAR user counts',
         context: {
-          correlation,
-          threshold: this.thresholds.minActivityCorrelation,
-          githubActivity: {
-            commits: github.commits.count,
-            prs: github.pullRequests.merged,
-            issues: github.issues.closed
-          },
-          nearActivity: {
-            transactions: near.transactions.count,
-            contractCalls: near.contract.calls
-          }
+          githubUsers: githubUsers.size,
+          nearUsers: nearUsers.size,
+          difference: userDiff,
+          threshold: maxDiff
         }
       });
     }
@@ -98,20 +197,20 @@ export class CrossValidator {
     github: GitHubMetrics,
     near: NEARMetrics
   ): number {
+    // Ensure all properties are defined with defaults
     const githubActivity = (
-      (github.commits?.count ?? 0) +
-      (github.pullRequests?.merged ?? 0) +
-      (github.issues?.closed ?? 0)
+      (github.commits.count) +
+      (github.pullRequests.merged) +
+      (github.issues.closed)
     ) / 3;
 
     const nearActivity = (
-      (near.transactions?.count ?? 0) +
-      (near.contract?.calls ?? 0)
+      (near.transactions.count) +
+      (near.contract.calls)
     ) / 2;
 
     const maxActivity = Math.max(githubActivity, nearActivity);
     if (maxActivity === 0) return 1;
-
     return Math.min(githubActivity, nearActivity) / maxActivity;
   }
 }

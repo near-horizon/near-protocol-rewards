@@ -1,74 +1,99 @@
 # API Examples
 
-## Status Endpoint
+## Get Latest Metrics
+
 ```typescript
-GET /metrics/:projectId/status
+GET /metrics/:projectId
 
 // Response
 {
-  "projectId": "example-project",
-  "lastCollection": {
-    "timestamp": 1709084800000,
-    "success": true
-  },
-  "isHealthy": true,
-  "collectionErrors": [],
-  "nextCollection": 1709088400000  // 1 hour later
-}
-```
-
-## Validation Results
-```typescript
-GET /metrics/:projectId/validation
-
-// Response
-{
-  "metrics": {
-    "github": {
-      "commits": {
-        "count": 25,
-        "frequency": 3.5,
-        "authors": ["dev1", "dev2"]
+  "success": true,
+  "data": {
+    "metrics": {
+      "timestamp": 1709084800000,
+      "github": {
+        "commits": {
+          "count": 25,
+          "frequency": 3.5,
+          "authors": ["dev1", "dev2"]
+        },
+        "pullRequests": {
+          "open": 5,
+          "merged": 15,
+          "authors": ["dev1", "dev2"]
+        },
+        "issues": {
+          "open": 3,
+          "closed": 12,
+          "participants": ["dev1", "dev2", "dev3"]
+        }
       },
-      // ... other metrics
-    },
-    "near": {
-      "transactions": {
-        "count": 150,
-        "volume": "5000",
-        "uniqueUsers": ["user1.near", "user2.near"]
+      "near": {
+        "transactions": {
+          "count": 150,
+          "volume": "5000",
+          "uniqueUsers": ["user1.near", "user2.near"]
+        },
+        "contract": {
+          "calls": 75,
+          "uniqueCallers": ["user1.near"]
+        }
       },
-      // ... other metrics
+      "score": {
+        "total": 85,
+        "breakdown": {
+          "github": 80,
+          "near": 90
+        }
+      },
+      "validation": {
+        "isValid": true,
+        "errors": [],
+        "warnings": [],
+        "timestamp": 1709084800000
+      }
     }
-  },
-  "validation": {
-    "isValid": true,
-    "errors": [],
-    "warnings": [],
-    "timestamp": 1709084800000
   }
 }
 ```
 
-## Rewards Calculation
+## Get Project Status
+
 ```typescript
-GET /metrics/:projectId/rewards
+GET /projects/:projectId/status
 
 // Response
 {
-  "projectId": "example-project",
-  "timestamp": 1709084800000,
-  "score": {
-    "total": 85,
-    "breakdown": {
-      "github": 80,
-      "near": 90
+  "success": true,
+  "data": {
+    "projectId": "example-project",
+    "status": {
+      "isActive": true,
+      "lastSync": 1709084800000,
+      "hasErrors": false
     }
-  },
-  "reward": {
-    "usdAmount": 850.00,
-    "nearAmount": 85.00,
-    "calculatedAt": 1709084800000
+  }
+}
+```
+
+## Error Responses
+
+```typescript
+// Not Found
+{
+  "success": false,
+  "error": {
+    "code": "NOT_FOUND",
+    "message": "No metrics found"
+  }
+}
+
+// Internal Error
+{
+  "success": false,
+  "error": {
+    "code": "INTERNAL_ERROR",
+    "message": "Internal server error"
   }
 }
 ```

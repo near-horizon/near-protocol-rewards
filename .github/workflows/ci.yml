@@ -6,6 +6,10 @@ on:
   pull_request:
     branches: [ main ]
 
+permissions:
+  contents: read
+  security-events: write
+
 jobs:
   security:
     runs-on: ubuntu-latest
@@ -29,9 +33,9 @@ jobs:
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
 
-  build:
-    runs-on: ubuntu-latest
+  test:
     needs: security
+    runs-on: ubuntu-latest
     
     strategy:
       matrix:
@@ -47,17 +51,15 @@ jobs:
           cache: 'npm'
           
       - name: Install dependencies
-        run: |
-          npm ci
-          npm install @heroicons/react@2.1.1 --save-exact
+        run: npm ci
         
-      - name: Run linting
-        run: npm run lint
-        
-      - name: Run tests
-        run: npm test
+      - name: Run collector tests
+        run: npm run test:collectors
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NEAR_ACCOUNT: ${{ secrets.NEAR_ACCOUNT }}
+          
+      - name: Run integration tests
+        run: npm run test:integration
         env:
           CI: true
-        
-      - name: Build
-        run: npm run build

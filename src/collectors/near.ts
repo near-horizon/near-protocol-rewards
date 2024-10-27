@@ -1,12 +1,35 @@
+/**
+ * NEAR Blockchain Metrics Collector
+ * 
+ * Collects on-chain metrics from NEAR Protocol including:
+ * - Transaction data
+ * - Contract interactions
+ * - User activity
+ * 
+ * Features built-in rate limiting and error handling for API calls.
+ * Uses exponential backoff for retries on transient failures.
+ * 
+ * @example
+ * ```typescript
+ * const collector = new NEARCollector({
+ *   account: 'project.near',
+ *   logger: logger
+ * });
+ * const metrics = await collector.collectMetrics();
+ * ```
+ */
+
 import axios, { AxiosInstance } from 'axios';
 import { BaseCollector } from './base';
 import { NEARMetrics } from '../types';
 import { Logger } from '../utils/logger';
 import { BaseError, ErrorCode } from '../utils/errors';
+import { formatError } from '../utils/format-error';
+import { ErrorDetail, JSONValue } from '../types/common';
 
 interface NEARCollectorConfig {
   account: string;
-  token?: string;  // Optional API token
+  token?: string;  
   logger: Logger;
   endpoint?: string;
 }
@@ -14,6 +37,43 @@ interface NEARCollectorConfig {
 interface NEARPrice {
   usd: number;
   timestamp: number;
+}
+
+// Convert NEARPrice to a JSONValue compatible type
+interface NEARPriceLog {
+  usd: number;
+  timestamp: number;
+  [key: string]: JSONValue;
+}
+
+// Add response type definitions
+interface NEARTransactionResponse {
+  txns: {
+    hash: string;
+    signer_id: string;
+    receiver_id: string;
+    amount: string;
+    block_timestamp: number;
+  }[];
+}
+
+interface NEARFTTransferResponse {
+  transfers: {
+    token_id: string;
+    from: string;
+    to: string;
+    amount: string;
+    timestamp: number;
+  }[];
+}
+
+interface NEARPriceResponse {
+  price: {
+    near: {
+      usd: number;
+      last_updated_at: number;
+    };
+  };
 }
 
 export class NEARCollector extends BaseCollector {
@@ -37,19 +97,19 @@ export class NEARCollector extends BaseCollector {
 
   async collectMetrics(): Promise<NEARMetrics> {
     try {
+      const timestamp = Date.now();
       const [txns, ftTransfers, price] = await Promise.all([
         this.fetchTransactions(),
         this.fetchFTTransfers(),
         this.fetchNEARPrice()
       ]);
 
-      const timestamp = Date.now();
-
-      // Calculate total volume in USD
       const totalVolumeNEAR = this.calculateTotalVolume(txns);
       const volumeUSD = (totalVolumeNEAR * price.usd).toFixed(2);
 
       return {
+        timestamp,
+        projectId: this.account,
         transactions: {
           count: txns.length,
           volume: volumeUSD,
@@ -59,63 +119,106 @@ export class NEARCollector extends BaseCollector {
           calls: ftTransfers.length,
           uniqueCallers: this.extractUniqueCalls(ftTransfers)
         },
+        contractCalls: {
+          count: ftTransfers.length,
+          uniqueCallers: this.extractUniqueCalls(ftTransfers)
+        },
         metadata: {
           collectionTimestamp: timestamp,
           source: 'near',
           projectId: this.account,
           periodStart: timestamp - (30 * 24 * 60 * 60 * 1000),
           periodEnd: timestamp,
-          nearPrice: price
+          priceData: price
         }
       };
     } catch (error) {
+      this.logger.error('Failed to collect NEAR metrics', {
+        error: formatError(error),
+        context: {
+          account: this.account
+        }
+      });
       throw new BaseError(
-        'Failed to collect NEAR metrics',
-        ErrorCode.COLLECTION_ERROR,
-        { error, account: this.account }
+        'NEAR metrics collection failed',
+        ErrorCode.NEAR_API_ERROR,
+        { error: formatError(error) }
       );
     }
   }
 
-  private async fetchTransactions(days = 30): Promise<any[]> {
+  private async fetchTransactions(): Promise<any[]> {
     return this.withRetry(async () => {
-      const response = await this.api.get(`/account/${this.account}/txns`, {
-        params: {
-          limit: 100,
-          order: 'desc'
+      try {
+        const response = await this.api.get<NEARTransactionResponse>(`/account/${this.account}/txns`, {
+          params: {
+            limit: 100,
+            order: 'desc'
+          }
+        });
+
+        if (!response.data?.txns) {
+          throw new BaseError(
+            'Invalid transaction data format',
+            ErrorCode.API_ERROR,
+            { account: this.account }
+          );
         }
-      });
 
-      if (!response.data?.txns) {
-        throw new BaseError(
-          'Invalid transaction data format',
-          ErrorCode.API_ERROR,
-          { account: this.account }
-        );
+        return response.data.txns;
+      } catch (error) {
+        if (axios.isAxiosError(error)) {
+          if (error.response?.status === 429) {
+            throw new BaseError(
+              'Rate limit exceeded',
+              ErrorCode.RATE_LIMIT,
+              { account: this.account }
+            );
+          }
+          if (error.response?.status === 404) {
+            throw new BaseError(
+              'Account not found',
+              ErrorCode.NOT_FOUND,
+              { account: this.account }
+            );
+          }
+        }
+        throw error;
       }
-
-      return response.data.txns;
     }, 'Fetching NEAR transactions');
   }
 
-  private async fetchFTTransfers(days = 30): Promise<any[]> {
+  private async fetchFTTransfers(): Promise<any[]> {
     return this.withRetry(async () => {
-      const response = await this.api.get(`/account/${this.account}/ft-transfers`, {
-        params: {
-          limit: 100,
-          order: 'desc'
+      try {
+        const response = await this.api.get<NEARFTTransferResponse>(`/account/${this.account}/ft-transfers`, {
+          params: {
+            limit: 100,
+            order: 'desc'
+          }
+        });
+
+        if (!response.data?.transfers) {
+          throw new BaseError(
+            'Invalid FT transfers data format',
+            ErrorCode.API_ERROR,
+            { account: this.account }
+          );
         }
-      });
 
-      if (!response.data?.transfers) {
-        throw new BaseError(
-          'Invalid FT transfers data format',
-          ErrorCode.API_ERROR,
-          { account: this.account }
-        );
+        return response.data.transfers;
+      } catch (error) {
+        if (axios.isAxiosError(error)) {
+          if (error.response?.status === 429) {
+            throw new BaseError(
+              'Rate limit exceeded',
+              ErrorCode.RATE_LIMIT,
+              { account: this.account }
+            );
+          }
+        }
+        throw error;
       }
-
-      return response.data.transfers;
     }, 'Fetching FT transfers');
   }
 
@@ -130,7 +233,20 @@ export class NEARCollector extends BaseCollector {
       }
 
       const response = await this.withRetry(
-        () => this.api.get('/stats/price'),
+        async () => {
+          try {
+            const res = await this.api.get<NEARPriceResponse>('/stats/price');
+            return res;
+          } catch (error) {
+            if (axios.isAxiosError(error) && error.response?.status === 429) {
+              throw new BaseError(
+                'Rate limit exceeded for price API',
+                ErrorCode.RATE_LIMIT
+              );
+            }
+            throw error;
+          }
+        },
         'Fetching NEAR price'
       );
 
@@ -148,9 +264,20 @@ export class NEARCollector extends BaseCollector {
 
       return this.lastKnownPrice;
     } catch (error) {
-      // If price fetch fails, use last known price or default
       if (this.lastKnownPrice) {
-        this.logger.warn('Using last known NEAR price due to error', { error });
+        // Convert NEARPrice to JSONValue compatible format
+        const priceLog: NEARPriceLog = {
+          usd: this.lastKnownPrice.usd,
+          timestamp: this.lastKnownPrice.timestamp
+        };
+
+        this.logger.warn('Using last known NEAR price', {
+          error: formatError(error),
+          context: {
+            lastKnownPrice: priceLog,
+            account: this.account
+          }
+        });
         return this.lastKnownPrice;
       }
       throw error;

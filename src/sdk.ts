@@ -1,30 +1,76 @@
+/**
+ * NEAR Protocol Rewards SDK
+ * 
+ * The main SDK class that handles metrics collection, processing, and storage
+ * for NEAR Protocol project rewards. This SDK tracks both GitHub development
+ * activity and NEAR blockchain usage to calculate project rewards.
+ * 
+ * Basic usage:
+ * ```typescript
+ * const sdk = new NEARProtocolRewardsSDK({
+ *   projectId: 'my-project',
+ *   nearAccount: 'account.testnet',
+ *   githubRepo: 'owner/repo',
+ *   githubToken: process.env.GITHUB_TOKEN
+ * });
+ * 
+ * sdk.on('metrics:collected', (metrics) => {
+ *   console.log('New metrics:', metrics);
+ * });
+ * ```
+ * 
+ * @packageDocumentation
+ */
+
 import { EventEmitter } from 'events';
 import { GitHubCollector } from './collectors/github';
 import { NEARCollector } from './collectors/near';
 import { MetricsAggregator } from './aggregator/metrics-aggregator';
 import { PostgresStorage } from './storage/postgres';
 import { Logger } from './utils/logger';
-import { SDKConfig, ProcessedMetrics } from './types';
+import { ProcessedMetrics, StoredMetrics } from './types';
 import { BaseError, ErrorCode } from './utils/errors';
+import { createHash } from 'crypto';
+import { formatError } from './utils/format-error'; 
+
+export interface SDKConfig {
+  projectId: string;
+  nearAccount: string;
+  githubRepo: string;
+  githubToken: string;
+  storage?: {
+    type: 'postgres';
+    config: {
+      host: string;
+      port: number;
+      database: string;
+      user: string;
+      password: string;
+    };
+  };
+  trackingInterval?: number;
+}
 
 export class NEARProtocolRewardsSDK extends EventEmitter {
-  private readonly collectors: {
+  private collectors!: {
     github: GitHubCollector;
     near: NEARCollector;
   };
-  private readonly aggregator: MetricsAggregator;
-  private readonly storage?: PostgresStorage;
-  private readonly logger: Logger;
-  private readonly projectId: string;
+  private aggregator!: MetricsAggregator;
+  private storage?: PostgresStorage;
+  private logger!: Logger;
+  private projectId!: string;
   private collectionInterval?: NodeJS.Timeout;
 
   constructor(config: SDKConfig) {
     super();
-    
+    this.initializeSDK(config);
+  }
+
+  private initializeSDK(config: SDKConfig): void {
     this.projectId = config.projectId;
     this.logger = new Logger({ projectId: config.projectId });
     
-    // Initialize collectors
     this.collectors = {
       github: new GitHubCollector({
         repo: config.githubRepo,
@@ -37,13 +83,24 @@ export class NEARProtocolRewardsSDK extends EventEmitter {
       })
     };
 
-    // Initialize aggregator
     this.aggregator = new MetricsAggregator({ logger: this.logger });
 
-    // Initialize storage if configured
     if (config.storage?.type === 'postgres') {
-      this.storage = new PostgresStorage(config.storage.config, this.logger);
+      this.storage = new PostgresStorage({
+        connectionConfig: config.storage.config,
+        logger: this.logger
+      });
     }
+  }
+
+  private generateSignature(metrics: ProcessedMetrics): string {
+    const data = JSON.stringify({
+      timestamp: metrics.timestamp,
+      github: metrics.github,
+      near: metrics.near,
+      score: metrics.score
+    });
+    return createHash('sha256').update(data).digest('hex');
   }
 
   async startTracking(): Promise<void> {
@@ -75,21 +132,14 @@ export class NEARProtocolRewardsSDK extends EventEmitter {
         this.collectors.near.collectMetrics()
       ]);
 
-      const aggregated = this.aggregator.aggregateMetrics(github, near);
       const timestamp = Date.now();
+      const aggregated = this.aggregator.aggregate(github, near);
 
-      // Format metrics according to ProcessedMetrics type
       const processed: ProcessedMetrics = {
         timestamp,
         github,
         near,
-        score: {
-          total: aggregated.total,
-          breakdown: {
-            github: aggregated.github.total,
-            near: aggregated.near.total
-          }
-        },
+        score: aggregated,
         validation: {
           isValid: true,
           errors: [],
@@ -100,26 +150,35 @@ export class NEARProtocolRewardsSDK extends EventEmitter {
             validationType: 'data'
           }
         },
-        metadata: {
-          collectionTimestamp: timestamp,
-          source: 'github',
-          projectId: this.projectId,
-          periodStart: Math.min(
-            github.metadata.collectionTimestamp,
-            near.metadata.collectionTimestamp
-          ),
-          periodEnd: timestamp
-        }
+        collectionTimestamp: timestamp,
+        source: 'github',
+        projectId: this.projectId,
+        periodStart: timestamp - (24 * 60 * 60 * 1000),
+        periodEnd: timestamp
       };
-      
+
       if (this.storage) {
-        await this.storage.saveMetrics(this.projectId, processed);
+        const storedMetrics: StoredMetrics = {
+          projectId: this.projectId,
+          timestamp: Date.now(),
+          github,
+          near,
+          processed,
+          signature: this.generateSignature(processed),
+          score: processed.score
+        };
+        await this.storage.saveMetrics(this.projectId, storedMetrics);
       }
 
       this.emit('metrics:collected', processed);
     } catch (error) {
-      this.handleError(error);
-      throw error;
+      const sdkError = error instanceof BaseError ? error : new BaseError(
+        'Metrics collection failed',
+        ErrorCode.COLLECTION_ERROR,
+        { errorDetails: formatError(error) }
+      );
+      this.handleError(sdkError);
+      throw sdkError;
     }
   }
 
@@ -128,7 +187,7 @@ export class NEARProtocolRewardsSDK extends EventEmitter {
       throw new BaseError(
         'Storage not configured',
         ErrorCode.INTERNAL_ERROR,
-        { projectId }
+        { projectId: projectId || 'undefined' }
       );
     }
     return this.storage.getLatestMetrics(projectId || this.projectId);
@@ -138,7 +197,7 @@ export class NEARProtocolRewardsSDK extends EventEmitter {
     const sdkError = error instanceof BaseError ? error : new BaseError(
       'SDK operation failed',
       ErrorCode.INTERNAL_ERROR,
-      { originalError: error }
+      { errorDetails: formatError(error) }
     );
     
     this.emit('error', sdkError);

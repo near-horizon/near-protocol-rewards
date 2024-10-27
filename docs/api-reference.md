@@ -15,6 +15,7 @@ yarn add near-protocol-rewards
 ## Basic Usage
 
 ### Initialization
+
 ```typescript
 const sdk = new NEARProtocolRewardsSDK({
   projectId: string;
@@ -28,21 +29,25 @@ const sdk = new NEARProtocolRewardsSDK({
 ### Core Methods
 
 #### Start Tracking
+
 ```typescript
 await sdk.startTracking();
 ```
 
 #### Stop Tracking
+
 ```typescript
 await sdk.stopTracking();
 ```
 
 #### Get Metrics
+
 ```typescript
 const metrics = await sdk.getMetrics();
 ```
 
 #### Cleanup
+
 ```typescript
 await sdk.cleanup();
 ```
@@ -78,6 +83,7 @@ sdk.on('tracking:stopped', () => {
 ## Configuration
 
 ### SDK Options
+
 ```typescript
 interface SDKOptions {
   // Monitoring configuration
@@ -218,7 +224,8 @@ try {
 
 ## Best Practices
 
-1. **Always cleanup resources**
+### Always cleanup resources
+
 ```typescript
 // Ensure cleanup when done
 try {
@@ -229,7 +236,8 @@ try {
 }
 ```
 
-2. **Enable caching for better performance**
+### Enable caching for better performance
+
 ```typescript
 const sdk = new NEARProtocolRewardsSDK({
   // ... config

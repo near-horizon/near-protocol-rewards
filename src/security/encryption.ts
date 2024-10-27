@@ -1,6 +1,7 @@
 import crypto from 'crypto';
 import { Logger } from '../utils/logger';
-import { SDKError } from '../utils/errors';
+import { BaseError, ErrorCode } from '../utils/errors';
+import { formatError } from '../utils/format-error';
 
 interface EncryptionConfig {
   logger: Logger;
@@ -34,8 +35,15 @@ export class Encryption {
         authTag: authTag.toString('hex')
       });
     } catch (error) {
-      this.logger.error('Encryption failed', { error });
-      throw new SDKError('Encryption failed', 'ENCRYPTION_ERROR');
+      this.logger.error('Encryption failed', {
+        error: formatError(error),
+        context: { operation: 'encrypt' }
+      });
+      throw new BaseError(
+        'Encryption failed',
+        ErrorCode.ENCRYPTION_ERROR,
+        { error: formatError(error) }
+      );
     }
   }
 
@@ -56,13 +64,21 @@ export class Encryption {
       
       return decrypted;
     } catch (error) {
-      this.logger.error('Decryption failed', { error });
-      throw new SDKError('Decryption failed', 'DECRYPTION_ERROR');
+      this.logger.error('Decryption failed', {
+        error: formatError(error),
+        context: { operation: 'decrypt' }
+      });
+      throw new BaseError(
+        'Decryption failed',
+        ErrorCode.DECRYPTION_ERROR,
+        { error: formatError(error) }
+      );
     }
   }
 
+  // Key rotation is not implemented in MVP
   private async rotateKey(): Promise<void> {
-    const newKey = crypto.randomBytes(32);
-    // Implement key rotation logic
+    // TODO: Implement key rotation in future version
+    throw new Error('Key rotation not implemented');
   }
 }

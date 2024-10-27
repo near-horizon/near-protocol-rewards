@@ -1,12 +1,14 @@
 # Beta Testing Guide
 
 ## Setup Requirements
+
 - Node.js 16+
 - PostgreSQL database
 - GitHub account with API token
 - NEAR testnet account
 
 ## What to Test
+
 1. Metrics Collection
    - GitHub activity tracking
    - NEAR transaction monitoring
@@ -23,12 +25,15 @@
    - API failures
 
 ## Reporting Issues
+
 Please include:
+
 - Error messages
 - Configuration used
 - Steps to reproduce
 - Expected vs actual behavior
 
 ## Support
+
 - Discord: [Beta Testing Channel]
 - GitHub Issues: [Link to repo]

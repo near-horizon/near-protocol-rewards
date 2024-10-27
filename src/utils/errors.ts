@@ -1,39 +1,44 @@
 import { Logger } from './logger';
+import { formatError } from './format-error';
+import { JSONValue } from '../types/common';
 
 export enum ErrorCode {
   // API Errors
   GITHUB_API_ERROR = 'GITHUB_API_ERROR',
   NEAR_API_ERROR = 'NEAR_API_ERROR',
   API_ERROR = 'API_ERROR',
+  NOT_FOUND = 'NOT_FOUND',
+  INTERNAL_ERROR = 'INTERNAL_ERROR',
   
-  // Processing Errors
-  AGGREGATION_ERROR = 'AGGREGATION_ERROR',
-  VALIDATION_ERROR = 'VALIDATION_ERROR',
+  // Collection Errors
   COLLECTION_ERROR = 'COLLECTION_ERROR',
-  CALCULATION_ERROR = 'CALCULATION_ERROR',
-  PRICE_DATA_ERROR = 'PRICE_DATA_ERROR',
+  RATE_LIMIT = 'RATE_LIMIT',
+  
+  // Validation Errors
+  VALIDATION_ERROR = 'VALIDATION_ERROR',
+  TIMESTAMP_DRIFT = 'TIMESTAMP_DRIFT',
+  STALE_DATA = 'STALE_DATA',
+  USER_COUNT_DISCREPANCY = 'USER_COUNT_DISCREPANCY',
+  LOW_ACTIVITY_CORRELATION = 'LOW_ACTIVITY_CORRELATION',
   
   // Security Errors
+  ENCRYPTION_ERROR = 'ENCRYPTION_ERROR',
+  DECRYPTION_ERROR = 'DECRYPTION_ERROR',
   TAMPERING_DETECTED = 'TAMPERING_DETECTED',
-  INVALID_SIGNATURE = 'INVALID_SIGNATURE',
-  UNAUTHORIZED = 'UNAUTHORIZED',
+  KEY_ROTATION_ERROR = 'KEY_ROTATION_ERROR',
   
   // Storage Errors
-  DATABASE_ERROR = 'DATABASE_ERROR',
-  
-  // General Errors
-  INTERNAL_ERROR = 'INTERNAL_ERROR',
-  NOT_FOUND = 'NOT_FOUND'
+  DATABASE_ERROR = 'DATABASE_ERROR'
 }
 
 export class BaseError extends Error {
   constructor(
     message: string,
-    public code: ErrorCode,
-    public context?: Record<string, any>
+    public readonly code: ErrorCode,
+    public readonly context?: Record<string, JSONValue>
   ) {
     super(message);
-    this.name = this.constructor.name;
+    this.name = 'BaseError';
   }
 }
 
@@ -41,28 +46,32 @@ export class APIError extends BaseError {}
 export class ValidationError extends BaseError {}
 export class StorageError extends BaseError {}
 export class SecurityError extends BaseError {}
-export class CollectionError extends BaseError {}
 
 export class ErrorHandler {
   constructor(private readonly logger: Logger) {}
 
-  handle(error: Error, context?: Record<string, any>): void {
+  handle(error: Error, context?: Record<string, JSONValue>): void {
+    const errorDetail = formatError(error);
+    
     if (error instanceof BaseError) {
-      this.logger.error(`${error.code}: ${error.message}`, {
-        ...error.context,
-        ...context
+      this.logger.error(error.message, {
+        error: errorDetail,
+        context: error.context || context
       });
     } else {
-      this.logger.error(error.message, context);
+      this.logger.error(error.message, {
+        error: errorDetail,
+        context
+      });
     }
   }
 }
 
 export class SDKError extends Error {
   constructor(
-    public code: ErrorCode,
     message: string,
-    public context?: Record<string, any>
+    public readonly code: ErrorCode,
+    public readonly context?: Record<string, JSONValue>
   ) {
     super(message);
     this.name = 'SDKError';
