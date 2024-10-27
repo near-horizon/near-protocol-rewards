@@ -135,3 +135,27 @@ export const createMockGitHubMetrics = (): GitHubMetrics => ({
     periodEnd: Date.now()
   }
 });
+
+// Add test environment validation
+function validateTestEnvironment() {
+  const required = [
+    'GITHUB_TOKEN',
+    'GITHUB_REPO',
+    'NEAR_ACCOUNT',
+    'POSTGRES_HOST',
+    'POSTGRES_PORT',
+    'POSTGRES_DB',
+    'POSTGRES_USER',
+    'POSTGRES_PASSWORD'
+  ];
+
+  const missing = required.filter(key => !process.env[key]);
+  if (missing.length > 0) {
+    throw new Error(`Missing required test environment variables: ${missing.join(', ')}`);
+  }
+}
+
+beforeAll(async () => {
+  validateTestEnvironment();
+  await setupTestDb();
+});

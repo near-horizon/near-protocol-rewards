@@ -1,5 +1,6 @@
 import { ErrorCode } from '../utils/errors';
 import { Logger } from '../utils/logger';
+import { JSONValue } from './common';
 
 export type MetricsSource = 'github' | 'near';
 export type ValidationType = 'data' | 'security';
@@ -9,10 +10,14 @@ export interface ValidationMetadata {
   validationType: ValidationType;
 }
 
+export interface ValidationContext {
+  [key: string]: JSONValue;
+}
+
 export interface ValidationError {
-  code: ErrorCode;
+  code: string;
   message: string;
-  context: Record<string, unknown>;
+  context?: ValidationContext;
 }
 
 export interface ValidationWarning extends ValidationError {}
@@ -22,13 +27,17 @@ export interface ValidationResult {
   errors: ValidationError[];
   warnings: ValidationWarning[];
   timestamp: number;
-  metadata: ValidationMetadata;
+  metadata: {
+    source: string;
+    validationType: string;
+  };
 }
 
 export interface ValidationThresholds {
-  timeDriftThreshold: number;    // milliseconds
-  staleDataThreshold: number;    // milliseconds
-  minCorrelation: number;        // 0-1
+  minCommits: number;
+  maxCommitsPerDay: number;
+  minAuthors: number;
+  // ... other thresholds
 }
 
 export interface ValidationConfig {

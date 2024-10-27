@@ -1,20 +1,23 @@
-import { GitHubMetrics, ValidationResult, ValidationError, ValidationWarning } from '../types';
+import { GitHubMetrics, ValidationResult, ValidationError, ValidationWarning, ValidationContext } from '../types';
 import { Logger } from '../utils/logger';
 import { ErrorCode } from '../utils/errors';
+import { JSONValue } from '../types/common';
+
+interface GitHubValidatorThresholds {
+  minCommits: number;
+  maxCommitsPerDay: number;
+  minAuthors: number;
+  suspiciousAuthorRatio: number;
+}
 
 interface GitHubValidatorConfig {
   logger: Logger;
-  thresholds?: {
-    minCommits?: number;
-    maxCommitsPerDay?: number;
-    minAuthors?: number;
-    suspiciousAuthorRatio?: number;
-  };
+  thresholds?: Partial<GitHubValidatorThresholds>;
 }
 
 export class GitHubValidator {
   private readonly logger: Logger;
-  private readonly thresholds: Required<GitHubValidatorConfig['thresholds']>;
+  private readonly thresholds: GitHubValidatorThresholds;
 
   constructor(config: GitHubValidatorConfig) {
     this.logger = config.logger;
@@ -30,25 +33,26 @@ export class GitHubValidator {
     const errors: ValidationError[] = [];
     const warnings: ValidationWarning[] = [];
 
-    // Validate commit data
     this.validateCommits(metrics, errors, warnings);
-    
-    // Validate PR data
     this.validatePullRequests(metrics, errors, warnings);
-    
-    // Validate issue data
     this.validateIssues(metrics, errors, warnings);
-    
-    // Validate timestamps
     this.validateTimestamps(metrics, errors);
 
     const isValid = errors.length === 0;
 
     if (!isValid) {
-      this.logger.warn('GitHub validation failed', { errors });
+      this.logger.warn('GitHub validation failed', { 
+        validation: {
+          errors: errors.map(e => ({ ...e, context: e.context || {} }))
+        }
+      });
     }
     if (warnings.length > 0) {
-      this.logger.warn('GitHub validation warnings', { warnings });
+      this.logger.warn('GitHub validation warnings', { 
+        validation: {
+          warnings: warnings.map(w => ({ ...w, context: w.context || {} }))
+        }
+      });
     }
 
     return {
@@ -68,44 +72,41 @@ export class GitHubValidator {
     errors: ValidationError[],
     warnings: ValidationWarning[]
   ): void {
+    const { minCommits, maxCommitsPerDay, minAuthors } = this.thresholds;
     const commits = metrics.commits;
     const count = commits?.count ?? 0;
     const frequency = commits?.frequency ?? 0;
     const authors = commits?.authors ?? [];
 
-    // Check minimum commits
-    if (count < this.thresholds.minCommits) {
+    if (count < minCommits) {
       warnings.push({
         code: ErrorCode.LOW_COMMIT_COUNT,
         message: `Commit count (${count}) below minimum threshold`,
-        context: { 
-          count,
-          threshold: this.thresholds.minCommits 
-        }
+        context: { count, threshold: minCommits }
       });
     }
 
     // Check for suspicious commit frequency
     const commitsPerDay = frequency * 7;
-    if (commitsPerDay > this.thresholds.maxCommitsPerDay) {
+    if (commitsPerDay > maxCommitsPerDay) {
       errors.push({
         code: ErrorCode.SUSPICIOUS_COMMIT_FREQUENCY,
         message: 'Unusually high commit frequency detected',
         context: { 
           commitsPerDay,
-          threshold: this.thresholds.maxCommitsPerDay
+          threshold: maxCommitsPerDay
         }
       });
     }
 
     // Check author diversity
-    if (authors.length < this.thresholds.minAuthors) {
+    if (authors.length < minAuthors) {
       warnings.push({
         code: ErrorCode.LOW_AUTHOR_DIVERSITY,
         message: 'Low number of unique commit authors',
         context: { 
           authorCount: authors.length,
-          threshold: this.thresholds.minAuthors
+          threshold: minAuthors
         }
       });
     }
@@ -116,6 +117,7 @@ export class GitHubValidator {
     errors: ValidationError[],
     warnings: ValidationWarning[]
   ): void {
+    const { minAuthors } = this.thresholds;
     const prs = metrics.pullRequests;
     const open = prs?.open ?? 0;
     const merged = prs?.merged ?? 0;
@@ -130,7 +132,7 @@ export class GitHubValidator {
         context: { 
           totalPRs, 
           author: authors[0],
-          threshold: this.thresholds.minAuthors
+          threshold: minAuthors
         }
       });
     }
@@ -154,6 +156,7 @@ export class GitHubValidator {
     errors: ValidationError[],
     warnings: ValidationWarning[]
   ): void {
+    const { minAuthors } = this.thresholds;
     const issues = metrics.issues;
     const open = issues?.open ?? 0;
     const closed = issues?.closed ?? 0;
@@ -168,7 +171,7 @@ export class GitHubValidator {
         context: { 
           totalIssues,
           participantCount: participants.length,
-          threshold: this.thresholds.minAuthors
+          threshold: minAuthors
         }
       });
     }

@@ -145,31 +145,20 @@ export class PostgresStorage {
     
     try {
       await client.query('BEGIN');
+      
+      // Insert metrics
       await client.query(
-        `INSERT INTO metrics (
-          project_id,
-          timestamp,
-          collection_timestamp,
-          github_metrics,
-          near_metrics,
-          processed_metrics,
-          validation_result,
-          signature
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
-        [
-          projectId,
-          metrics.timestamp,
-          Date.now(), // collection_timestamp
-          metrics.github,
-          metrics.near,
-          metrics.processed,
-          metrics.processed.validation, // validation_result
-          metrics.signature
-        ]
+        'INSERT INTO metrics (project_id, data) VALUES ($1, $2)',
+        [projectId, metrics]
       );
+      
       await client.query('COMMIT');
     } catch (error) {
-      await client.query('ROLLBACK');
+      if (client) {
+        await client.query('ROLLBACK').catch(() => {
+          // Ignore rollback errors
+        });
+      }
       throw new BaseError(
         'Failed to save metrics',
         ErrorCode.DATABASE_ERROR,
