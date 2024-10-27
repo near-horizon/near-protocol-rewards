@@ -1,46 +1,49 @@
-import { Pool } from 'pg';
+import { Pool, PoolConfig } from 'pg';
 import { PostgresStorage } from '../../src/storage/postgres';
 import { Logger } from '../../src/utils/logger';
-import { createMockGitHubMetrics, createMockNEARMetrics } from '../helpers/mock-data';
-import { StoredMetrics, ProcessedMetrics } from '../../src/types';
+import { 
+  createMockStoredMetrics,
+  createMockGitHubMetrics,
+  createMockNEARMetrics 
+} from '../helpers/mock-data';
 
 describe('PostgresStorage', () => {
-  let storage: PostgresStorage;
   let pool: Pool;
-  let logger: Logger;
+  let storage: PostgresStorage;
 
   beforeAll(async () => {
-    const poolConfig = {
-      host: process.env.POSTGRES_HOST || 'localhost',
+    const poolConfig: PoolConfig = {
+      host: process.env.POSTGRES_HOST,
       port: parseInt(process.env.POSTGRES_PORT || '5432'),
-      database: process.env.POSTGRES_DB || 'near_rewards_test',
-      user: process.env.POSTGRES_USER || 'postgres',
-      password: process.env.POSTGRES_PASSWORD || 'postgres'
+      database: process.env.POSTGRES_DB,
+      user: process.env.POSTGRES_USER,
+      password: process.env.POSTGRES_PASSWORD
     };
 
     pool = new Pool(poolConfig);
-    logger = {
-      debug: jest.fn(),
-      info: jest.fn(),
-      warn: jest.fn(),
-      error: jest.fn()
-    } as unknown as Logger;
-
-    storage = new PostgresStorage({ 
-      connectionConfig: poolConfig,
-      logger 
-    });
     
-    await storage.initialize();
+    // Create test tables
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS metrics (
+        id SERIAL PRIMARY KEY,
+        project_id VARCHAR(255) NOT NULL,
+        data JSONB NOT NULL,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
   });
 
-  afterAll(async () => {
-    await storage.cleanup();
-    await pool.end();
-  });
-
-  beforeEach(async () => {
-    await pool.query('TRUNCATE TABLE metrics CASCADE');
+  beforeEach(() => {
+    storage = new PostgresStorage({
+      connectionConfig: {
+        host: process.env.POSTGRES_HOST,
+        port: parseInt(process.env.POSTGRES_PORT || '5432'),
+        database: process.env.POSTGRES_DB,
+        user: process.env.POSTGRES_USER,
+        password: process.env.POSTGRES_PASSWORD
+      },
+      logger: new Logger({ projectId: 'test' })
+    });
   });
 
   describe('saveMetrics', () => {
@@ -48,7 +51,8 @@ describe('PostgresStorage', () => {
       const timestamp = Date.now();
       const projectId = 'test-project';
       
-      const metrics: StoredMetrics = {
+      // Use createMockStoredMetrics with overrides
+      const metrics = createMockStoredMetrics({
         projectId,
         timestamp,
         github: createMockGitHubMetrics(),
@@ -56,33 +60,8 @@ describe('PostgresStorage', () => {
         score: {
           total: 85,
           breakdown: { github: 80, near: 90 }
-        },
-        processed: {
-          timestamp,
-          collectionTimestamp: timestamp,
-          source: 'github',
-          projectId,
-          periodStart: timestamp - 1000,
-          periodEnd: timestamp,
-          github: createMockGitHubMetrics(),
-          near: createMockNEARMetrics(),
-          score: {
-            total: 85,
-            breakdown: { github: 80, near: 90 }
-          },
-          validation: {
-            isValid: true,
-            errors: [],
-            warnings: [],
-            timestamp,
-            metadata: {
-              source: 'github',
-              validationType: 'data'
-            }
-          }
-        },
-        signature: 'test-signature'
-      };
+        }
+      });
 
       await storage.saveMetrics(projectId, metrics);
 
@@ -96,41 +75,10 @@ describe('PostgresStorage', () => {
       jest.spyOn(pool, 'query').mockRejectedValueOnce(mockError as never);
 
       const projectId = 'test-project';
-      const metrics: StoredMetrics = {
+      const metrics = createMockStoredMetrics({
         projectId,
-        timestamp: Date.now(),
-        github: createMockGitHubMetrics(),
-        near: createMockNEARMetrics(),
-        score: {
-          total: 85,
-          breakdown: { github: 80, near: 90 }
-        },
-        processed: {
-          timestamp: Date.now(),
-          collectionTimestamp: Date.now(),
-          source: 'github',
-          projectId,
-          periodStart: Date.now() - 1000,
-          periodEnd: Date.now(),
-          github: createMockGitHubMetrics(),
-          near: createMockNEARMetrics(),
-          score: {
-            total: 85,
-            breakdown: { github: 80, near: 90 }
-          },
-          validation: {
-            isValid: true,
-            errors: [],
-            warnings: [],
-            timestamp: Date.now(),
-            metadata: {
-              source: 'github',
-              validationType: 'data'
-            }
-          }
-        },
-        signature: 'test-signature'
-      };
+        timestamp: Date.now()
+      });
 
       await expect(storage.saveMetrics(projectId, metrics))
         .rejects

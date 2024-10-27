@@ -1,16 +1,16 @@
 import { NEARProtocolRewardsSDK } from '../../src/sdk';
-import { mockGitHubMetrics, mockNEARMetrics } from '../mocks/metrics';
+import { createMockGitHubMetrics, createMockNEARMetrics } from '../helpers/mock-data';
 import { testConfig } from '../setup';
 
 jest.mock('../../src/collectors/github', () => ({
   GitHubCollector: jest.fn().mockImplementation(() => ({
-    collectMetrics: jest.fn().mockResolvedValue(mockGitHubMetrics)
+    collectMetrics: jest.fn().mockResolvedValue(createMockGitHubMetrics)
   }))
 }));
 
 jest.mock('../../src/collectors/near', () => ({
   NEARCollector: jest.fn().mockImplementation(() => ({
-    collectMetrics: jest.fn().mockResolvedValue(mockNEARMetrics)
+    collectMetrics: jest.fn().mockResolvedValue(createMockNEARMetrics)
   }))
 }));
 

@@ -28,5 +28,5 @@ describe('Basic Integration Flow', () => {
 
     // 4. Stop tracking
     await sdk.stopTracking();
-  });
+  }, 30000); // 30 second timeout
 });

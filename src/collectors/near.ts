@@ -85,22 +85,34 @@ export class NEARCollector extends BaseCollector {
   constructor(config: NEARCollectorConfig) {
     super({
       logger: config.logger,
-      maxRequestsPerSecond: 5  // NEARBlocks rate limit
+      maxRequestsPerSecond: 5
     });
-    
-    this.account = config.account;
+
+    // Add API key from environment
     this.api = axios.create({
-      baseURL: 'https://api.nearblocks.io/v1',
+      baseURL: process.env.NEAR_API_URL || 'https://api.nearblocks.io/v1',
       headers: {
         'Accept': 'application/json',
-        'Authorization': `Bearer ${config.token}`
+        'X-API-Key': process.env.NEAR_API_KEY // Add this to .env.test
       },
       timeout: 10000
     });
+    
+    this.account = config.account;
   }
 
   async collectMetrics(): Promise<NEARMetrics> {
     try {
+      const [txResponse, contractResponse] = await Promise.all([
+        this.api.get(`/account/${this.account}/txns`),
+        this.api.get(`/account/${this.account}/contracts`)
+      ]);
+
+      // Add better error handling
+      if (!txResponse.data || !contractResponse.data) {
+        throw new Error('Invalid API response');
+      }
+
       const timestamp = Date.now();
       const [txns, ftTransfers, price] = await Promise.all([
         this.fetchTransactions(),
