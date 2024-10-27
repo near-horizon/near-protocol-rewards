@@ -13,75 +13,26 @@ const createMockQueryResult = <T extends QueryResultRow = any>(): QueryResult<T>
   fields: []
 });
 
-// Create a complete mock client type
-type MockClient = {
-  [K in keyof PoolClient]: K extends 'query' | 'release' | 'on' 
-    ? jest.Mock 
-    : PoolClient[K];
-};
-
-// Create mock client factory with all required properties
-const createMockClient = (): MockClient => {
-  const client = {
-    query: jest.fn().mockResolvedValue(createMockQueryResult()),
-    release: jest.fn(),
-    on: jest.fn(),
-    removeListener: jest.fn(),
-    off: jest.fn(),
-    connect: jest.fn(),
-    copyFrom: jest.fn(),
-    copyTo: jest.fn(),
-    pauseDrain: jest.fn(),
-    resumeDrain: jest.fn(),
-    escapeIdentifier: jest.fn(),
-    escapeLiteral: jest.fn(),
-    cancel: jest.fn(),
-    addListener: jest.fn(),
-    emit: jest.fn(),
-    eventNames: jest.fn(),
-    getMaxListeners: jest.fn(),
-    listenerCount: jest.fn(),
-    listeners: jest.fn(),
-    once: jest.fn(),
-    prependListener: jest.fn(),
-    prependOnceListener: jest.fn(),
-    rawListeners: jest.fn(),
-    removeAllListeners: jest.fn(),
-    setMaxListeners: jest.fn(),
-    connection: {},
-    processID: 0,
-    secretKey: 0,
-    ssl: false,
-    database: 'test_db',
-    user: 'test_user',
-    password: 'test_password',
-    port: 5432,
-    host: 'localhost'
-  } as const;
-
-  return client as unknown as MockClient;
-};
-
-// Mock pg with proper types and client
+// Mock pg module
 jest.mock('pg', () => {
-  const mPool = {
-    query: jest.fn().mockResolvedValue(createMockQueryResult()),
-    connect: jest.fn().mockImplementation(() => Promise.resolve(createMockClient())),
-    end: jest.fn().mockResolvedValue(undefined),
-    on: jest.fn()
+  const mockClient = {
+    query: jest.fn(),
+    release: jest.fn(),
   };
 
-  return { 
-    Pool: jest.fn(() => mPool),
-    createMockClient
+  const mockPool = {
+    connect: jest.fn().mockResolvedValue(mockClient),
+    end: jest.fn().mockResolvedValue(undefined),
   };
+
+  return { Pool: jest.fn(() => mockPool) };
 });
 
 describe('PostgresStorage', () => {
   let storage: PostgresStorage;
-  let pool: jest.Mocked<Pool>;
+  let pool: Pool;
+  let client: any;
   let logger: Logger;
-  let mockClient: MockClient;
 
   beforeEach(async () => {
     logger = new Logger({ projectId: 'test' });
@@ -94,60 +45,61 @@ describe('PostgresStorage', () => {
       password: process.env.POSTGRES_PASSWORD || 'test_password'
     };
 
-    const pg = jest.requireMock('pg');
-    mockClient = pg.createMockClient();
-    pool = new Pool() as jest.Mocked<Pool>;
-    (pool.connect as jest.Mock).mockResolvedValue(mockClient);
+    pool = new Pool(poolConfig);
+    client = await pool.connect();
 
     storage = new PostgresStorage({
       connectionConfig: poolConfig,
       logger
     });
-    
+
     await storage.initialize();
   });
 
   afterEach(async () => {
-    try {
-      await storage.cleanup();
-    } catch (error) {
-      // Ignore cleanup errors in tests
-      console.warn('Cleanup warning:', error);
+    if (client) {
+      client.release();
+    }
+    if (pool) {
+      await pool.end();
     }
   });
 
   it('should store metrics successfully', async () => {
     const metrics = createMockStoredMetrics();
     
-    // Setup mock responses
-    jest.spyOn(mockClient, 'query')
+    // Setup successful transaction mock
+    client.query
       .mockResolvedValueOnce(createMockQueryResult()) // BEGIN
       .mockResolvedValueOnce(createMockQueryResult()) // INSERT
       .mockResolvedValueOnce(createMockQueryResult()); // COMMIT
 
     await storage.saveMetrics('test-project', metrics);
     
-    expect(mockClient.query).toHaveBeenCalledTimes(3);
-    expect(mockClient.release).toHaveBeenCalled();
+    expect(client.query).toHaveBeenCalledWith('BEGIN');
+    expect(client.query).toHaveBeenCalledWith(
+      expect.stringContaining('INSERT INTO metrics'),
+      expect.any(Array)
+    );
+    expect(client.query).toHaveBeenCalledWith('COMMIT');
+    expect(client.release).toHaveBeenCalled();
   });
 
   it('should handle transaction failures', async () => {
     const mockError = new Error('DB Error');
+    const metrics = createMockStoredMetrics();
     
-    // Setup mock responses
-    jest.spyOn(mockClient, 'query')
+    // Setup failed transaction mock
+    client.query
       .mockResolvedValueOnce(createMockQueryResult()) // BEGIN
-      .mockRejectedValueOnce(mockError) // INSERT fails
+      .mockRejectedValueOnce(mockError)              // INSERT fails
       .mockResolvedValueOnce(createMockQueryResult()); // ROLLBACK
 
-    const projectId = 'test-project';
-    const metrics = createMockStoredMetrics();
-
-    await expect(storage.saveMetrics(projectId, metrics))
+    await expect(storage.saveMetrics('test-project', metrics))
       .rejects
       .toThrow('Failed to save metrics');
 
-    expect(mockClient.query).toHaveBeenCalledWith('ROLLBACK');
-    expect(mockClient.release).toHaveBeenCalled();
+    expect(client.query).toHaveBeenCalledWith('ROLLBACK');
+    expect(client.release).toHaveBeenCalled();
   });
 });
