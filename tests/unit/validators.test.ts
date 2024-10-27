@@ -22,8 +22,13 @@ describe('Validators Unit Tests', () => {
     const metrics = createMockGitHubMetrics({
       commits: {
         count: 100,
-        frequency: 50,
-        authors: ['user1']  // Single author to trigger warning
+        frequency: 10,
+        authors: ['user1'] // Single author to trigger warning
+      },
+      pullRequests: {
+        open: 5,
+        merged: 15,
+        authors: ['user1']
       }
     });
 

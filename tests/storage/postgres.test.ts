@@ -22,7 +22,7 @@ describe('PostgresStorage', () => {
 
     pool = new Pool(poolConfig);
     
-    // Create test tables
+    // Ensure tables exist
     await pool.query(`
       CREATE TABLE IF NOT EXISTS metrics (
         id SERIAL PRIMARY KEY,
@@ -33,7 +33,10 @@ describe('PostgresStorage', () => {
     `);
   });
 
-  beforeEach(() => {
+  beforeEach(async () => {
+    // Clean tables before each test
+    await pool.query('TRUNCATE TABLE metrics CASCADE');
+
     storage = new PostgresStorage({
       connectionConfig: {
         host: process.env.POSTGRES_HOST,
