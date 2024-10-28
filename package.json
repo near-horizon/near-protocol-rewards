@@ -1,7 +1,7 @@
 {
   "name": "near-protocol-rewards",
   "version": "0.1.2",
-  "description": "SDK for tracking and calculating NEAR Protocol project rewards",
+  "description": "A transparent, metric-based rewards system for NEAR Protocol projects",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "engines": {
@@ -27,11 +27,11 @@
     "github",
     "metrics"
   ],
-  "author": "Your Name",
+  "author": "Near Foundation",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/yourusername/near-protocol-rewards.git"
+    "url": "git+https://github.com/jbarnes850/near-protocol-rewards.git"
   },
   "dependencies": {
     "@octokit/rest": "^19.0.13",
@@ -67,6 +67,7 @@
   "files": [
     "dist",
     "README.md",
-    "LICENSE"
+    "LICENSE",
+    "docs"
   ]
 }
