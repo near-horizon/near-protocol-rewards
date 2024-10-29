@@ -1,26 +1,5 @@
-import { ErrorCode } from '../utils/errors';
-import { Logger } from '../utils/logger';
-import { JSONValue } from './common';
-
-export type MetricsSource = 'github' | 'near';
-export type ValidationType = 'data' | 'security';
-
-export interface ValidationMetadata {
-  source: MetricsSource;
-  validationType: ValidationType;
-}
-
-export interface ValidationContext {
-  [key: string]: JSONValue;
-}
-
-export interface ValidationError {
-  code: string;
-  message: string;
-  context?: ValidationContext;
-}
-
-export interface ValidationWarning extends ValidationError {}
+import { JSONValue } from './json';
+import { ErrorCode } from './errors';
 
 export interface ValidationResult {
   isValid: boolean;
@@ -28,19 +7,44 @@ export interface ValidationResult {
   warnings: ValidationWarning[];
   timestamp: number;
   metadata: {
-    source: string;
-    validationType: string;
+    source: 'github' | 'near';
+    validationType: 'data' | 'format' | 'consistency';
   };
 }
 
-export interface ValidationThresholds {
-  minCommits: number;
-  maxCommitsPerDay: number;
-  minAuthors: number;
-  // ... other thresholds
+export interface ValidationError {
+  code: ErrorCode;
+  message: string;
+  field?: string;
+  value?: JSONValue;
+  context?: Record<string, JSONValue>;
 }
 
-export interface ValidationConfig {
-  thresholds?: Partial<ValidationThresholds>;
-  logger?: Logger;
+export interface ValidationWarning {
+  code: ErrorCode;
+  message: string;
+  field?: string;
+  value?: JSONValue;
+  context?: Record<string, JSONValue>;
+}
+
+export interface ValidationThresholds {
+  github: {
+    minCommits: number;
+    minPRs: number;
+    minIssues: number;
+    minAuthors: number;
+  };
+  near: {
+    minTransactions: number;
+    minVolume: string;
+    minUniqueUsers: number;
+    minContractCalls: number;
+  };
+}
+
+// Type guard for validation errors
+export function isValidationError(obj: unknown): obj is ValidationError {
+  return typeof obj === 'object' && obj !== null &&
+    'code' in obj && 'message' in obj;
 }

@@ -9,23 +9,28 @@ export interface RateLimitConfig {
 }
 
 export class RateLimiter {
-  private timestamps: Map<string, number[]> = new Map();
-  
-  constructor(private maxRequests: number, private timeWindow: number) {}
-  
-  canMakeRequest(key: string): boolean {
+  private lastRequest: number = 0;
+  private requestCount: number = 0;
+
+  constructor(private config: { requestsPerSecond: number }) {
+    this.config.requestsPerSecond = config.requestsPerSecond || 1;
+  }
+
+  async wait(): Promise<void> {
     const now = Date.now();
-    const requests = this.timestamps.get(key) || [];
+    const timeWindow = 1000; // 1 second in milliseconds
     
-    // Remove old timestamps
-    const validRequests = requests.filter(time => now - time < this.timeWindow);
-    
-    if (validRequests.length < this.maxRequests) {
-      validRequests.push(now);
-      this.timestamps.set(key, validRequests);
-      return true;
+    if (now - this.lastRequest < timeWindow) {
+      this.requestCount++;
+      if (this.requestCount >= this.config.requestsPerSecond) {
+        const delay = timeWindow - (now - this.lastRequest);
+        await new Promise(resolve => setTimeout(resolve, delay));
+        this.requestCount = 0;
+        this.lastRequest = Date.now();
+      }
+    } else {
+      this.requestCount = 1;
+      this.lastRequest = now;
     }
-    
-    return false;
   }
 }

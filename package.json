@@ -10,7 +10,7 @@
   "scripts": {
     "build": "tsc",
     "prebuild": "npm run clean",
-    "test": "npm run setup-test-db && npm run init-test-db && jest --config jest.config.js --detectOpenHandles",
+    "test": "npm run setup-test-db && jest --config jest.config.js --detectOpenHandles --runInBand",
     "test:watch": "jest --config jest.config.js --watch",
     "test:coverage": "jest --config jest.config.js --coverage",
     "test:ci": "jest --ci",
@@ -20,7 +20,8 @@
     "verify-token": "ts-node scripts/verify-github-token.ts",
     "verify-near-api": "ts-node scripts/verify-near-api.ts",
     "init-test-db": "ts-node scripts/init-test-db.ts",
-    "setup-test-db": "ts-node scripts/setup-test-db.ts"
+    "setup-test-db": "ts-node scripts/setup-test-db.ts",
+    "pretest": "npm run build"
   },
   "keywords": [
     "near",

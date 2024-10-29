@@ -5,6 +5,7 @@ This guide details all environment variables used by the NEAR Protocol Rewards S
 ## Required Variables
 
 ### Core Configuration
+
 ```env
 # Unique project identifier
 PROJECT_ID=my-project
@@ -23,6 +24,7 @@ NEAR_API_KEY=your_api_key_here
 ```
 
 ### Database Configuration
+
 ```env
 # PostgreSQL connection details
 POSTGRES_HOST=localhost
@@ -35,6 +37,7 @@ POSTGRES_PASSWORD=your_secure_password
 ## Optional Variables
 
 ### API Configuration
+
 ```env
 # NEAR API endpoint (default: https://api.nearblocks.io/v1)
 NEAR_API_URL=https://api.nearblocks.io/v1
@@ -47,6 +50,7 @@ GITHUB_API_URL=https://api.github.com
 ```
 
 ### Performance Settings
+
 ```env
 # Metrics collection interval in milliseconds (default: 300000 - 5 minutes)
 METRICS_COLLECTION_INTERVAL=300000
@@ -59,6 +63,7 @@ STORAGE_RETENTION_DAYS=30
 ```
 
 ### Logging & Debug
+
 ```env
 # Log level (default: info)
 LOG_LEVEL=info  # Options: debug, info, warn, error
@@ -73,6 +78,7 @@ SKIP_VALIDATION=false
 ## Environment-Specific Files
 
 ### Production (.env)
+
 ```env
 PROJECT_ID=production-project
 NEAR_ACCOUNT=myproject.near
@@ -91,6 +97,7 @@ METRICS_COLLECTION_INTERVAL=300000
 ```
 
 ### Testing (.env.test)
+
 ```env
 PROJECT_ID=test-project
 NEAR_ACCOUNT=test.near
@@ -171,24 +178,30 @@ const sdk = new NEARProtocolRewardsSDK({
 Common issues and solutions:
 
 1. **Database Connection Failed**
-   ```
+
+   ```bash
    Error: Failed to connect to database
    ```
+
    - Verify PostgreSQL is running
    - Check credentials and host
    - Ensure database exists
 
 2. **GitHub API Error**
-   ```
+
+   ```bash
    Error: Bad credentials
    ```
+
    - Verify token starts with `ghp_`
    - Check token permissions
    - Ensure token hasn't expired
 
 3. **NEAR API Error**
-   ```
+
+   ```bash
    Error: Invalid API key
    ```
+
    - Verify NEAR_API_KEY is set
    - Check key validity at NEARBlocks

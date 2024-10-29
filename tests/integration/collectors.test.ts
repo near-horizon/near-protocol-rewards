@@ -28,15 +28,18 @@ const mockAxiosInstance = {
               {
                 hash: 'hash1',
                 signer_account_id: 'user1.near',
+                block_timestamp: Date.now() * 1000000,
                 amount: '500000000000000000000000'
               },
               {
                 hash: 'hash2',
                 signer_account_id: 'user2.near',
+                block_timestamp: Date.now() * 1000000,
                 amount: '500000000000000000000000'
               }
             ],
-            total_amount: '1000000000000000000000000'
+            total_amount: '1000000000000000000000000',
+            count: 50
           }
         });
       }

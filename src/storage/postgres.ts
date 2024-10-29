@@ -25,6 +25,7 @@ import { BaseError, ErrorCode } from '../utils/errors';
 import { formatError } from '../utils/format-error';
 import { LogContext } from '../types/common';
 import { JSONValue } from '../types/json';
+import { toJSONValue } from '../types/json';
 
 interface RetryConfig {
   maxRetries: number;
@@ -349,12 +350,26 @@ export class PostgresStorage {
   }
 
   private formatErrorContext(error: unknown): Record<string, JSONValue> {
-    const context: ErrorContext = {
-      error: error instanceof Error ? error.message : String(error),
+    const formattedError = formatError(error);
+    return {
+      error: toJSONValue(formattedError) as JSONValue,
       timestamp: Date.now(),
       errorType: error instanceof Error ? error.constructor.name : typeof error
     };
+  }
+
+  private async handleError(error: unknown, context: string): Promise<never> {
+    const errorContext = this.formatErrorContext(error);
     
-    return context;
+    this.logger.error('Database error', {
+      error: errorContext.error,
+      context: { operation: context, ...errorContext }
+    });
+
+    throw new BaseError(
+      'Database operation failed',
+      ErrorCode.DATABASE_ERROR,
+      errorContext
+    );
   }
 }

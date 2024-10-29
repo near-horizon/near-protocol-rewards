@@ -15,6 +15,8 @@ import { Octokit } from '@octokit/rest';
 import { Logger } from '../utils/logger';
 import { GitHubMetrics } from '../types';
 import { BaseError, ErrorCode } from '../types/errors';
+import { formatError } from '../utils/format-error';
+import { toJSONValue } from '../types/json';
 
 export class GitHubCollector {
   private octokit: Octokit;
@@ -73,21 +75,12 @@ export class GitHubCollector {
           collectionTimestamp: Date.now(),
           source: 'github',
           projectId: this.repo,
-          periodStart: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).getTime(),
+          periodStart: Date.now() - (7 * 24 * 60 * 60 * 1000),
           periodEnd: Date.now()
         }
       };
     } catch (error) {
-      this.logger.error('GitHub metrics collection failed', {
-        error: error instanceof Error ? error.message : 'Unknown error',
-        context: { repo: this.repo }
-      });
-      
-      throw new BaseError(
-        'GitHub metrics collection failed',
-        ErrorCode.GITHUB_API_ERROR,
-        { error }
-      );
+      this.handleError(error, 'collectMetrics');
     }
   }
 
@@ -101,15 +94,7 @@ export class GitHubCollector {
       });
       return data;
     } catch (error) {
-      this.logger.error('Failed to fetch commits', {
-        error: error instanceof Error ? error.message : 'Unknown error',
-        context: { owner, repo }
-      });
-      throw new BaseError(
-        'Failed to fetch GitHub commits',
-        ErrorCode.GITHUB_API_ERROR,
-        { error }
-      );
+      this.handleError(error, 'fetchCommits');
     }
   }
 
@@ -131,6 +116,21 @@ export class GitHubCollector {
       per_page: 100
     });
     return data;
+  }
+
+  private handleError(error: unknown, context: string): never {
+    const formattedError = formatError(error);
+    
+    this.logger.error('GitHub API error', {
+      error: formattedError,
+      context: { operation: context }
+    });
+
+    throw new BaseError(
+      'GitHub metrics collection failed',
+      ErrorCode.GITHUB_API_ERROR,
+      { error: toJSONValue(formattedError) }
+    );
   }
 }
 

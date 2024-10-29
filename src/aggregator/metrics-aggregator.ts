@@ -1,106 +1,58 @@
-import { GitHubMetrics, NEARMetrics, ProcessedMetrics } from '../types';
+import { GitHubMetrics, NEARMetrics } from '../types/metrics';
 import { Logger } from '../utils/logger';
-import { BaseError, ErrorCode } from '../utils/errors';
-import { formatError } from '../utils/format-error';
 
-interface WeightConfig {
-  github: {
-    commits: number;
-    pullRequests: number;
-    issues: number;
+interface Score {
+  total: number;
+  breakdown: {
+    github: number;
+    near: number;
   };
-  near: {
-    transactions: number;
-    contractCalls: number;
-    uniqueUsers: number;
-  };
-}
-
-interface AggregatorConfig {
-  logger: Logger;
-  weights?: Partial<WeightConfig>;
 }
 
 export class MetricsAggregator {
-  private readonly logger: Logger;
-  private readonly weights: WeightConfig;
+  constructor(private readonly logger: Logger) {}
 
-  constructor(config: AggregatorConfig) {
-    this.logger = config.logger;
-    // Initialize weights with default values
-    this.weights = {
-      github: {
-        commits: 0.4,
-        pullRequests: 0.4,
-        issues: 0.2,
-        ...config.weights?.github
-      },
-      near: {
-        transactions: 0.4,
-        contractCalls: 0.4,
-        uniqueUsers: 0.2,
-        ...config.weights?.near
+  aggregate(github: GitHubMetrics, near: NEARMetrics): Score {
+    const githubScore = this.calculateGitHubScore(github);
+    const nearScore = this.calculateNEARScore(near);
+    
+    const total = Math.round((githubScore + nearScore) / 2);
+
+    return {
+      total,
+      breakdown: {
+        github: githubScore,
+        near: nearScore
       }
     };
   }
 
-  aggregate(github: GitHubMetrics, near: NEARMetrics): ProcessedMetrics['score'] {
-    try {
-      const githubScore = this.calculateGitHubScore(github);
-      const nearScore = this.calculateNEARScore(near);
-      
-      return {
-        total: (githubScore + nearScore) / 2,
-        breakdown: {
-          github: githubScore,
-          near: nearScore
-        }
-      };
-    } catch (error) {
-      this.logger.error('Failed to aggregate metrics', {
-        error: formatError(error),
-        context: { operation: 'aggregate' }
-      });
-
-      throw new BaseError(
-        'Failed to aggregate metrics',
-        ErrorCode.COLLECTION_ERROR,
-        { error: formatError(error) }
-      );
-    }
-  }
-
   private calculateGitHubScore(metrics: GitHubMetrics): number {
-    const { commits, pullRequests, issues } = metrics;
-    
-    // Handle potential division by zero
-    const prRatio = pullRequests.open + pullRequests.merged > 0
-      ? pullRequests.merged / (pullRequests.open + pullRequests.merged)
-      : 0;
+    const scores = {
+      commits: this.normalizeScore(metrics.commits.count, 0, 100) * 0.3,
+      prs: this.normalizeScore(metrics.pullRequests.merged, 0, 50) * 0.3,
+      contributors: this.normalizeScore(metrics.commits.authors.length, 0, 10) * 0.2,
+      issues: this.normalizeScore(metrics.issues.closed, 0, 20) * 0.2
+    };
 
-    const issueRatio = issues.open + issues.closed > 0
-      ? issues.closed / (issues.open + issues.closed)
-      : 0;
-
-    // Use the defined weights directly
-    return (
-      (commits.count * this.weights.github.commits) +
-      (prRatio * this.weights.github.pullRequests) +
-      (issueRatio * this.weights.github.issues)
-    ) / 3;
+    return Math.round(
+      scores.commits + scores.prs + scores.contributors + scores.issues
+    );
   }
 
   private calculateNEARScore(metrics: NEARMetrics): number {
-    const { transactions, contract } = metrics;
-    
-    // Ensure volume is a number and handle potential NaN
-    const volumeScore = Number(transactions.volume) || 0;
-    
-    // Use the defined weights directly
-    return (
-      (volumeScore * this.weights.near.transactions) +
-      (contract.calls * this.weights.near.contractCalls) +
-      (transactions.uniqueUsers.length * this.weights.near.uniqueUsers)
-    ) / 3;
+    const scores = {
+      transactions: this.normalizeScore(metrics.transactions.count, 0, 1000) * 0.4,
+      users: this.normalizeScore(metrics.transactions.uniqueUsers.length, 0, 100) * 0.3,
+      contractCalls: this.normalizeScore(metrics.contract.calls, 0, 500) * 0.3
+    };
+
+    return Math.round(
+      scores.transactions + scores.users + scores.contractCalls
+    );
+  }
+
+  private normalizeScore(value: number, min: number, max: number): number {
+    return Math.min(100, Math.max(0, ((value - min) / (max - min)) * 100));
   }
 }

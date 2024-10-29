@@ -1,7 +1,7 @@
 import { Logger } from './logger';
 import { BaseError, ErrorCode } from '../types/errors';
 import { formatError } from './format-error';
-import { LogContext, JSONValue } from '../types/common';
+import { toJSONValue } from '../types/json';
 
 interface RetryConfig {
   maxRetries: number;
@@ -12,6 +12,32 @@ interface RetryConfig {
 
 export class ErrorRecovery {
   constructor(private readonly config: RetryConfig) {}
+
+  private isRetryableError(error: unknown): boolean {
+    if (error instanceof BaseError) {
+      return [
+        ErrorCode.RATE_LIMIT,
+        ErrorCode.API_ERROR,
+        ErrorCode.DATABASE_ERROR
+      ].includes(error.code);
+    }
+
+    // Network errors
+    if (error instanceof Error) {
+      const networkErrors = [
+        'ECONNRESET',
+        'ETIMEDOUT',
+        'ECONNREFUSED',
+        'NETWORK_ERROR',
+        'ENOTFOUND'
+      ];
+      return networkErrors.some(msg => 
+        error.message.toLowerCase().includes(msg.toLowerCase())
+      );
+    }
+
+    return false;
+  }
 
   async withRetry<T>(
     operation: () => Promise<T>,
@@ -29,69 +55,40 @@ export class ErrorRecovery {
         if (!this.isRetryableError(error)) {
           this.config.logger.error('Non-retryable error encountered', {
             error: formatError(error),
-            context: { operation: context, attempt }
+            context: { 
+              operation: context, 
+              attempt 
+            }
           });
           throw error;
         }
 
-        if (attempt === this.config.maxRetries) {
-          break;
-        }
-
-        this.config.logger.warn('Retrying operation', {
-            error: formatError(error),
-            context: { operation: context, attempt, delay }
-        });
-
-        await new Promise(resolve => setTimeout(resolve, delay));
+        await this.handleRetryableError(error, attempt, context, delay);
         delay = Math.min(delay * 2, this.config.maxDelay);
       }
     }
 
-    throw new BaseError(
-      `Operation failed after ${this.config.maxRetries} retries`,
-      ErrorCode.PROCESSING_ERROR,
-      { 
-        context, 
-        lastError: formatError(lastError),
-        attempts: this.config.maxRetries 
-      }
-    );
+    throw lastError;
   }
 
-  private isRetryableError(error: unknown): boolean {
-    if (!error || typeof error !== 'object') {
-      return false;
-    }
+  private async handleRetryableError(
+    error: unknown,
+    attempt: number,
+    context: string,
+    delay: number
+  ): Promise<void> {
+    this.config.logger.warn('Retrying operation', {
+      error: toJSONValue(formatError(error)),
+      context: {
+        operation: context,
+        attempt,
+        delay,
+        nextAttemptIn: delay,
+        maxRetries: this.config.maxRetries
+      }
+    });
 
-    const err = error as { code?: string; status?: number; message?: string };
-
-    // Network errors
-    if (err.code === 'ECONNRESET' || 
-        err.code === 'ETIMEDOUT' || 
-        err.code === 'ECONNREFUSED') {
-      return true;
-    }
-
-    // Rate limiting
-    if (err.status === 429) {
-      return true;
-    }
-
-    // Server errors
-    if (err.status && err.status >= 500 && err.status < 600) {
-      return true;
-    }
-
-    // Specific API errors that are retryable
-    const retryableMessages = [
-      'rate limit',
-      'timeout',
-      'temporarily unavailable'
-    ];
-
-    return typeof err.message === 'string' && 
-      retryableMessages.some(msg => err.message!.toLowerCase().includes(msg));
+    await new Promise(resolve => setTimeout(resolve, delay));
   }
 }
 

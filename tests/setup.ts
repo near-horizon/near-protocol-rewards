@@ -118,7 +118,8 @@ export async function cleanupTestDb() {
     logger.info('Test database cleaned up');
   } catch (error) {
     logger.error('Failed to cleanup test database:', {
-      error: error instanceof Error ? error.message : 'Unknown error'
+      error: formatError(error),
+      context: { operation: 'cleanup' }
     });
     throw error;
   } finally {

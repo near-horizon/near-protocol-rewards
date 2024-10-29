@@ -1,17 +1,41 @@
-import { RawMetrics, ValidatedMetrics, AggregatedMetrics, ProcessedMetrics } from './metrics';
+import { GitHubMetrics, NEARMetrics } from './metrics';
+import { ValidationResult } from './validation';
 
-export interface MetricsValidator {
-  validate(metrics: RawMetrics): Promise<ValidatedMetrics>;
+export interface RawMetrics {
+  github?: GitHubMetrics;
+  near?: NEARMetrics;
+  timestamp: number;
+  projectId: string;
 }
 
-export interface MetricsAggregator {
-  aggregate(metrics: ValidatedMetrics): Promise<AggregatedMetrics>;
+export interface ValidatedMetrics extends RawMetrics {
+  validation: ValidationResult;
 }
 
-export interface MetricsTransformer {
-  transform(metrics: AggregatedMetrics): Promise<ProcessedMetrics>;
+export interface AggregatedMetrics extends ValidatedMetrics {
+  score: {
+    total: number;
+    breakdown: {
+      github: number;
+      near: number;
+    };
+  };
 }
 
-export interface MetricsPipeline {
-  process(raw: RawMetrics): Promise<ProcessedMetrics>;
+export interface ProcessedMetrics extends AggregatedMetrics {
+  metadata: {
+    collectionTimestamp: number;
+    source: 'github' | 'near';
+    projectId: string;
+    periodStart: number;
+    periodEnd: number;
+  };
 }
+
+export interface PipelineStep<Input, Output> {
+  process(input: Input): Promise<Output>;
+}
+
+export interface ValidationPipeline extends PipelineStep<RawMetrics, ValidatedMetrics> {}
+export interface AggregationPipeline extends PipelineStep<ValidatedMetrics, AggregatedMetrics> {}
+export interface ProcessingPipeline extends PipelineStep<AggregatedMetrics, ProcessedMetrics> {}

@@ -1,39 +1,33 @@
+import { JSONValue } from './json';
+
+export interface ErrorDetail {
+  code: ErrorCode;
+  message: string;
+  context?: Record<string, JSONValue>;
+}
+
 export enum ErrorCode {
-  // API Errors
-  GITHUB_API_ERROR = 'GITHUB_API_ERROR',
-  NEAR_API_ERROR = 'NEAR_API_ERROR',
-  
-  // Validation Errors
   VALIDATION_ERROR = 'VALIDATION_ERROR',
-  LOW_ACTIVITY_CORRELATION = 'LOW_ACTIVITY_CORRELATION',
-  USER_COUNT_DISCREPANCY = 'USER_COUNT_DISCREPANCY',
+  COLLECTION_ERROR = 'COLLECTION_ERROR',
+  STORAGE_ERROR = 'STORAGE_ERROR',
+  API_ERROR = 'API_ERROR',
+  DATABASE_ERROR = 'DATABASE_ERROR',
+  RATE_LIMIT = 'RATE_LIMIT',
   TIMESTAMP_DRIFT = 'TIMESTAMP_DRIFT',
   STALE_DATA = 'STALE_DATA',
-  
-  // Processing Errors
+  LOW_ACTIVITY_CORRELATION = 'LOW_ACTIVITY_CORRELATION',
+  LOW_AUTHOR_DIVERSITY = 'LOW_AUTHOR_DIVERSITY',
+  GITHUB_API_ERROR = 'GITHUB_API_ERROR',
+  NEAR_API_ERROR = 'NEAR_API_ERROR',
   PROCESSING_ERROR = 'PROCESSING_ERROR',
-  AGGREGATION_ERROR = 'AGGREGATION_ERROR',
-  TRANSFORMATION_ERROR = 'TRANSFORMATION_ERROR',
-  
-  // Storage Errors
-  DATABASE_ERROR = 'DATABASE_ERROR',
-  TRANSACTION_ERROR = 'TRANSACTION_ERROR',
-  
-  // Internal Errors
-  INTERNAL_ERROR = 'INTERNAL_ERROR',
-  COLLECTION_ERROR = 'COLLECTION_ERROR',
-  
-  // Database Specific Errors
-  DB_NOT_INITIALIZED = 'DB_NOT_INITIALIZED',
-  DB_CONNECTION_ERROR = 'DB_CONNECTION_ERROR',
-  DB_QUERY_ERROR = 'DB_QUERY_ERROR'
+  CALCULATION_ERROR = 'CALCULATION_ERROR'
 }
 
 export class BaseError extends Error {
   constructor(
     message: string,
-    public readonly code: ErrorCode,
-    public readonly context?: Record<string, unknown>
+    public code: ErrorCode,
+    public details?: Record<string, unknown>
   ) {
     super(message);
     this.name = 'BaseError';

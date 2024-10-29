@@ -20,19 +20,17 @@
  */
 
 import axios, { AxiosInstance } from 'axios';
-import { BaseCollector } from './base';
+import { BaseCollector, BaseCollectorConfig } from './base';
 import { NEARMetrics } from '../types';
 import { Logger } from '../utils/logger';
 import { BaseError, ErrorCode } from '../types/errors';
 import { formatError } from '../utils/format-error';
-import { JSONValue } from '../types/common';
+import { JSONValue } from '../types/json';
 
-export interface NEARCollectorConfig {
+export interface NEARCollectorConfig extends BaseCollectorConfig {
   account: string;
-  logger: Logger;
-  maxRequestsPerSecond: number;
-  apiKey?: string;  // Optional - falls back to env var
-  apiUrl?: string;  // Optional - falls back to env var
+  apiKey?: string;
+  apiUrl?: string;
 }
 
 // Add interfaces for API response types
@@ -69,10 +67,10 @@ export class NEARCollector extends BaseCollector {
   private readonly api: AxiosInstance;
   private readonly account: string;
 
-  constructor(private readonly config: NEARCollectorConfig) {
+  constructor(config: NEARCollectorConfig) {
     super({
       logger: config.logger,
-      maxRequestsPerSecond: config.maxRequestsPerSecond || 5
+      maxRequestsPerSecond: config.maxRequestsPerSecond
     });
 
     this.account = config.account;
@@ -127,16 +125,7 @@ export class NEARCollector extends BaseCollector {
         }
       };
     } catch (error) {
-      this.logger.error('Failed to collect NEAR metrics', {
-        error: error instanceof Error ? error.message : 'Unknown error',
-        context: { account: this.account }
-      });
-      
-      throw new BaseError(
-        'NEAR metrics collection failed',
-        ErrorCode.NEAR_API_ERROR,
-        { error: formatError(error) as JSONValue }
-      );
+      return this.handleError(error, 'collectMetrics');
     }
   }
 }
