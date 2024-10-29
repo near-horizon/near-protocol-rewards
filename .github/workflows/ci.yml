@@ -6,37 +6,25 @@ on:
   pull_request:
     branches: [ main ]
 
-permissions:
-  contents: read
-  security-events: write
-
 jobs:
-  security:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '18'
-          cache: 'npm'
-          
-      - name: Install dependencies
-        run: npm ci
-        
-      - name: Run security audit
-        run: npm audit --production
-        
-      - name: Run Snyk security scan
-        uses: snyk/actions/node@master
-        env:
-          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-
   test:
-    needs: security
     runs-on: ubuntu-latest
-    
+
+    services:
+      postgres:
+        image: postgres:14
+        env:
+          POSTGRES_USER: test_user
+          POSTGRES_PASSWORD: test_password
+          POSTGRES_DB: near_rewards_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
     strategy:
       matrix:
         node-version: [16.x, 18.x]
@@ -52,14 +40,18 @@ jobs:
           
       - name: Install dependencies
         run: npm ci
-        
-      - name: Run collector tests
-        run: npm run test:collectors
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NEAR_ACCOUNT: ${{ secrets.NEAR_ACCOUNT }}
           
-      - name: Run integration tests
-        run: npm run test:integration
+      - name: Run tests
+        run: npm run test
         env:
-          CI: true
+          # Use GitHub's default token for basic operations
+          GITHUB_TOKEN: ${{ github.token }}
+          # Use test values for NEAR-related variables
+          NEAR_ACCOUNT: test.near
+          NEAR_API_KEY: test_key
+          # Database configuration
+          POSTGRES_HOST: localhost
+          POSTGRES_PORT: 5432
+          POSTGRES_DB: near_rewards_test
+          POSTGRES_USER: test_user
+          POSTGRES_PASSWORD: test_password

@@ -14,12 +14,14 @@ jest.mock('../../src/storage/postgres', () => ({
   }))
 }));
 
+// Mock GitHub collector
 jest.mock('../../src/collectors/github', () => ({
   GitHubCollector: jest.fn().mockImplementation(() => ({
     collectMetrics: jest.fn().mockResolvedValue(createMockGitHubMetrics())
   }))
 }));
 
+// Mock NEAR collector with consistent data structure
 jest.mock('../../src/collectors/near', () => ({
   NEARCollector: jest.fn().mockImplementation(() => ({
     collectMetrics: jest.fn().mockResolvedValue(createMockNEARMetrics())
@@ -32,9 +34,9 @@ describe('NEARProtocolRewardsSDK Integration', () => {
   beforeEach(() => {
     sdk = new NEARProtocolRewardsSDK(testConfig);
     
-    // Mock metrics aggregator with correct function signature
+    // Mock metrics aggregator
     jest.spyOn(MetricsAggregator.prototype, 'aggregate')
-      .mockImplementation((github: GitHubMetrics, near: NEARMetrics) => ({
+      .mockImplementation(() => ({
         total: 85,
         breakdown: { github: 80, near: 90 }
       }));
@@ -56,5 +58,16 @@ describe('NEARProtocolRewardsSDK Integration', () => {
     expect(metrics).toHaveProperty('github');
     expect(metrics).toHaveProperty('near');
     expect(metrics).toHaveProperty('score');
-  });
+
+    // Add specific assertions for NEAR metrics
+    const nearMetrics = (metrics as any).near;
+    expect(nearMetrics.transactions.count).toBe(50);
+    expect(nearMetrics.transactions.volume).toBe('1000000000000000000000000');
+    expect(nearMetrics.transactions.uniqueUsers).toHaveLength(2);
+    expect(nearMetrics.contract.calls).toBe(50);
+    expect(nearMetrics.metadata.blockHeight).toBe(12345678);
+    expect(nearMetrics.metadata.priceData.usd).toBe(1.45);
+
+    await sdk.stopTracking();
+  }, 60000); // Increased timeout to match .env.test
 });

@@ -36,8 +36,8 @@ export const createMockNEARMetrics = (
   timestamp: Date.now(),
   projectId: 'test-project',
   transactions: {
-    count: 100,
-    volume: "1000",
+    count: 50,
+    volume: '1000000000000000000000000',
     uniqueUsers: ['user1.near', 'user2.near']
   },
   contract: {
@@ -54,8 +54,9 @@ export const createMockNEARMetrics = (
     projectId: 'test-project',
     periodStart: Date.now() - (7 * 24 * 60 * 60 * 1000),
     periodEnd: Date.now(),
+    blockHeight: 12345678,
     priceData: {
-      usd: 1.5,
+      usd: 1.45,
       timestamp: Date.now()
     }
   },

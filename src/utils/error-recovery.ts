@@ -1,5 +1,7 @@
 import { Logger } from './logger';
-import { BaseError, ErrorCode } from './errors';
+import { BaseError, ErrorCode } from '../types/errors';
+import { formatError } from './format-error';
+import { LogContext, JSONValue } from '../types/common';
 
 interface RetryConfig {
   maxRetries: number;
@@ -26,9 +28,8 @@ export class ErrorRecovery {
         
         if (!this.isRetryableError(error)) {
           this.config.logger.error('Non-retryable error encountered', {
-            error,
-            context,
-            attempt
+            error: formatError(error),
+            context: { operation: context, attempt }
           });
           throw error;
         }
@@ -38,10 +39,8 @@ export class ErrorRecovery {
         }
 
         this.config.logger.warn('Retrying operation', {
-          error,
-          context,
-          attempt,
-          delay
+            error: formatError(error),
+            context: { operation: context, attempt, delay }
         });
 
         await new Promise(resolve => setTimeout(resolve, delay));
@@ -51,26 +50,36 @@ export class ErrorRecovery {
 
     throw new BaseError(
       `Operation failed after ${this.config.maxRetries} retries`,
-      ErrorCode.RETRY_EXHAUSTED,
-      { context, lastError }
+      ErrorCode.PROCESSING_ERROR,
+      { 
+        context, 
+        lastError: formatError(lastError),
+        attempts: this.config.maxRetries 
+      }
     );
   }
 
-  private isRetryableError(error: any): boolean {
+  private isRetryableError(error: unknown): boolean {
+    if (!error || typeof error !== 'object') {
+      return false;
+    }
+
+    const err = error as { code?: string; status?: number; message?: string };
+
     // Network errors
-    if (error.code === 'ECONNRESET' || 
-        error.code === 'ETIMEDOUT' || 
-        error.code === 'ECONNREFUSED') {
+    if (err.code === 'ECONNRESET' || 
+        err.code === 'ETIMEDOUT' || 
+        err.code === 'ECONNREFUSED') {
       return true;
     }
 
     // Rate limiting
-    if (error.status === 429) {
+    if (err.status === 429) {
       return true;
     }
 
     // Server errors
-    if (error.status >= 500 && error.status < 600) {
+    if (err.status && err.status >= 500 && err.status < 600) {
       return true;
     }
 
@@ -81,8 +90,7 @@ export class ErrorRecovery {
       'temporarily unavailable'
     ];
 
-    return retryableMessages.some(msg => 
-      error.message?.toLowerCase().includes(msg)
-    );
+    return typeof err.message === 'string' && 
+      retryableMessages.some(msg => err.message!.toLowerCase().includes(msg));
   }
 }

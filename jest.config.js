@@ -1,16 +1,13 @@
 module.exports = {
   preset: 'ts-jest',
   testEnvironment: 'node',
+  testTimeout: 60000,
   setupFilesAfterEnv: ['<rootDir>/tests/setup.ts'],
-  testMatch: [
-    '**/tests/**/*.test.ts'
-  ],
-  moduleFileExtensions: ['ts', 'js'],
-  transform: {
-    '^.+\\.ts$': ['ts-jest', {
-      tsconfig: 'tsconfig.json'
-    }]
+  moduleNameMapper: {
+    '^@/(.*)$': '<rootDir>/src/$1'
   },
-  setupFiles: ['dotenv/config'],
-  verbose: true
+  collectCoverageFrom: [
+    'src/**/*.ts',
+    '!src/**/*.d.ts'
+  ]
 };

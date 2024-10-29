@@ -171,6 +171,18 @@ function validateTestEnvironment() {
   if (missing.length > 0) {
     throw new Error(`Missing required test environment variables: ${missing.join(', ')}`);
   }
+
+  // Verify GitHub token format
+  const token = process.env.GITHUB_TOKEN;
+  if (!token?.startsWith('ghp_') || token.length !== 40) {
+    throw new Error('Invalid GitHub token format. Token should start with "ghp_" and be 40 characters long');
+  }
+
+  // Verify GitHub repo format
+  const repo = process.env.GITHUB_REPO;
+  if (!repo?.includes('/')) {
+    throw new Error('Invalid GitHub repo format. Should be in format "owner/repo"');
+  }
 }
 
 beforeAll(async () => {
