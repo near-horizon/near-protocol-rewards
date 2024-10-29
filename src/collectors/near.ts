@@ -30,7 +30,7 @@ import { JSONValue } from '../types/common';
 export interface NEARCollectorConfig {
   account: string;
   logger: Logger;
-  maxRequestsPerSecond?: number;
+  maxRequestsPerSecond: number;
   apiKey?: string;  // Optional - falls back to env var
   apiUrl?: string;  // Optional - falls back to env var
 }

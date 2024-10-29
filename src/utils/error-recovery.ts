@@ -94,3 +94,22 @@ export class ErrorRecovery {
       retryableMessages.some(msg => err.message!.toLowerCase().includes(msg));
   }
 }
+
+export async function withRetry<T>(
+  operation: () => Promise<T>,
+  maxRetries = 3,
+  delay = 1000
+): Promise<T> {
+  let lastError: Error | undefined;
+  
+  for (let i = 0; i < maxRetries; i++) {
+    try {
+      return await operation();
+    } catch (error) {
+      lastError = error as Error;
+      await new Promise(resolve => setTimeout(resolve, delay * Math.pow(2, i)));
+    }
+  }
+  
+  throw lastError;
+}

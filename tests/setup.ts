@@ -183,6 +183,17 @@ function validateTestEnvironment() {
   if (!repo?.includes('/')) {
     throw new Error('Invalid GitHub repo format. Should be in format "owner/repo"');
   }
+
+  // Add validation for NEAR API key
+  if (!process.env.NEAR_API_KEY) {
+    throw new Error('Missing NEAR_API_KEY environment variable');
+  }
+
+  // Add validation for NEAR account format
+  const nearAccount = process.env.NEAR_ACCOUNT;
+  if (!nearAccount?.endsWith('.near') && !nearAccount?.endsWith('.testnet')) {
+    throw new Error('Invalid NEAR account format. Should end with .near or .testnet');
+  }
 }
 
 beforeAll(async () => {

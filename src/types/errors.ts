@@ -17,7 +17,16 @@ export enum ErrorCode {
   
   // Storage Errors
   DATABASE_ERROR = 'DATABASE_ERROR',
-  TRANSACTION_ERROR = 'TRANSACTION_ERROR'
+  TRANSACTION_ERROR = 'TRANSACTION_ERROR',
+  
+  // Internal Errors
+  INTERNAL_ERROR = 'INTERNAL_ERROR',
+  COLLECTION_ERROR = 'COLLECTION_ERROR',
+  
+  // Database Specific Errors
+  DB_NOT_INITIALIZED = 'DB_NOT_INITIALIZED',
+  DB_CONNECTION_ERROR = 'DB_CONNECTION_ERROR',
+  DB_QUERY_ERROR = 'DB_QUERY_ERROR'
 }
 
 export class BaseError extends Error {

@@ -92,13 +92,25 @@ export class GitHubCollector {
   }
 
   private async fetchCommits(owner: string, repo: string) {
-    const { data } = await this.octokit.rest.repos.listCommits({
-      owner,
-      repo,
-      per_page: 100,
-      since: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()
-    });
-    return data;
+    try {
+      const { data } = await this.octokit.rest.repos.listCommits({
+        owner,
+        repo,
+        per_page: 100,
+        since: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()
+      });
+      return data;
+    } catch (error) {
+      this.logger.error('Failed to fetch commits', {
+        error: error instanceof Error ? error.message : 'Unknown error',
+        context: { owner, repo }
+      });
+      throw new BaseError(
+        'Failed to fetch GitHub commits',
+        ErrorCode.GITHUB_API_ERROR,
+        { error }
+      );
+    }
   }
 
   private async fetchPullRequests(owner: string, repo: string) {

@@ -31,7 +31,7 @@ import { Logger } from './utils/logger';
 import { ProcessedMetrics, StoredMetrics } from './types';
 import { BaseError, ErrorCode } from './utils/errors';
 import { createHash } from 'crypto';
-import { formatError } from './utils/format-error'; 
+import { formatError } from './utils/format-error';
 
 export interface SDKConfig {
   projectId: string;
@@ -49,6 +49,7 @@ export interface SDKConfig {
     };
   };
   trackingInterval?: number;
+  maxRequestsPerSecond?: number;
 }
 
 export class NEARProtocolRewardsSDK extends EventEmitter {
@@ -61,9 +62,11 @@ export class NEARProtocolRewardsSDK extends EventEmitter {
   private logger!: Logger;
   private projectId!: string;
   private collectionInterval?: NodeJS.Timeout;
+  private readonly trackingInterval: number;
 
-  constructor(config: SDKConfig) {
+  constructor(private readonly config: SDKConfig) {
     super();
+    this.trackingInterval = (config.trackingInterval || 5) * 60 * 1000; // Default 5 minutes
     this.initializeSDK(config);
   }
 
@@ -79,7 +82,8 @@ export class NEARProtocolRewardsSDK extends EventEmitter {
       }),
       near: new NEARCollector({
         account: config.nearAccount,
-        logger: this.logger
+        logger: this.logger,
+        maxRequestsPerSecond: config.maxRequestsPerSecond || 5  // Default to 5 requests per second
       })
     };
 
@@ -110,7 +114,7 @@ export class NEARProtocolRewardsSDK extends EventEmitter {
       // Set up interval for continuous collection
       this.collectionInterval = setInterval(
         () => this.collectMetrics().catch(this.handleError.bind(this)),
-        5 * 60 * 1000 // 5 minutes
+        this.trackingInterval  // Use the class property
       );
     } catch (error) {
       this.handleError(error);
@@ -207,6 +211,23 @@ export class NEARProtocolRewardsSDK extends EventEmitter {
     await this.stopTracking();
     if (this.storage) {
       await this.storage.cleanup();
+    }
+  }
+
+  private validateConfig(config: SDKConfig): void {
+    const required = [
+      'projectId',
+      'nearAccount',
+      'githubRepo',
+      'githubToken'
+    ];
+
+    const missing = required.filter(key => !config[key as keyof SDKConfig]);
+    if (missing.length > 0) {
+      throw new BaseError(
+        `Missing required configuration: ${missing.join(', ')}`,
+        ErrorCode.VALIDATION_ERROR
+      );
     }
   }
 }

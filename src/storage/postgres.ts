@@ -24,11 +24,19 @@ import { ProcessedMetrics, StoredMetrics } from '../types';
 import { BaseError, ErrorCode } from '../utils/errors';
 import { formatError } from '../utils/format-error';
 import { LogContext } from '../types/common';
+import { JSONValue } from '../types/json';
 
 interface RetryConfig {
   maxRetries: number;
   baseDelay: number;
   maxDelay: number;
+}
+
+interface ErrorContext {
+  error: string;
+  timestamp: number;
+  errorType: string;
+  [key: string]: JSONValue;
 }
 
 export class PostgresStorage {
@@ -109,39 +117,27 @@ export class PostgresStorage {
   }
 
   async initialize(): Promise<void> {
-    try {
-      await this.pool.query(`
-        CREATE TABLE IF NOT EXISTS metrics (
-          id SERIAL PRIMARY KEY,
-          project_id VARCHAR(255) NOT NULL,
-          timestamp BIGINT NOT NULL,
-          collection_timestamp BIGINT NOT NULL,
-          github_metrics JSONB NOT NULL,
-          near_metrics JSONB NOT NULL,
-          processed_metrics JSONB NOT NULL,
-          validation_result JSONB NOT NULL,
-          signature VARCHAR(255) NOT NULL,
-          created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-        );
-
-        CREATE INDEX IF NOT EXISTS idx_metrics_project_timestamp 
-        ON metrics(project_id, timestamp DESC);
-      `);
-    } catch (error) {
-      this.logger.error('Failed to initialize database', {
-        error: formatError(error),
-        context: { operation: 'initialize' }
-      });
-      throw new BaseError(
-        'Database initialization failed',
-        ErrorCode.DATABASE_ERROR,
-        { error: formatError(error) }
+    await this.pool.query(`
+      CREATE TABLE IF NOT EXISTS metrics (
+        id SERIAL PRIMARY KEY,
+        project_id VARCHAR(255) NOT NULL,
+        timestamp BIGINT NOT NULL,
+        collection_timestamp BIGINT NOT NULL,
+        github_metrics JSONB NOT NULL,
+        near_metrics JSONB NOT NULL,
+        processed_metrics JSONB NOT NULL,
+        validation_result JSONB NOT NULL,
+        signature VARCHAR(255) NOT NULL,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
       );
-    }
+
+      CREATE INDEX IF NOT EXISTS idx_metrics_project_timestamp 
+      ON metrics(project_id, timestamp DESC);
+    `);
   }
 
   async saveMetrics(projectId: string, metrics: StoredMetrics): Promise<void> {
-    const client = await this.pool.connect();
+    const client = await this.getConnection();
     
     try {
       await client.query('BEGIN');
@@ -149,7 +145,7 @@ export class PostgresStorage {
       await client.query(
         `INSERT INTO metrics (
           project_id, 
-          timestamp, 
+          timestamp,
           collection_timestamp,
           github_metrics,
           near_metrics,
@@ -175,7 +171,7 @@ export class PostgresStorage {
       throw new BaseError(
         'Failed to save metrics',
         ErrorCode.DATABASE_ERROR,
-        { error: formatError(error) }
+        this.formatErrorContext(error)
       );
     } finally {
       client.release();
@@ -329,5 +325,36 @@ export class PostgresStorage {
         { error: formatError(error) }
       );
     }
+  }
+
+  private async getConnection() {
+    if (!this.pool) {
+      throw new BaseError(
+        'Database not initialized',
+        ErrorCode.DATABASE_ERROR,
+        this.formatErrorContext('Database pool not initialized')
+      );
+    }
+    
+    try {
+      const client = await this.pool.connect();
+      return client;
+    } catch (error) {
+      throw new BaseError(
+        'Failed to get database connection',
+        ErrorCode.DATABASE_ERROR,
+        this.formatErrorContext(error)
+      );
+    }
+  }
+
+  private formatErrorContext(error: unknown): Record<string, JSONValue> {
+    const context: ErrorContext = {
+      error: error instanceof Error ? error.message : String(error),
+      timestamp: Date.now(),
+      errorType: error instanceof Error ? error.constructor.name : typeof error
+    };
+    
+    return context;
   }
 }

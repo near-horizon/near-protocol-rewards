@@ -16,6 +16,7 @@
 ### Getting Started
 
 - [Quick Start Guide](docs/quick-start.md) - Get started in minutes
+- [Environment Variables](docs/environment-variables.md) - Configuration options
 - [API Reference](docs/api-reference.md) - Detailed API documentation
 - [API Examples](docs/api-examples.md) - Real-world usage examples
 

@@ -1,8 +1,14 @@
 # Source
 src/
 tests/
-docs/
-examples/
+scripts/
+.github/
+.env*
+jest.config.js
+tsconfig.json
+.eslintrc
+.gitignore
+coverage/
 
 # Config files
 .eslintrc.js
