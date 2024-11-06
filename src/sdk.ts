@@ -43,6 +43,7 @@ import { formatError } from './utils/format-error';
 import { SDKConfig, RequiredSDKConfig } from './types/sdk';
 import { toJSONValue } from './types/json';
 import { RateLimiter } from './utils/rate-limiter';
+import { Telemetry } from './utils/telemetry';
 
 export class NEARProtocolRewardsSDK extends EventEmitter {
   private readonly config: RequiredSDKConfig;
@@ -54,6 +55,7 @@ export class NEARProtocolRewardsSDK extends EventEmitter {
   private readonly rateLimiter: RateLimiter;
   private trackingInterval?: NodeJS.Timeout;
   private isTracking: boolean = false;
+  private readonly telemetry: Telemetry;
 
   static readonly VERSION = '0.1.2';
 
@@ -106,6 +108,30 @@ export class NEARProtocolRewardsSDK extends EventEmitter {
         near: { transactions: 0.4, contractCalls: 0.3, uniqueUsers: 0.3 }
       }
     }, this.storage || new PostgresStorage(config.storage?.config || {}, this.logger));
+
+    this.telemetry = new Telemetry(
+      this.logger,
+      config.projectId,
+      process.env.NODE_ENV || 'production'
+    );
+    
+    this.telemetry.trackSDKInitialization({
+      nearAccount: config.nearAccount,
+      githubRepo: config.githubRepo
+    });
+
+    // Add telemetry to existing event handlers
+    this.on('metrics:collected', (metrics) => {
+      this.telemetry.trackMetricsCollection(metrics);
+    });
+
+    this.on('reward:calculated', (reward) => {
+      this.telemetry.trackRewardCalculation(reward);
+    });
+
+    this.on('error', (error) => {
+      this.telemetry.trackError(error);
+    });
   }
 
   async startTracking(): Promise<void> {
