@@ -15,7 +15,7 @@
     "build": "tsc",
     "test": "jest",
     "test:coverage": "jest --coverage",
-    "test:integration": "jest --config jest.integration.config.js",
+    "test:integration:live": "cross-env NODE_ENV=integration jest --config jest.integration.config.js --runInBand",
     "test:unit": "jest --config jest.unit.config.js",
     "lint": "eslint src/**/*.ts",
     "prepublishOnly": "npm run build && npm run test",
