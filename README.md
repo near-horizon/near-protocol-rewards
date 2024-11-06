@@ -80,7 +80,7 @@ await sdk.startTracking();
 - Community engagement
 - Author diversity metrics
 
-### NEAR Chain Monitoring
+### NEAR Onchain Monitoring
 
 - Transaction volume
 - Contract usage
