@@ -1,4 +1,5 @@
 import { ErrorDetail, ErrorCode } from '../types/errors';
+import { JSONValue } from '../types/json';
 
 /**
  * Formats any error into a consistent structure
@@ -7,21 +8,43 @@ import { ErrorDetail, ErrorCode } from '../types/errors';
 export function formatError(error: unknown): ErrorDetail {
   if (error instanceof Error) {
     return {
-      code: ErrorCode.PROCESSING_ERROR,
+      code: ErrorCode.UNKNOWN_ERROR,
       message: error.message,
       context: {
-        name: error.constructor.name,
-        stack: error.stack || null
+        name: error.name,
+        stack: error.stack
       }
+    };
+  }
+  
+  if (typeof error === 'string') {
+    return {
+      code: ErrorCode.UNKNOWN_ERROR,
+      message: error
     };
   }
 
   return {
-    code: ErrorCode.PROCESSING_ERROR,
-    message: typeof error === 'string' ? error : 'Unknown error',
-    context: {
-      type: typeof error,
-      value: String(error)
-    }
+    code: ErrorCode.UNKNOWN_ERROR,
+    message: 'Unknown error occurred',
+    context: { error: JSON.stringify(error) }
   };
+}
+
+export function toErrorContext(error: unknown): { error: ErrorDetail } {
+  return { error: formatError(error) };
+}
+
+export function toJSONErrorContext(error: unknown): { error: JSONValue } {
+  const formatted = formatError(error);
+  const jsonError: JSONValue = {
+    code: formatted.code,
+    message: formatted.message
+  };
+
+  if (formatted.context) {
+    jsonError.context = formatted.context;
+  }
+
+  return { error: jsonError };
 }

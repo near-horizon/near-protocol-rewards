@@ -31,9 +31,9 @@ export interface NEARCollectorConfig extends BaseCollectorConfig {
   account: string;
   apiKey?: string;
   apiUrl?: string;
+  projectId: string;
 }
 
-// Add interfaces for API response types
 interface NEARTransaction {
   hash: string;
   signer_account_id: string;
@@ -57,7 +57,6 @@ interface NEARPriceResponse {
   };
 }
 
-// Update the transaction response interface
 interface NEARTransactionResponse {
   txns: NEARTransaction[];
   total_amount: string;
@@ -66,6 +65,7 @@ interface NEARTransactionResponse {
 export class NEARCollector extends BaseCollector {
   private readonly api: AxiosInstance;
   private readonly account: string;
+  private readonly projectId: string;
 
   constructor(config: NEARCollectorConfig) {
     super({
@@ -74,6 +74,7 @@ export class NEARCollector extends BaseCollector {
     });
 
     this.account = config.account;
+    this.projectId = config.projectId;
     this.api = axios.create({
       baseURL: config.apiUrl || process.env.NEAR_API_URL || 'https://api.nearblocks.io/v1',
       headers: {
@@ -96,8 +97,6 @@ export class NEARCollector extends BaseCollector {
       const contract = contractResponse.data.contract || {};
 
       return {
-        timestamp: Date.now(),
-        projectId: this.account,
         transactions: {
           count: contract.transactions_count || 0,
           volume: txResponse.data.total_amount || '0',
@@ -107,25 +106,28 @@ export class NEARCollector extends BaseCollector {
           calls: contract.transactions_count || 0,
           uniqueCallers: Array.from(new Set(txns.map((tx: NEARTransaction) => tx.signer_account_id)))
         },
-        contractCalls: {
-          count: contract.transactions_count || 0,
-          uniqueCallers: Array.from(new Set(txns.map((tx: NEARTransaction) => tx.signer_account_id)))
-        },
         metadata: {
-          collectionTimestamp: Date.now(),
-          source: 'near',
-          projectId: this.account,
-          periodStart: Date.now() - (7 * 24 * 60 * 60 * 1000),
-          periodEnd: Date.now(),
           blockHeight: parseInt(contract.block_height || '0'),
           priceData: {
             usd: priceResponse.data.near?.usd || 0,
             timestamp: priceResponse.data.near?.timestamp || Date.now()
-          }
+          },
+          collectionTimestamp: Date.now(),
+          source: 'near',
+          projectId: this.projectId
         }
       };
     } catch (error) {
       return this.handleError(error, 'collectMetrics');
+    }
+  }
+
+  async testConnection(): Promise<boolean> {
+    try {
+      const response = await this.api.get('/status');
+      return response.status === 200;
+    } catch {
+      return false;
     }
   }
 }

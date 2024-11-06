@@ -1,129 +1,97 @@
 import { Logger } from '../utils/logger';
-import { PostgresStorage } from '../storage/postgres';
-import { GitHubMetrics, NEARMetrics, ProcessedMetrics, StoredMetrics, ValidationError } from '../types';
-import { MetricsAggregator } from './metrics-aggregator';
-import { BaseError, ErrorCode } from '../utils/errors';
-import { createHash } from 'crypto';
+import { GitHubMetrics, NEARMetrics, ProcessedMetrics } from '../types';
+import { BaseError, ErrorCode } from '../types/errors';
+import { toErrorContext } from '../utils/format-error';
+import { MetricsSource } from '../types/metrics';
 
 export class DataAggregator {
-  constructor(
-    private readonly logger: Logger,
-    private readonly storage: PostgresStorage,
-    private readonly metricsAggregator: MetricsAggregator
-  ) {}
+  private readonly logger: Logger;
 
-  async aggregateData(
-    projectId: string,
-    github: GitHubMetrics,
-    near: NEARMetrics
-  ): Promise<ProcessedMetrics> {
+  constructor(logger: Logger) {
+    this.logger = logger;
+  }
+
+  process(github: GitHubMetrics, near: NEARMetrics): ProcessedMetrics {
     try {
-      this.validateInputData(github, near);
       const timestamp = Date.now();
-      const score = this.metricsAggregator.aggregate(github, near);
-
-      const processed: ProcessedMetrics = {
+      
+      return {
         timestamp,
+        collectionTimestamp: timestamp,
         github,
         near,
-        score,
+        projectId: github.projectId,
+        periodStart: timestamp - (24 * 60 * 60 * 1000),
+        periodEnd: timestamp,
+        score: this.calculateScore(github, near),
         validation: {
           isValid: true,
           errors: [],
           warnings: [],
           timestamp,
           metadata: {
-            source: 'github',
+            source: 'github' as MetricsSource,
             validationType: 'data'
           }
         },
         metadata: {
           collectionTimestamp: timestamp,
-          source: 'github',
-          projectId,
-          periodStart: Math.min(
-            github.metadata.collectionTimestamp,
-            near.metadata.collectionTimestamp
-          ),
+          source: 'github' as MetricsSource,
+          projectId: github.projectId,
+          periodStart: timestamp - (24 * 60 * 60 * 1000),
           periodEnd: timestamp
         }
       };
-
-      const signature = this.generateSignature(processed);
-
-      const storedMetrics: StoredMetrics = {
-        github,
-        near,
-        processed,
-        signature,
-        projectId,
-        timestamp,
-        score: processed.score // Add score from processed metrics
-      };
-
-      await this.storage.saveMetrics(projectId, storedMetrics);
-      return processed;
     } catch (error) {
-      this.logger.error('Aggregation failed', { error, projectId });
-      throw error;
-    }
-  }
-
-  private generateSignature(data: ProcessedMetrics): string {
-    return createHash('sha256')
-      .update(JSON.stringify(data))
-      .digest('hex');
-  }
-
-  private validateInputData(github: GitHubMetrics, near: NEARMetrics): void {
-    const errors: ValidationError[] = [];
-    
-    // Validate GitHub data
-    if (!github?.metadata?.collectionTimestamp) {
-      errors.push({
-        code: ErrorCode.VALIDATION_ERROR,
-        message: 'Missing GitHub collection timestamp'
-      });
-    }
-
-    // Validate NEAR data
-    if (!near?.metadata?.collectionTimestamp) {
-      errors.push({
-        code: ErrorCode.VALIDATION_ERROR,
-        message: 'Missing NEAR collection timestamp'
-      });
-    }
-
-    // Validate timestamps are within acceptable range
-    const now = Date.now();
-    const maxAge = 24 * 60 * 60 * 1000; // 24 hours
-    
-    if (github?.metadata?.collectionTimestamp && 
-        now - github.metadata.collectionTimestamp > maxAge) {
-      errors.push({
-        code: ErrorCode.VALIDATION_ERROR,
-        message: 'GitHub data is too old'
-      });
-    }
-
-    if (near?.metadata?.collectionTimestamp && 
-        now - near.metadata.collectionTimestamp > maxAge) {
-      errors.push({
-        code: ErrorCode.VALIDATION_ERROR,
-        message: 'NEAR data is too old'
-      });
-    }
-
-    if (errors.length > 0) {
+      this.logger.error('Processing failed', toErrorContext(error));
       throw new BaseError(
-        'Input data validation failed',
-        ErrorCode.VALIDATION_ERROR,
-        { errors }
+        'Failed to process metrics',
+        ErrorCode.PROCESSING_ERROR
       );
     }
   }
 
-  async getLatestMetrics(projectId: string): Promise<ProcessedMetrics | null> {
-    return this.storage.getLatestMetrics(projectId);
+  private calculateScore(github: GitHubMetrics, near: NEARMetrics) {
+    const githubScore = this.calculateGitHubScore(github);
+    const nearScore = this.calculateNEARScore(near);
+    
+    return {
+      total: Math.round((githubScore + nearScore) / 2),
+      breakdown: {
+        github: githubScore,
+        near: nearScore
+      }
+    };
   }
+
+  private calculateGitHubScore(metrics: GitHubMetrics): number {
+    const scores = {
+      commits: this.normalizeScore(metrics.commits.count, 0, 100) * 0.3,
+      prs: this.normalizeScore(metrics.pullRequests.merged, 0, 50) * 0.3,
+      contributors: this.normalizeScore(metrics.commits.authors.length, 0, 10) * 0.2,
+      issues: this.normalizeScore(metrics.issues.closed, 0, 20) * 0.2
+    };
+
+    return Math.round(
+      scores.commits + scores.prs + scores.contributors + scores.issues
+    );
+  }
+
+  private calculateNEARScore(metrics: NEARMetrics): number {
+    const scores = {
+      transactions: this.normalizeScore(metrics.transactions.count, 0, 1000) * 0.4,
+      users: this.normalizeScore(metrics.transactions.uniqueUsers.length, 0, 100) * 0.3,
+      contractCalls: this.normalizeScore(metrics.contract.calls, 0, 500) * 0.3
+    };
+
+    return Math.round(
+      scores.transactions + scores.users + scores.contractCalls
+    );
+  }
+
+  private normalizeScore(value: number, min: number, max: number): number {
+    return Math.min(100, Math.max(0, ((value - min) / (max - min)) * 100));
+  }
+
+  // ... rest of the implementation
 }

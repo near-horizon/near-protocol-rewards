@@ -2,7 +2,7 @@ import { NEARProtocolRewardsSDK } from '../../src/sdk';
 import { createMockGitHubMetrics, createMockNEARMetrics } from '../helpers/mock-data';
 import { testConfig } from '../setup';
 import { MetricsAggregator } from '../../src/aggregator/metrics-aggregator';
-import { GitHubMetrics, NEARMetrics } from '../../src/types';
+import { GitHubMetrics, NEARMetrics, RewardCalculation } from '../../src/types/metrics';
 
 // Mock PostgresStorage
 jest.mock('../../src/storage/postgres', () => ({
@@ -70,4 +70,56 @@ describe('NEARProtocolRewardsSDK Integration', () => {
 
     await sdk.stopTracking();
   }, 60000); // Increased timeout to match .env.test
+
+  test('should calculate and emit rewards', async () => {
+    const rewardPromise = new Promise(resolve => {
+      sdk.once('reward:calculated', resolve);
+    });
+
+    await sdk.startTracking();
+    const reward = await rewardPromise;
+
+    expect(reward).toHaveProperty('score');
+    expect(reward).toHaveProperty('rewards.usdAmount');
+    expect(reward).toHaveProperty('rewards.nearAmount');
+    expect(reward).toHaveProperty('rewards.signature');
+
+    await sdk.stopTracking();
+  });
+
+  test('should handle reward calculation and storage', async () => {
+    const rewardPromise = new Promise(resolve => {
+      sdk.once('reward:calculated', resolve);
+    });
+
+    await sdk.startTracking();
+    const reward = await rewardPromise as RewardCalculation;
+
+    expect(reward.score.total).toBeGreaterThanOrEqual(0);
+    expect(reward.score.total).toBeLessThanOrEqual(100);
+    expect(reward.rewards.usdAmount).toBeGreaterThanOrEqual(250);
+    expect(reward.rewards.usdAmount).toBeLessThanOrEqual(10000);
+    expect(reward.rewards.signature).toBeDefined();
+
+    await sdk.stopTracking();
+  });
+});
+
+describe('SDK Package Integration', () => {
+  test('should export all required components', () => {
+    const sdk = require('../src/index');
+    expect(sdk.NEARProtocolRewardsSDK).toBeDefined();
+    expect(sdk.BaseError).toBeDefined();
+    expect(sdk.ErrorCode).toBeDefined();
+  });
+
+  test('should initialize with minimal config', () => {
+    const { NEARProtocolRewardsSDK } = require('../src/index');
+    expect(() => new NEARProtocolRewardsSDK({
+      projectId: 'test',
+      nearAccount: 'test.near',
+      githubRepo: 'test/repo',
+      githubToken: 'ghp_token'
+    })).not.toThrow();
+  });
 });

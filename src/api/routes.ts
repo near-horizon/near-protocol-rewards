@@ -1,7 +1,8 @@
 import express from 'express';
 import { PostgresStorage } from '../storage/postgres';
 import { Logger } from '../utils/logger';
-import { ErrorCode } from '../utils/errors';
+import { ErrorCode } from '../types/errors';
+import { toErrorContext } from '../utils/format-error';
 
 interface APIConfig {
   logger: Logger;
@@ -33,7 +34,7 @@ export function createRouter(config: APIConfig) {
         data: metrics
       });
     } catch (error) {
-      logger.error('Failed to get metrics', { error, projectId: req.params.projectId });
+      logger.error('Failed to get metrics', toErrorContext(error));
       res.status(500).json({ 
         success: false,
         error: { 

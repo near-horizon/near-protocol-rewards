@@ -1,6 +1,6 @@
 import crypto from 'crypto';
 import { RewardCalculation } from '../types';
-import { BaseError, ErrorCode } from '../utils/errors';
+import { BaseError, ErrorCode } from '../types/errors';
 
 export class RewardsVerification {
   private readonly secretKey: string;
@@ -10,7 +10,7 @@ export class RewardsVerification {
   }
 
   signReward(reward: RewardCalculation): string {
-    const data = `${reward.usdAmount}-${reward.nearAmount}-${reward.score}-${reward.timestamp}`;
+    const data = `${reward.amount}-${reward.breakdown.github}-${reward.breakdown.near}-${reward.metadata.timestamp}-${reward.metadata.periodStart}-${reward.metadata.periodEnd}`;
     return crypto
       .createHmac('sha256', this.secretKey)
       .update(data)
@@ -27,21 +27,21 @@ export class RewardsVerification {
 
   validateReward(reward: RewardCalculation): void {
     // Check for reasonable values
-    if (reward.usdAmount < 0 || reward.nearAmount < 0 || reward.score < 0) {
+    if (reward.amount < 0) {
       throw new BaseError(
-        'Invalid reward values detected',
-        ErrorCode.TAMPERING_DETECTED,
+        'Invalid reward amount detected',
+        ErrorCode.VALIDATION_ERROR,
         { reward }
       );
     }
 
     // Check timestamp is recent
     const fiveMinutesAgo = Date.now() - (5 * 60 * 1000);
-    if (reward.timestamp < fiveMinutesAgo) {
+    if (reward.metadata.timestamp < fiveMinutesAgo) {
       throw new BaseError(
         'Reward calculation too old',
-        ErrorCode.TAMPERING_DETECTED,
-        { timestamp: reward.timestamp }
+        ErrorCode.VALIDATION_ERROR,
+        { timestamp: reward.metadata.timestamp }
       );
     }
   }

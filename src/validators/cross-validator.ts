@@ -16,16 +16,11 @@ import {
   GitHubMetrics,
   NEARMetrics,
   ValidationResult,
-  ValidationError
+  ValidationError,
+  ValidationWarning
 } from '../types';
 import { ErrorCode } from '../utils/errors';
-
-export enum ValidationErrorCode {
-  LOW_ACTIVITY_CORRELATION = 'LOW_ACTIVITY_CORRELATION',
-  TIMESTAMP_DRIFT = 'TIMESTAMP_DRIFT',
-  STALE_DATA = 'STALE_DATA',
-  USER_COUNT_DISCREPANCY = 'USER_COUNT_DISCREPANCY'
-}
+import { ValidationErrorCode } from '../types/validation';
 
 interface ValidationThresholds {
   maxTimeDrift: number;
@@ -55,9 +50,16 @@ export class CrossValidator {
 
   validate(github: GitHubMetrics, near: NEARMetrics): ValidationResult {
     const errors: ValidationError[] = [];
-    const warnings: ValidationError[] = [];
+    const warnings: ValidationWarning[] = [];
 
-    this.validateTimestamps(github, near, errors);
+    if (this.hasTimestampDrift(github, near)) {
+      errors.push(this.createValidationError(
+        'TIMESTAMP_DRIFT',
+        'Significant time drift between metrics',
+        { drift: this.calculateTimeDrift(github, near) }
+      ));
+    }
+
     this.validateDataFreshness(github, near, errors);
     this.validateActivityCorrelation(github, near, warnings);
     this.validateUserEngagement(github, near, warnings);
@@ -89,13 +91,13 @@ export class CrossValidator {
   private validateActivityCorrelation(
     github: GitHubMetrics,
     near: NEARMetrics,
-    warnings: ValidationError[]
+    warnings: ValidationWarning[]
   ): void {
     const correlation = this.calculateActivityCorrelation(github, near);
     
     if (correlation < this.thresholds.minActivityCorrelation) {
       warnings.push(this.createValidationError(
-        ValidationErrorCode.LOW_ACTIVITY_CORRELATION,
+        'LOW_ACTIVITY_CORRELATION',
         'Low correlation between GitHub and NEAR activity',
         {
           correlation,
@@ -136,34 +138,32 @@ export class CrossValidator {
     const now = Date.now();
 
     if (now - github.metadata.collectionTimestamp > this.thresholds.maxDataAge) {
-      errors.push({
-        code: ErrorCode.STALE_DATA,
-        message: 'GitHub data is too old',
-        context: {
+      errors.push(this.createValidationError(
+        'STALE_DATA',
+        'GitHub data is too old',
+        {
           timestamp: github.metadata.collectionTimestamp,
-          age: now - github.metadata.collectionTimestamp,
-          threshold: this.thresholds.maxDataAge
+          maxAge: this.thresholds.maxDataAge
         }
-      });
+      ));
     }
 
     if (now - near.metadata.collectionTimestamp > this.thresholds.maxDataAge) {
-      errors.push({
-        code: ErrorCode.STALE_DATA,
-        message: 'NEAR data is too old',
-        context: {
+      errors.push(this.createValidationError(
+        'STALE_DATA',
+        'NEAR data is too old',
+        {
           timestamp: near.metadata.collectionTimestamp,
-          age: now - near.metadata.collectionTimestamp,
-          threshold: this.thresholds.maxDataAge
+          maxAge: this.thresholds.maxDataAge
         }
-      });
+      ));
     }
   }
 
   private validateUserEngagement(
     github: GitHubMetrics,
     near: NEARMetrics,
-    warnings: ValidationError[]
+    warnings: ValidationWarning[]
   ): void {
     const githubUsers = new Set([
       ...github.commits.authors,
@@ -212,5 +212,22 @@ export class CrossValidator {
     const maxActivity = Math.max(githubActivity, nearActivity);
     if (maxActivity === 0) return 1;
     return Math.min(githubActivity, nearActivity) / maxActivity;
+  }
+
+  private hasTimestampDrift(
+    github: GitHubMetrics,
+    near: NEARMetrics
+  ): boolean {
+    const githubTimestamp = github.metadata.collectionTimestamp;
+    const nearTimestamp = near.metadata.collectionTimestamp;
+    const timeDiff = Math.abs(githubTimestamp - nearTimestamp);
+
+    return timeDiff > this.thresholds.maxTimeDrift;
+  }
+
+  private calculateTimeDrift(github: GitHubMetrics, near: NEARMetrics): number {
+    return Math.abs(
+      github.metadata.collectionTimestamp - near.metadata.collectionTimestamp
+    );
   }
 }

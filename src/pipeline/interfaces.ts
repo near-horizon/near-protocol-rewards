@@ -3,7 +3,7 @@ import {
   ValidatedMetrics,
   AggregatedMetrics,
   ProcessedMetrics
-} from '../types';
+} from '../types/pipeline';
 
 export interface MetricsValidator {
   validate(raw: RawMetrics): Promise<ValidatedMetrics>;

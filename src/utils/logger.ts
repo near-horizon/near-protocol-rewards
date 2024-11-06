@@ -1,55 +1,55 @@
-import winston from 'winston';
-import { JSONValue } from '../types/json';
-import { ValidationError, isValidationError } from '../types/validation';
-import { LogContext, ErrorLogContext } from '../types/logger';
-import { formatError } from './format-error';
-import { toJSONValue } from '../types/json';
+import { LogLevel, LogContext, ErrorLogContext } from '../types/logger';
+import { toJSONErrorContext } from './format-error';
 
-export class Logger {
-  private logger: winston.Logger;
+// Define the interface
+export interface ILogger {
+  level: string;
+  shouldLog: (level: string) => boolean;
+  debug: (message: string, context?: Record<string, unknown>) => void;
+  info: (message: string, context?: Record<string, unknown>) => void;
+  warn: (message: string, context?: Record<string, unknown>) => void;
+  error: (message: string, context?: Record<string, unknown>) => void;
+}
 
-  constructor({ projectId }: { projectId: string }) {
-    this.logger = winston.createLogger({
-      level: process.env.LOG_LEVEL || 'info',
-      format: winston.format.combine(
-        winston.format.timestamp(),
-        winston.format.json()
-      ),
-      defaultMeta: { projectId },
-      transports: [
-        new winston.transports.Console({
-          format: winston.format.simple()
-        })
-      ]
-    });
+// Implement the interface
+export class ConsoleLogger implements ILogger {
+  readonly level: string;
+  
+  constructor(level: string = 'info') {
+    this.level = level;
   }
 
-  info(message: string, context?: Partial<LogContext>): void {
-    this.logger.info(message, this.sanitizeContext(context));
+  shouldLog(level: string): boolean {
+    const levels = ['error', 'warn', 'info', 'debug'];
+    return levels.indexOf(level) <= levels.indexOf(this.level);
   }
 
-  error(message: string, { error, ...context }: ErrorLogContext): void {
-    this.logger.error(message, {
-      error: toJSONValue(formatError(error)),
-      ...this.sanitizeContext(context)
-    });
+  debug(message: string, context?: Record<string, unknown>): void {
+    if (this.shouldLog('debug')) {
+      console.debug(message, context);
+    }
   }
 
-  warn(message: string, context?: Partial<LogContext>): void {
-    this.logger.warn(message, this.sanitizeContext(context));
+  info(message: string, context?: Record<string, unknown>): void {
+    if (this.shouldLog('info')) {
+      console.info(message, context);
+    }
   }
 
-  debug(message: string, context?: Partial<LogContext>): void {
-    this.logger.debug(message, this.sanitizeContext(context));
+  warn(message: string, context?: Record<string, unknown>): void {
+    if (this.shouldLog('warn')) {
+      console.warn(message, context);
+    }
   }
 
-  private sanitizeContext(context?: Record<string, unknown>): Record<string, JSONValue> {
-    if (!context) return {};
-
-    return Object.entries(context).reduce((acc, [key, value]) => {
-      if (value === undefined) return acc;
-      acc[key] = toJSONValue(value);
-      return acc;
-    }, {} as Record<string, JSONValue>);
+  error(message: string, context?: Record<string, unknown>): void {
+    if (this.shouldLog('error')) {
+      console.error(message, context);
+    }
   }
 }
+
+// Export a default logger instance
+export const defaultLogger = new ConsoleLogger();
+export type Logger = ConsoleLogger;
+

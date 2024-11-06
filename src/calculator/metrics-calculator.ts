@@ -1,6 +1,8 @@
 import { Logger } from '../utils/logger';
 import { GitHubMetrics, NEARMetrics, RewardCalculation } from '../types';
 import { BaseError, ErrorCode } from '../utils/errors';
+import { createHash } from 'crypto';
+import { PostgresStorage } from '../storage/postgres';
 
 interface MetricsCalculatorConfig {
   logger: Logger;
@@ -23,12 +25,28 @@ interface MetricsCalculatorConfig {
   };
 }
 
+export interface RewardThresholds {
+  minimumUsdReward: number;     
+  maximumUsdReward: number;     
+  monthlyPoolLimit: number;     
+  minimumScore: number;         
+}
+
 export class MetricsCalculator {
   private readonly logger: Logger;
   private readonly weights: Required<MetricsCalculatorConfig['weights']>;
-  private readonly thresholds: Required<NonNullable<MetricsCalculatorConfig['thresholds']>>;
+  private thresholds = {
+    minimumScore: 25,           // Entry point for rewards
+    minimumUsdReward: 250,      // Meaningful minimum reward
+    maximumUsdReward: 10000,    // Aspirational maximum reward
+    monthlyPoolLimit: 25000     // Monthly limit for flexibility
+  };
+  private readonly storage: PostgresStorage;
 
-  constructor(config: MetricsCalculatorConfig) {
+  constructor(
+    config: MetricsCalculatorConfig,
+    storage: PostgresStorage
+  ) {
     this.logger = config.logger;
     this.weights = {
       github: {
@@ -42,21 +60,15 @@ export class MetricsCalculator {
         uniqueUsers: config.weights.near.uniqueUsers
       }
     };
-    
-    // Set default thresholds
-    this.thresholds = {
-      minimumScore: config.thresholds?.minimumScore ?? 10, // Minimum 10% score
-      minimumUsdReward: config.thresholds?.minimumUsdReward ?? 100, // Minimum $100 USD
-      maximumUsdReward: config.thresholds?.maximumUsdReward ?? 10000 // Maximum $10,000 USD
-    };
+    this.storage = storage;
   }
 
-  calculateMetrics(github: GitHubMetrics, near: NEARMetrics): {
+  async calculateMetrics(github: GitHubMetrics, near: NEARMetrics): Promise<{
     github: { total: number };
     near: { total: number };
     total: number;
     reward?: RewardCalculation;
-  } {
+  }> {
     try {
       const githubScore = this.calculateGitHubScore(github);
       const nearScore = this.calculateNEARScore(near);
@@ -77,7 +89,7 @@ export class MetricsCalculator {
 
       // Calculate reward if price data is available
       if (near.metadata.priceData) {
-        const reward = this.calculateReward(totalScore, near.metadata.priceData.usd);
+        const reward = await this.calculateReward(totalScore, near.metadata.priceData.usd);
         return {
           github: { total: githubScore },
           near: { total: nearScore },
@@ -101,24 +113,53 @@ export class MetricsCalculator {
     }
   }
 
-  private calculateReward(score: number, nearPrice: number): RewardCalculation {
-    // Calculate base USD reward
-    const baseUsdReward = (score / 100) * this.thresholds.maximumUsdReward;
+  async calculateReward(score: number, nearPrice: number): Promise<RewardCalculation> {
+    // Exponential reward curve for better distribution
+    const baseUsdReward = Math.pow(score/100, 1.5) * this.thresholds.maximumUsdReward;
     
-    // Apply thresholds
-    const usdAmount = Math.min(
+    // Monthly pool check
+    const monthlyUsage = await this.storage.getMonthlyRewardsUsage();
+    const remainingPool = this.thresholds.monthlyPoolLimit - monthlyUsage;
+
+    // Final calculation with limits
+    const finalUsdReward = Math.min(
       Math.max(baseUsdReward, this.thresholds.minimumUsdReward),
-      this.thresholds.maximumUsdReward
+      this.thresholds.maximumUsdReward,
+      remainingPool
     );
 
-    // Convert to NEAR
-    const nearAmount = usdAmount / nearPrice;
+    // Convert to yoctoNEAR
+    const nearAmount = (finalUsdReward / nearPrice).toFixed(24);
 
+    // Generate signature
+    const signature = this.generateSignature(finalUsdReward, nearAmount);
+
+    // Return properly typed reward calculation
     return {
-      usdAmount,
-      nearAmount,
-      score,
-      timestamp: Date.now()
+      amount: finalUsdReward,
+      breakdown: {
+        github: score,
+        near: score
+      },
+      score: {
+        github: score,
+        near: score,
+        total: score,
+        breakdown: {
+          github: score,
+          near: score
+        }
+      },
+      rewards: {
+        usdAmount: finalUsdReward,
+        nearAmount,
+        signature
+      },
+      metadata: {
+        timestamp: Date.now(),
+        periodStart: Date.now() - (24 * 60 * 60 * 1000),
+        periodEnd: Date.now()
+      }
     };
   }
 
@@ -135,15 +176,33 @@ export class MetricsCalculator {
   }
 
   private calculateNEARScore(metrics: NEARMetrics): number {
-    const volumeNum = parseFloat(metrics.transactions.volume);
-    const txScore = Math.min(100, (metrics.transactions.count / 1000) * 100);
-    const volumeScore = Math.min(100, (volumeNum / 10000) * 100);
-    const userScore = Math.min(100, (metrics.transactions.uniqueUsers.length / 100) * 100);
+    // Transaction count (40%)
+    // Max score at 10,000 transactions/month
+    const txScore = Math.min(100, (metrics.transactions.count / 10000) * 100);
+    
+    // Volume in NEAR (30%)
+    // Assuming $5 NEAR price, targeting $1M monthly volume
+    // 200,000 NEAR = ~$1M USD
+    const volumeInNear = parseFloat(metrics.transactions.volume) / 1e24; // Convert from yoctoNEAR
+    const volumeScore = Math.min(100, (volumeInNear / 200000) * 100);
+    
+    // Unique users (30%)
+    // Max score at 1,000 unique users
+    const userScore = Math.min(100, (metrics.transactions.uniqueUsers.length / 1000) * 100);
 
     return Math.round(
-      (txScore * this.weights.near.transactions) +
-      (volumeScore * this.weights.near.contractCalls) +
-      (userScore * this.weights.near.uniqueUsers)
+      (txScore * 0.4) + 
+      (volumeScore * 0.3) + 
+      (userScore * 0.3)
     );
+  }
+
+  private generateSignature(usdAmount: number, nearAmount: string): string {
+    const data = JSON.stringify({
+      usdAmount,
+      nearAmount,
+      timestamp: Date.now()
+    });
+    return createHash('sha256').update(data).digest('hex');
   }
 }

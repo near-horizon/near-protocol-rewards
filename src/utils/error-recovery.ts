@@ -1,112 +1,47 @@
-import { Logger } from './logger';
+import { Logger } from '../types/logger';
+import { toErrorContext } from './format-error';
 import { BaseError, ErrorCode } from '../types/errors';
-import { formatError } from './format-error';
-import { toJSONValue } from '../types/json';
 
-interface RetryConfig {
-  maxRetries: number;
-  baseDelay: number;
-  maxDelay: number;
-  logger: Logger;
-}
+export class ErrorRecoveryManager {
+  private lastError: Error | null = null;
+  private attempts = 0;
+  private readonly maxAttempts: number;
+  private readonly baseDelay: number;
 
-export class ErrorRecovery {
-  constructor(private readonly config: RetryConfig) {}
-
-  private isRetryableError(error: unknown): boolean {
-    if (error instanceof BaseError) {
-      return [
-        ErrorCode.RATE_LIMIT,
-        ErrorCode.API_ERROR,
-        ErrorCode.DATABASE_ERROR
-      ].includes(error.code);
-    }
-
-    // Network errors
-    if (error instanceof Error) {
-      const networkErrors = [
-        'ECONNRESET',
-        'ETIMEDOUT',
-        'ECONNREFUSED',
-        'NETWORK_ERROR',
-        'ENOTFOUND'
-      ];
-      return networkErrors.some(msg => 
-        error.message.toLowerCase().includes(msg.toLowerCase())
-      );
-    }
-
-    return false;
+  constructor(maxAttempts = 3, baseDelay = 1000) {
+    this.maxAttempts = maxAttempts;
+    this.baseDelay = baseDelay;
   }
 
-  async withRetry<T>(
-    operation: () => Promise<T>,
-    context: string
-  ): Promise<T> {
-    let lastError: Error | null = null;
-    let delay = this.config.baseDelay;
-
-    for (let attempt = 1; attempt <= this.config.maxRetries; attempt++) {
-      try {
-        return await operation();
-      } catch (error) {
-        lastError = error as Error;
-        
-        if (!this.isRetryableError(error)) {
-          this.config.logger.error('Non-retryable error encountered', {
-            error: formatError(error),
-            context: { 
-              operation: context, 
-              attempt 
-            }
-          });
-          throw error;
-        }
-
-        await this.handleRetryableError(error, attempt, context, delay);
-        delay = Math.min(delay * 2, this.config.maxDelay);
-      }
-    }
-
-    throw lastError;
-  }
-
-  private async handleRetryableError(
-    error: unknown,
-    attempt: number,
-    context: string,
-    delay: number
-  ): Promise<void> {
-    this.config.logger.warn('Retrying operation', {
-      error: toJSONValue(formatError(error)),
-      context: {
-        operation: context,
-        attempt,
-        delay,
-        nextAttemptIn: delay,
-        maxRetries: this.config.maxRetries
-      }
-    });
-
-    await new Promise(resolve => setTimeout(resolve, delay));
-  }
-}
-
-export async function withRetry<T>(
-  operation: () => Promise<T>,
-  maxRetries = 3,
-  delay = 1000
-): Promise<T> {
-  let lastError: Error | undefined;
-  
-  for (let i = 0; i < maxRetries; i++) {
+  async withRetry<T>(operation: () => Promise<T>): Promise<T> {
     try {
-      return await operation();
+      const result = await operation();
+      this.reset();
+      return result;
     } catch (error) {
-      lastError = error as Error;
-      await new Promise(resolve => setTimeout(resolve, delay * Math.pow(2, i)));
+      this.lastError = error as Error;
+      this.attempts++;
+
+      if (this.shouldRetry()) {
+        const delay = this.getNextAttemptDelay();
+        await new Promise(resolve => setTimeout(resolve, delay));
+        return this.withRetry(operation);
+      }
+
+      throw error;
     }
   }
-  
-  throw lastError;
+
+  private shouldRetry(): boolean {
+    return this.attempts < this.maxAttempts;
+  }
+
+  private getNextAttemptDelay(): number {
+    return this.baseDelay * Math.pow(2, this.attempts - 1);
+  }
+
+  private reset(): void {
+    this.lastError = null;
+    this.attempts = 0;
+  }
 }

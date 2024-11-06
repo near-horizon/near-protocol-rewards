@@ -4,29 +4,25 @@ export type JSONValue =
   | boolean
   | null
   | { [key: string]: JSONValue }
-  | JSONValue[];
-
-export type JSONObject = { [key: string]: JSONValue };
+  | JSONValue[]
+  | Record<string, unknown>;
 
 export interface ErrorDetail {
-  [key: string]: JSONValue;
-  code: string;
   message: string;
-  context?: { [key: string]: JSONValue };
+  code: string;
+  context?: Record<string, JSONValue>;
 }
 
 export function toJSONValue(value: unknown): JSONValue {
-  if (value === null) return null;
-  if (['string', 'number', 'boolean'].includes(typeof value)) return value as JSONValue;
+  if (value === null || value === undefined) return null;
+  if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') return value;
   if (Array.isArray(value)) return value.map(toJSONValue);
   if (typeof value === 'object') {
-    return Object.entries(value as Record<string, unknown>).reduce(
-      (acc, [k, v]) => ({
-        ...acc,
-        [k]: v === undefined ? null : toJSONValue(v)
-      }),
-      {} as JSONObject
-    );
+    const result: { [key: string]: JSONValue } = {};
+    for (const [k, v] of Object.entries(value)) {
+      result[k] = toJSONValue(v);
+    }
+    return result;
   }
   return String(value);
 } 

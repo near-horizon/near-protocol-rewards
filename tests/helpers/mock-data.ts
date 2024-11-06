@@ -1,4 +1,4 @@
-import { GitHubMetrics, NEARMetrics, StoredMetrics, ProcessedMetrics } from '../../src/types';
+import { GitHubMetrics, NEARMetrics, StoredMetrics, ProcessedMetrics, MetricsMetadata, MetricsSource } from '../../src/types';
 
 export const createMockGitHubMetrics = (
   overrides: Partial<GitHubMetrics> = {}
@@ -68,41 +68,58 @@ export const createMockStoredMetrics = (
 ): StoredMetrics => {
   const timestamp = Date.now();
   const projectId = 'test-project';
+  
+  const processed: ProcessedMetrics = {
+    timestamp,
+    collectionTimestamp: timestamp,
+    github: createMockGitHubMetrics(),
+    near: createMockNEARMetrics(),
+    score: {
+      total: 85,
+      breakdown: {
+        github: 80,
+        near: 90
+      }
+    },
+    validation: {
+      isValid: true,
+      errors: [],
+      warnings: [],
+      timestamp,
+      metadata: {
+        source: 'github',
+        validationType: 'data'
+      }
+    },
+    metadata: {
+      collectionTimestamp: timestamp,
+      projectId,
+      periodStart: timestamp - (24 * 60 * 60 * 1000),
+      periodEnd: timestamp
+    },
+    projectId,
+    periodStart: timestamp - (24 * 60 * 60 * 1000),
+    periodEnd: timestamp
+  };
 
   return {
     projectId,
     timestamp,
     github: createMockGitHubMetrics(),
     near: createMockNEARMetrics(),
-    score: {
-      total: 85,
-      breakdown: { github: 80, near: 90 }
-    },
-    processed: {
-      timestamp,
-      collectionTimestamp: timestamp,
-      source: 'github',
-      projectId,
-      periodStart: timestamp - 1000,
-      periodEnd: timestamp,
-      github: createMockGitHubMetrics(),
-      near: createMockNEARMetrics(),
-      score: {
-        total: 85,
-        breakdown: { github: 80, near: 90 }
-      },
-      validation: {
-        isValid: true,
-        errors: [],
-        warnings: [],
-        timestamp,
-        metadata: {
-          source: 'github',
-          validationType: 'data'
-        }
-      }
-    },
+    processed,
+    validation: processed.validation,
     signature: 'test-signature',
+    score: processed.score,
     ...overrides
   };
 };
+
+export const createMockMetricsMetadata = (overrides: Partial<MetricsMetadata> = {}): MetricsMetadata => ({
+  collectionTimestamp: Date.now(),
+  source: 'github' as MetricsSource,
+  projectId: 'test-project',
+  periodStart: Date.now() - (24 * 60 * 60 * 1000),
+  periodEnd: Date.now(),
+  ...overrides
+});

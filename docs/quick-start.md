@@ -89,6 +89,18 @@ export class RewardsTracker {
         context: error.context
       });
     });
+
+    // Listen for reward calculations
+    this.sdk.on('reward:calculated', (reward) => {
+      console.log('Reward calculated:', {
+        score: reward.score.total,
+        usdAmount: reward.rewards.usdAmount,
+        nearAmount: reward.rewards.nearAmount
+      });
+    });
+
+    // Get latest reward calculation
+    const rewards = await this.sdk.getLatestRewards();
   }
 
   async start(): Promise<void> {

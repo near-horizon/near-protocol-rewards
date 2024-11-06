@@ -1,7 +1,8 @@
 import { GitHubMetrics, ValidationResult, ValidationError, ValidationWarning, ValidationContext } from '../types';
 import { Logger } from '../utils/logger';
-import { ErrorCode } from '../utils/errors';
-import { JSONValue } from '../types/common';
+import { ErrorCode } from '../types/errors';
+import { JSONValue } from '../types/json';
+import { toJSONErrorContext, toErrorContext } from '../utils/format-error';
 
 interface GitHubValidatorThresholds {
   minCommits: number;
@@ -33,38 +34,52 @@ export class GitHubValidator {
     const errors: ValidationError[] = [];
     const warnings: ValidationWarning[] = [];
 
-    this.validateCommits(metrics, errors, warnings);
-    this.validatePullRequests(metrics, errors, warnings);
-    this.validateIssues(metrics, errors, warnings);
-    this.validateTimestamps(metrics, errors);
+    try {
+      this.validateCommits(metrics, errors, warnings);
+      this.validatePullRequests(metrics, errors, warnings);
+      this.validateIssues(metrics, errors, warnings);
+      this.validateTimestamps(metrics, errors);
 
-    const isValid = errors.length === 0;
+      const isValid = errors.length === 0;
 
-    if (!isValid) {
-      this.logger.warn('GitHub validation failed', { 
-        validation: {
-          errors: errors.map(e => ({ ...e, context: e.context || {} }))
-        }
-      });
-    }
-    if (warnings.length > 0) {
-      this.logger.warn('GitHub validation warnings', { 
-        validation: {
-          warnings: warnings.map(w => ({ ...w, context: w.context || {} }))
-        }
-      });
-    }
-
-    return {
-      isValid,
-      errors,
-      warnings,
-      timestamp: Date.now(),
-      metadata: {
-        source: 'github',
-        validationType: 'data'
+      if (!isValid) {
+        this.logger.warn('GitHub validation failed', { 
+          validation: {
+            errors: errors.map(e => ({
+              code: e.code,
+              message: e.message,
+              context: e.context || {}
+            }))
+          }
+        });
       }
-    };
+      
+      if (warnings.length > 0) {
+        this.logger.warn('GitHub validation warnings', { 
+          validation: {
+            warnings: warnings.map(w => ({
+              code: w.code,
+              message: w.message,
+              context: w.context || {}
+            }))
+          }
+        });
+      }
+
+      return {
+        isValid,
+        errors,
+        warnings,
+        timestamp: Date.now(),
+        metadata: {
+          source: 'github',
+          validationType: 'data'
+        }
+      };
+    } catch (error) {
+      this.logger.error('Validation failed unexpectedly', toErrorContext(error));
+      throw error;
+    }
   }
 
   private validateCommits(

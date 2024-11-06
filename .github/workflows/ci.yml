@@ -41,21 +41,24 @@ jobs:
       - name: Install dependencies
         run: npm ci
           
-      - name: Run tests with coverage
-        run: npm run test:coverage
-          
       - name: Run linting
         run: npm run lint
           
-      - name: Run tests
-        run: npm run test
+      - name: Run tests with coverage
+        run: npm run test:coverage
+        
+      - name: Build TypeScript
+        run: npm run build
+        
+      - name: Upload coverage
+        uses: codecov/codecov-action@v3
+        
+      - name: Check types
+        run: npx tsc --noEmit
         env:
-          # Use GitHub's default token for basic operations
           GITHUB_TOKEN: ${{ github.token }}
-          # Use test values for NEAR-related variables
           NEAR_ACCOUNT: test.near
           NEAR_API_KEY: ${{ secrets.NEAR_API_KEY }}
-          # Database configuration
           POSTGRES_HOST: localhost
           POSTGRES_PORT: 5432
           POSTGRES_DB: near_rewards_test

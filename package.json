@@ -1,76 +1,74 @@
 {
   "name": "near-protocol-rewards",
-  "version": "0.1.2",
-  "description": "A transparent, metric-based rewards system for NEAR Protocol projects",
+  "version": "0.1.2-beta.1",
+  "description": "NEAR Protocol Rewards SDK for tracking developer engagement and impact",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
-  "engines": {
-    "node": ">=16.0.0"
-  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE",
+    "docs",
+    "examples"
+  ],
   "scripts": {
     "build": "tsc",
-    "prebuild": "npm run clean",
-    "test": "npm run setup-test-db && jest --config jest.config.js --detectOpenHandles --runInBand",
-    "test:watch": "jest --config jest.config.js --watch",
-    "test:coverage": "jest --config jest.config.js --coverage",
-    "test:ci": "jest --ci",
+    "test": "jest",
+    "test:coverage": "jest --coverage",
+    "test:integration": "jest --config jest.integration.config.js",
+    "test:unit": "jest --config jest.unit.config.js",
+    "lint": "eslint src/**/*.ts",
     "prepublishOnly": "npm run build && npm run test",
-    "lint": "eslint src --ext .ts",
     "clean": "rimraf dist",
-    "verify-token": "ts-node scripts/verify-github-token.ts",
-    "verify-near-api": "ts-node scripts/verify-near-api.ts",
-    "init-test-db": "ts-node scripts/init-test-db.ts",
-    "setup-test-db": "ts-node scripts/setup-test-db.ts",
-    "pretest": "npm run build"
+    "prebuild": "npm run clean",
+    "prepare": "npm run build",
+    "docs": "typedoc --out docs/api src/index.ts"
+  },
+  "dependencies": {
+    "@octokit/rest": "^19.0.0",
+    "axios": "^1.6.0",
+    "pg": "^8.11.0",
+    "dotenv": "^16.3.1",
+    "zod": "^3.22.4"
+  },
+  "devDependencies": {
+    "@types/jest": "^29.5.0",
+    "@types/node": "^18.0.0",
+    "@types/pg": "^8.10.0",
+    "@typescript-eslint/eslint-plugin": "^6.0.0",
+    "@typescript-eslint/parser": "^6.0.0",
+    "eslint": "^8.0.0",
+    "jest": "^29.0.0",
+    "rimraf": "^5.0.0",
+    "ts-jest": "^29.0.0",
+    "ts-node": "^10.0.0",
+    "typescript": "^5.0.0",
+    "typedoc": "^0.25.4"
+  },
+  "peerDependencies": {
+    "typescript": ">=4.0.0"
+  },
+  "engines": {
+    "node": ">=16.0.0"
   },
   "keywords": [
     "near",
     "blockchain",
     "rewards",
+    "metrics",
     "github",
-    "metrics"
+    "typescript",
+    "developer-tools",
+    "analytics"
   ],
-  "author": "Near Foundation",
+  "author": "NEAR Protocol",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/jbarnes850/near-protocol-rewards.git"
+    "url": "https://github.com/jbarnes850/near-protocol-rewards"
   },
-  "dependencies": {
-    "@octokit/rest": "^20.0.0",
-    "axios": "^1.6.0",
-    "cors": "^2.8.5",
-    "express": "^4.18.2",
-    "helmet": "^7.1.0",
-    "pg": "^8.11.3",
-    "winston": "^3.11.0",
-    "zod": "^3.22.4"
+  "bugs": {
+    "url": "https://github.com/jbarnes850/near-protocol-rewards/issues"
   },
-  "peerDependencies": {
-    "typescript": ">=4.0.0"
-  },
-  "devDependencies": {
-    "@types/cors": "^2.8.17",
-    "@types/express": "^4.17.21",
-    "@types/helmet": "^4.0.0",
-    "@types/jest": "29.5.14",
-    "@types/node": "20.17.1",
-    "@types/pg": "^8.11.0",
-    "@types/winston": "^2.4.4",
-    "@typescript-eslint/eslint-plugin": "^6.21.0",
-    "@typescript-eslint/parser": "^6.21.0",
-    "dotenv": "16.4.5",
-    "eslint": "^8.57.0",
-    "jest": "29.7.0",
-    "rimraf": "^5.0.5",
-    "ts-jest": "29.2.5",
-    "ts-node": "10.9.2",
-    "typescript": "5.3.3"
-  },
-  "files": [
-    "dist",
-    "README.md",
-    "LICENSE",
-    "docs"
-  ]
+  "homepage": "https://github.com/jbarnes850/near-protocol-rewards#readme"
 }

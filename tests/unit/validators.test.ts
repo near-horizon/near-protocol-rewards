@@ -20,7 +20,7 @@ describe('Validators Unit Tests', () => {
       thresholds: {
         minCommits: 10,
         maxCommitsPerDay: 50,
-        minAuthors: 2  // Set explicit threshold
+        minAuthors: 2 
       }
     });
   });
@@ -30,7 +30,7 @@ describe('Validators Unit Tests', () => {
       commits: {
         count: 100,
         frequency: 10,
-        authors: ['user1'] // Single author
+        authors: ['user1']
       },
       pullRequests: {
         open: 5,

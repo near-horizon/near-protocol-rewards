@@ -1,27 +1,18 @@
 import { JSONValue } from './json';
 
-export interface ErrorDetail {
-  code: ErrorCode;
-  message: string;
-  context?: Record<string, JSONValue>;
-}
+export const ErrorCode = {
+  SDK_ERROR: 'SDK_ERROR',
+  API_ERROR: 'API_ERROR',
+  VALIDATION_ERROR: 'VALIDATION_ERROR',
+  STORAGE_ERROR: 'STORAGE_ERROR',
+  RATE_LIMIT_ERROR: 'RATE_LIMIT_ERROR',
+  PROCESSING_ERROR: 'PROCESSING_ERROR',
+  CALCULATION_ERROR: 'CALCULATION_ERROR',
+  CONFIGURATION_ERROR: 'CONFIGURATION_ERROR',
+  UNAUTHORIZED: 'UNAUTHORIZED'
+} as const;
 
-export enum ErrorCode {
-  VALIDATION_ERROR = 'VALIDATION_ERROR',
-  COLLECTION_ERROR = 'COLLECTION_ERROR',
-  STORAGE_ERROR = 'STORAGE_ERROR',
-  API_ERROR = 'API_ERROR',
-  DATABASE_ERROR = 'DATABASE_ERROR',
-  RATE_LIMIT = 'RATE_LIMIT',
-  TIMESTAMP_DRIFT = 'TIMESTAMP_DRIFT',
-  STALE_DATA = 'STALE_DATA',
-  LOW_ACTIVITY_CORRELATION = 'LOW_ACTIVITY_CORRELATION',
-  LOW_AUTHOR_DIVERSITY = 'LOW_AUTHOR_DIVERSITY',
-  GITHUB_API_ERROR = 'GITHUB_API_ERROR',
-  NEAR_API_ERROR = 'NEAR_API_ERROR',
-  PROCESSING_ERROR = 'PROCESSING_ERROR',
-  CALCULATION_ERROR = 'CALCULATION_ERROR'
-}
+export type ErrorCode = typeof ErrorCode[keyof typeof ErrorCode];
 
 export class BaseError extends Error {
   constructor(
@@ -30,6 +21,25 @@ export class BaseError extends Error {
     public details?: Record<string, unknown>
   ) {
     super(message);
-    this.name = 'BaseError';
   }
+}
+
+export interface ErrorDetail {
+  code: ErrorCode;
+  message: string;
+  context?: Record<string, unknown>;
+}
+
+export function formatError(error: unknown): ErrorDetail {
+  if (error instanceof Error) {
+    return {
+      code: ErrorCode.PROCESSING_ERROR,
+      message: error.message,
+      context: { stack: error.stack }
+    };
+  }
+  return {
+    code: ErrorCode.PROCESSING_ERROR,
+    message: String(error)
+  };
 }

@@ -3,34 +3,33 @@
  * for controlling API request rates
  */
 
-export interface RateLimitConfig {
-  requestsPerSecond: number;
-  burstSize?: number;
+interface RateLimiterConfig {
+  maxRequests: number;
+  timeWindowMs: number;
+  retryAfterMs: number;
 }
 
 export class RateLimiter {
-  private lastRequest: number = 0;
-  private requestCount: number = 0;
+  private requests: number[] = [];
+  private readonly config: RateLimiterConfig;
 
-  constructor(private config: { requestsPerSecond: number }) {
-    this.config.requestsPerSecond = config.requestsPerSecond || 1;
+  constructor(config: RateLimiterConfig) {
+    this.config = config;
   }
 
-  async wait(): Promise<void> {
+  async checkAndWait(): Promise<void> {
     const now = Date.now();
-    const timeWindow = 1000; // 1 second in milliseconds
-    
-    if (now - this.lastRequest < timeWindow) {
-      this.requestCount++;
-      if (this.requestCount >= this.config.requestsPerSecond) {
-        const delay = timeWindow - (now - this.lastRequest);
-        await new Promise(resolve => setTimeout(resolve, delay));
-        this.requestCount = 0;
-        this.lastRequest = Date.now();
-      }
-    } else {
-      this.requestCount = 1;
-      this.lastRequest = now;
+    this.requests = this.requests.filter(time => 
+      time > now - this.config.timeWindowMs
+    );
+
+    if (this.requests.length >= this.config.maxRequests) {
+      await new Promise(resolve => 
+        setTimeout(resolve, this.config.retryAfterMs)
+      );
+      return this.checkAndWait();
     }
+
+    this.requests.push(now);
   }
 }

@@ -1,11 +1,10 @@
-import express, { Application, Request, Response, NextFunction } from 'express';
+import express, { Application } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
-import { APIRouter, RouterConfig } from './router';
+import { createRouter } from './router';
 import { PostgresStorage } from '../storage/postgres';
 import { Logger } from '../utils/logger';
-import { RequestLogContext } from './types';
-import { formatError } from '../types/common';
+import { toErrorContext } from '../utils/format-error';
 
 interface ServerConfig {
   storage: PostgresStorage;
@@ -32,48 +31,38 @@ export class APIServer {
     this.app.use(express.json());
 
     // Request logging
-    this.app.use((req: Request, res: Response, next: NextFunction) => {
+    this.app.use((req, res, next) => {
       const startTime = Date.now();
       
       res.on('finish', () => {
-        const logData: RequestLogContext = {
+        this.logger.info('API Request', {
           method: req.method,
           path: req.path,
           statusCode: res.statusCode,
-          duration: Date.now() - startTime,
-          ip: req.ip || null, // Convert undefined to null
-          timestamp: new Date().toISOString()
-        };
-        this.logger.info('API Request', { request: logData });
+          duration: Date.now() - startTime
+        });
       });
 
       next();
     });
+  }
 
-    // Error handling
-    this.app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
-      this.logger.error('API Error', {
-        error: formatError(err),
-        context: { type: 'api_error' }
-      });
+  private setupRoutes(): void {
+    const router = createRouter(this.storage, this.logger);
+    this.app.use('/api', router);
+  }
 
-      res.status(500).json({
-        success: false,
-        error: {
-          code: 'INTERNAL_ERROR',
-          message: 'An unexpected error occurred'
-        }
+  async start(port: number): Promise<void> {
+    return new Promise((resolve) => {
+      this.app.listen(port, () => {
+        this.logger.info(`API server started on port ${port}`);
+        resolve();
       });
     });
   }
 
-  private setupRoutes(): void {
-    const routerConfig: RouterConfig = {
-      storage: this.storage,
-      logger: this.logger
-    };
-    
-    const apiRouter = new APIRouter(routerConfig);
-    this.app.use('/api', apiRouter.getRouter());
+  async stop(): Promise<void> {
+    // Cleanup resources
+    await this.storage.cleanup();
   }
 }

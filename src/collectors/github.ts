@@ -17,24 +17,33 @@ import { GitHubMetrics } from '../types';
 import { BaseError, ErrorCode } from '../types/errors';
 import { formatError } from '../utils/format-error';
 import { toJSONValue } from '../types/json';
+import { RateLimiter } from '../utils/rate-limiter';
 
 export class GitHubCollector {
-  private octokit: Octokit;
-  private logger: Logger;
-  private repo: string;
+  private readonly token: string;
+  private readonly repo: string;
+  private readonly logger: Logger;
+  private readonly octokit: Octokit;
+  private readonly rateLimiter: RateLimiter;
 
   constructor({ 
     repo, 
     token, 
-    logger
+    logger 
   }: {
     repo: string;
     token: string;
     logger: Logger;
   }) {
+    this.token = token;
     this.repo = repo;
     this.logger = logger;
     this.octokit = new Octokit({ auth: token });
+    this.rateLimiter = new RateLimiter({
+      maxRequests: 80,
+      timeWindowMs: 60 * 1000,
+      retryAfterMs: 2000
+    });
   }
 
   async collectMetrics(): Promise<GitHubMetrics> {
@@ -48,8 +57,6 @@ export class GitHubCollector {
       ]);
 
       return {
-        timestamp: Date.now(),
-        projectId: this.repo,
         commits: {
           count: commits.length,
           frequency: commits.length / 7,
@@ -65,18 +72,15 @@ export class GitHubCollector {
             .filter((login): login is string => login !== undefined)
         },
         issues: {
-          open: issues.filter(i => i.state === 'open').length,
           closed: issues.filter(i => i.state === 'closed').length,
-          participants: issues
-            .map(i => i.user?.login)
-            .filter((login): login is string => login !== undefined)
+          open: issues.filter(i => i.state === 'open').length,
+          participants: issues.map(i => i.user?.login).filter((login): login is string => !!login),
+          engagement: this.calculateEngagement(issues)
         },
         metadata: {
           collectionTimestamp: Date.now(),
           source: 'github',
-          projectId: this.repo,
-          periodStart: Date.now() - (7 * 24 * 60 * 60 * 1000),
-          periodEnd: Date.now()
+          projectId: this.repo
         }
       };
     } catch (error) {
@@ -128,9 +132,49 @@ export class GitHubCollector {
 
     throw new BaseError(
       'GitHub metrics collection failed',
-      ErrorCode.GITHUB_API_ERROR,
+      ErrorCode.API_ERROR,
       { error: toJSONValue(formattedError) }
     );
+  }
+
+  private async makeRequest<T>(url: string): Promise<T> {
+    await this.rateLimiter.checkAndWait();
+    
+    const response = await fetch(url, {
+      headers: {
+        'Authorization': `token ${this.token}`,
+        'Accept': 'application/vnd.github.v3+json'
+      }
+    });
+
+    if (response.status === 403) {
+      const resetTime = response.headers.get('X-RateLimit-Reset');
+      throw new BaseError(
+        'GitHub API rate limit exceeded',
+        'RATE_LIMIT_ERROR',
+        { resetTime }
+      );
+    }
+
+    return response.json();
+  }
+
+  async testConnection(): Promise<boolean> {
+    try {
+      await this.makeRequest('rate_limit');
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  private calculateEngagement(issues: any[]): number {
+    return issues.reduce((acc, issue) => {
+      // Simple engagement score based on comments and reactions
+      const commentWeight = issue.comments ? issue.comments * 0.5 : 0;
+      const reactionWeight = issue.reactions?.total_count ? issue.reactions.total_count * 0.3 : 0;
+      return acc + commentWeight + reactionWeight;
+    }, 0);
   }
 }
 

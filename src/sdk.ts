@@ -25,214 +25,246 @@
 import { EventEmitter } from 'events';
 import { GitHubCollector } from './collectors/github';
 import { NEARCollector } from './collectors/near';
-import { MetricsAggregator } from './aggregator/metrics-aggregator';
+import { MetricsCalculator } from './calculator/metrics-calculator';
 import { PostgresStorage } from './storage/postgres';
-import { Logger } from './utils/logger';
+import { ConsoleLogger, defaultLogger } from './utils/logger';
 import { 
   GitHubMetrics, 
   NEARMetrics,
   ProcessedMetrics,
   StoredMetrics,
-  ValidationResult 
+  RewardCalculation,
+  Score
 } from './types/metrics';
-import { BaseError, ErrorCode } from './types/errors';
+import { ValidationResult } from './types/validation';
+import { BaseError, ErrorCode } from './utils/errors';
 import { createHash } from 'crypto';
 import { formatError } from './utils/format-error';
 import { SDKConfig, RequiredSDKConfig } from './types/sdk';
 import { toJSONValue } from './types/json';
+import { RateLimiter } from './utils/rate-limiter';
 
 export class NEARProtocolRewardsSDK extends EventEmitter {
-  private readonly logger: Logger;
+  private readonly config: RequiredSDKConfig;
   private readonly githubCollector: GitHubCollector;
   private readonly nearCollector: NEARCollector;
-  private readonly aggregator: MetricsAggregator;
+  private readonly calculator: MetricsCalculator;
   private readonly storage?: PostgresStorage;
-  private collectionInterval: NodeJS.Timeout | null = null;
-  private readonly config: RequiredSDKConfig;
+  private readonly logger: ConsoleLogger;
+  private readonly rateLimiter: RateLimiter;
+  private trackingInterval?: NodeJS.Timeout;
+  private isTracking: boolean = false;
+
+  static readonly VERSION = '0.1.2';
 
   constructor(config: SDKConfig) {
     super();
     this.validateConfig(config);
     
-    // Set default values
+    // Initialize config with defaults
     this.config = {
       ...config,
-      trackingInterval: config.trackingInterval || 5 * 60 * 1000,
+      trackingInterval: config.trackingInterval || 6 * 60 * 60 * 1000,
       maxRequestsPerSecond: config.maxRequestsPerSecond || 5,
-      logger: config.logger || new Logger({ projectId: config.projectId })
+      logger: config.logger || defaultLogger,
+      minRewardUsd: config.minRewardUsd || 250,
+      maxRewardUsd: config.maxRewardUsd || 10000
     } as RequiredSDKConfig;
 
     this.logger = this.config.logger;
+    
+    // Initialize storage if configured
+    if (config.storage?.type === 'postgres') {
+      this.storage = new PostgresStorage(config.storage.config, this.logger);
+    }
 
+    // Initialize rate limiter
+    this.rateLimiter = new RateLimiter({
+      maxRequests: this.config.maxRequestsPerSecond,
+      timeWindowMs: 1000,
+      retryAfterMs: 1000
+    });
+    
+    // Initialize collectors
     this.githubCollector = new GitHubCollector({
-      repo: this.config.githubRepo,
       token: this.config.githubToken,
+      repo: this.config.githubRepo,
       logger: this.logger
     });
-
+    
     this.nearCollector = new NEARCollector({
       account: this.config.nearAccount,
+      projectId: this.config.projectId,
       logger: this.logger
     });
 
-    this.aggregator = new MetricsAggregator(this.logger);
-
-    if (config.storage) {
-      this.storage = new PostgresStorage({
-        connectionConfig: config.storage.config,
-        logger: this.logger
-      });
-    }
-  }
-
-  private generateSignature(metrics: ProcessedMetrics): string {
-    const data = JSON.stringify({
-      timestamp: metrics.timestamp,
-      github: metrics.github,
-      near: metrics.near,
-      score: metrics.score
-    });
-    return createHash('sha256').update(data).digest('hex');
+    // Initialize calculator with storage
+    this.calculator = new MetricsCalculator({
+      logger: this.logger,
+      weights: {
+        github: { commits: 0.4, pullRequests: 0.3, issues: 0.3 },
+        near: { transactions: 0.4, contractCalls: 0.3, uniqueUsers: 0.3 }
+      }
+    }, this.storage || new PostgresStorage(config.storage?.config || {}, this.logger));
   }
 
   async startTracking(): Promise<void> {
-    try {
-      await this.collectMetrics();
-      
-      this.collectionInterval = setInterval(
-        () => this.collectMetrics().catch(this.handleError.bind(this)),
-        this.config.trackingInterval
-      );
-    } catch (error) {
-      this.handleError(error);
-      throw error;
+    if (this.isTracking) {
+      return;
     }
+
+    this.isTracking = true;
+    await this.collectMetrics(); // Initial collection
+
+    this.trackingInterval = setInterval(
+      () => this.collectMetrics(),
+      this.config.trackingInterval
+    );
+
+    this.logger.info('Started metrics tracking');
   }
 
   async stopTracking(): Promise<void> {
-    if (this.collectionInterval) {
-      clearInterval(this.collectionInterval);
-      this.collectionInterval = null;
+    if (this.trackingInterval) {
+      clearInterval(this.trackingInterval);
+      this.trackingInterval = undefined;
     }
+    this.isTracking = false;
+    this.logger.info('Stopped metrics tracking');
   }
 
-  private async collectMetrics(): Promise<void> {
+  async getMetrics(projectId?: string): Promise<ProcessedMetrics | null> {
     try {
-      const [github, near] = await Promise.all([
+      const [githubMetrics, nearMetrics] = await Promise.all([
         this.githubCollector.collectMetrics(),
         this.nearCollector.collectMetrics()
       ]);
 
       const timestamp = Date.now();
-      const aggregated = this.aggregator.aggregate(github, near);
-
-      const processed: ProcessedMetrics = {
+      
+      // Create a properly typed metrics object
+      const metrics: ProcessedMetrics = {
         timestamp,
-        github: {
-          ...github,
-          metadata: {
-            ...github.metadata,
-            source: 'github' as const
+        collectionTimestamp: timestamp,
+        github: githubMetrics,
+        near: nearMetrics,
+        projectId: projectId || this.config.projectId,
+        score: {
+          total: 0,
+          breakdown: {
+            github: 0,
+            near: 0
           }
         },
-        near: {
-          ...near,
-          metadata: {
-            ...near.metadata,
-            source: 'near' as const
-          }
-        },
-        score: aggregated,
         validation: {
           isValid: true,
           errors: [],
           warnings: [],
           timestamp,
           metadata: {
-            source: 'github' as const,
+            source: 'github',
             validationType: 'data'
           }
         },
         metadata: {
           collectionTimestamp: timestamp,
-          source: 'github' as const,
-          projectId: this.config.projectId,
+          source: 'github', // Use github as default source
+          projectId: projectId || this.config.projectId,
           periodStart: timestamp - (24 * 60 * 60 * 1000),
           periodEnd: timestamp
+        },
+        periodStart: timestamp - (24 * 60 * 60 * 1000),
+        periodEnd: timestamp
+      };
+
+      return this.processMetrics(metrics);
+    } catch (error) {
+      this.handleError(error);
+      return null;
+    }
+  }
+
+  async healthCheck(): Promise<boolean> {
+    try {
+      const [githubHealth, nearHealth] = await Promise.all([
+        this.githubCollector.testConnection(),
+        this.nearCollector.testConnection()
+      ]);
+
+      return githubHealth && nearHealth;
+    } catch (error) {
+      this.logger.error('Health check failed', { error });
+      return false;
+    }
+  }
+
+  private async collectMetrics(): Promise<void> {
+    try {
+      const metrics = await this.getMetrics();
+      if (metrics) {
+        this.emit('metrics:collected', metrics);
+        
+        if (this.storage) {
+          // Transform ProcessedMetrics to StoredMetrics before saving
+          const storedMetrics: StoredMetrics = {
+            projectId: metrics.projectId,
+            timestamp: metrics.timestamp,
+            github: metrics.github,
+            near: metrics.near,
+            processed: metrics,
+            validation: metrics.validation,
+            signature: this.generateSignature(metrics),
+            score: metrics.score
+          };
+          
+          await this.storage.saveMetrics(storedMetrics);
+        }
+      }
+    } catch (error) {
+      this.handleError(error);
+    }
+  }
+
+  private async processMetrics(rawMetrics: ProcessedMetrics): Promise<ProcessedMetrics> {
+    try {
+      const reward = await this.calculator.calculateMetrics(
+        rawMetrics.github,
+        rawMetrics.near
+      );
+
+      const score: Score = {
+        total: reward.total,
+        breakdown: {
+          github: reward.github.total,
+          near: reward.near.total
         }
       };
 
-      if (this.storage) {
-        const storedMetrics: StoredMetrics = {
-          projectId: this.config.projectId,
+      return {
+        ...rawMetrics,
+        score,
+        validation: {
+          isValid: true,
+          errors: [],
+          warnings: [],
           timestamp: Date.now(),
-          github,
-          near,
-          processed: {
-            ...processed,
-            collectionTimestamp: timestamp,
+          metadata: {
             source: 'github',
-            projectId: this.config.projectId,
-            periodStart: timestamp - (24 * 60 * 60 * 1000),
-            periodEnd: timestamp
-          },
-          signature: this.generateSignature(processed),
-          score: processed.score
-        };
-        await this.storage.saveMetrics(this.config.projectId, storedMetrics);
-      }
-
-      this.emit('metrics:collected', processed);
+            validationType: 'data'
+          }
+        },
+        metadata: {
+          collectionTimestamp: Date.now(),
+          source: 'github',
+          projectId: this.config.projectId,
+          periodStart: rawMetrics.periodStart,
+          periodEnd: rawMetrics.periodEnd
+        }
+      };
     } catch (error) {
-      const sdkError = error instanceof BaseError ? error : new BaseError(
-        'Metrics collection failed',
-        ErrorCode.COLLECTION_ERROR,
-        { errorDetails: toJSONValue(formatError(error)) }
-      );
-      this.handleError(sdkError);
-      throw sdkError;
+      this.handleError(error);
+      throw error;
     }
-  }
-
-  async getMetrics(projectId?: string): Promise<ProcessedMetrics | null> {
-    if (!this.storage) {
-      throw new BaseError(
-        'Storage not configured',
-        ErrorCode.COLLECTION_ERROR,
-        { projectId: projectId || 'undefined' }
-      );
-    }
-    const metrics = await this.storage.getLatestMetrics(projectId || this.config.projectId);
-    
-    if (!metrics) return null;
-
-    const processedMetrics: ProcessedMetrics = {
-      ...metrics,
-      validation: {
-        ...metrics.validation,
-        errors: metrics.validation.errors.map(e => e.message),
-        warnings: metrics.validation.warnings.map(w => w.message)
-      },
-      metadata: {
-        collectionTimestamp: metrics.timestamp,
-        source: 'github',
-        projectId: metrics.projectId || this.config.projectId,
-        periodStart: metrics.timestamp - (24 * 60 * 60 * 1000),
-        periodEnd: metrics.timestamp
-      }
-    };
-
-    return processedMetrics;
-  }
-
-  private handleError(error: unknown): void {
-    const sdkError = error instanceof BaseError ? error : new BaseError(
-      'SDK operation failed',
-      ErrorCode.COLLECTION_ERROR,
-      { errorDetails: toJSONValue(formatError(error)) }
-    );
-    
-    this.emit('error', sdkError);
   }
 
   async cleanup(): Promise<void> {
@@ -257,5 +289,33 @@ export class NEARProtocolRewardsSDK extends EventEmitter {
         ErrorCode.VALIDATION_ERROR
       );
     }
+  }
+
+  private handleError(error: unknown): void {
+    const sdkError = error instanceof BaseError ? error : new BaseError(
+      'SDK operation failed',
+      ErrorCode.SDK_ERROR,
+      { errorDetails: toJSONValue(formatError(error)) }
+    );
+    
+    this.emit('error', sdkError);
+  }
+
+  on(event: 'metrics:collected', listener: (metrics: ProcessedMetrics) => void): this;
+  on(event: 'reward:calculated', listener: (reward: RewardCalculation) => void): this;
+  on(event: 'error', listener: (error: BaseError) => void): this;
+  on(event: string, listener: (...args: any[]) => void): this {
+    return super.on(event, listener);
+  }
+
+  // Add signature generation method
+  private generateSignature(metrics: ProcessedMetrics): string {
+    const data = JSON.stringify({
+      timestamp: metrics.timestamp,
+      github: metrics.github,
+      near: metrics.near,
+      score: metrics.score
+    });
+    return createHash('sha256').update(data).digest('hex');
   }
 }
