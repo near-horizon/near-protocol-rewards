@@ -11,16 +11,24 @@
 
 </div>
 
-## Why NEAR Protocol Rewards?
+## What is Protocol Rewards?
 
-Building sustainable Web3 projects requires consistent funding and support. Traditional funding models often create barriers for developers who want to focus on building rather than fundraising. The NEAR Protocol Rewards system solves this by:
+Protocol Rewards is a developer-first funding solution for the NEAR ecosystem. We're solving a critical challenge in Web3: how to sustainably fund and reward developers building high-impact projects.
 
-- 🌱 Providing sustainable, merit-based funding for developers building on NEAR
-- 🎯 Creating transparent, objective metrics for measuring project impact
-- 💪 Enabling developers to focus on building without immediate funding pressure
-- 🤝 Fostering a sustainable ecosystem of high-impact NEAR projects
+### The Problem
+- Traditional funding models (grants, VCs) require extensive time spent on proposals and pitches
+- Developers want to focus on building, not fundraising
+- Project impact is often measured subjectively
+- Funding is typically front-loaded rather than tied to ongoing development
 
-Our SDK automates the entire process - from tracking development activity to calculating fair rewards, making it easy to implement a sustainable rewards system for your project.
+### Our Solution
+Protocol Rewards provides:
+- Automated tracking of development metrics and project impact
+- Merit-based rewards tied directly to contributions
+- Transparent, objective criteria for funding
+- Sustainable, ongoing rewards that scale with project growth
+
+By automating the entire process from tracking to distribution, we enable developers to focus on what they do best - building innovative solutions on NEAR.
 
 ## Documentation
 
@@ -36,7 +44,9 @@ While this SDK handles the collection and processing of development metrics, the
 - 📈 Analytics and insights for project maintainers
 - 🏆 Reward distribution and tracking interface
 
-View your project's metrics and manage rewards on our [dashboard platform](https://protocol-rewards-dashboard.vercel.app/).
+![NEAR Protocol Rewards Dashboard](public/assets/og-image.png)
+
+View your project's metrics and manage rewards on our [dashboard platform](https://github.com/jbarnes850/protocol-rewards-dashboard).
 
 ## Installation
 
