@@ -15,25 +15,29 @@ module.exports = {
     project: './tsconfig.json',
     tsconfigRootDir: __dirname
   },
-  include: [
-    'src/**/*.ts',
-    'tests/**/*.ts'
-  ],
   rules: {
     '@typescript-eslint/explicit-function-return-type': 'off',
     '@typescript-eslint/no-explicit-any': 'warn',
     '@typescript-eslint/no-unused-vars': ['warn', {
       argsIgnorePattern: '^_',
       varsIgnorePattern: '^_',
-      ignoreRestSiblings: true
+      ignoreRestSiblings: true,
+      args: 'after-used'
     }],
     '@typescript-eslint/no-non-null-assertion': 'warn',
-    'no-console': ['warn', { allow: ['warn', 'error'] }],
+    'no-console': ['warn', { 
+      allow: ['warn', 'error', 'info'] 
+    }],
     'no-debugger': 'error',
-    'no-duplicate-imports': 'error'
+    'no-duplicate-imports': 'error',
+    '@typescript-eslint/no-explicit-any': ['warn', {
+      ignoreRestArgs: true,
+      fixToUnknown: true
+    }]
   },
   ignorePatterns: [
     'dist',
-    'node_modules'
+    'node_modules',
+    '*.js'
   ]
 };

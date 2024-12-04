@@ -1,40 +1,16 @@
-import { ErrorCode } from '../types/errors';
-import { BaseError } from '../types/errors';
-import { ErrorDetail } from '../types/errors';
-import { formatError } from '../types/errors';
-import { Logger } from './logger';
-import { JSONValue } from '../types/json';
+import { BaseError, ErrorCode, ErrorDetail } from '../types/errors';
 
-export class ErrorHandler {
-  constructor(private readonly logger: Logger) {}
-
-  handle(error: Error, context?: Record<string, JSONValue>): void {
-    const errorDetail = formatError(error);
-    
-    if (error instanceof BaseError) {
-      this.logger.error(error.message, {
-        error: errorDetail,
-        context: error.context || context
-      });
-    } else {
-      this.logger.error(error.message, {
-        error: errorDetail,
-        context
-      });
-    }
-  }
+export function createError(code: ErrorCode, message: string, details?: Record<string, unknown>): BaseError {
+  return new BaseError(message, code, details);
 }
 
-export class SDKError extends BaseError {
-  constructor(
-    message: string,
-    code: ErrorCode,
-    details?: Record<string, unknown>
-  ) {
-    super(message, code, details);
-    this.name = 'SDKError';
-  }
+export function isBaseError(error: unknown): error is BaseError {
+  return error instanceof BaseError;
 }
 
-// Re-export error types
-export { ErrorCode, BaseError, ErrorDetail, formatError };
+export function toErrorCode(error: unknown): ErrorCode {
+  if (isBaseError(error)) {
+    return error.code;
+  }
+  return ErrorCode.UNKNOWN_ERROR;
+}
