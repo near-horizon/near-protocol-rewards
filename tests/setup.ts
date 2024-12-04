@@ -1,7 +1,7 @@
-import dotenv from 'dotenv';
+import dotenv from "dotenv";
 
 // Load environment variables from .env.test
-dotenv.config({ path: '.env.test' });
+dotenv.config({ path: ".env.test" });
 
 // Set default timeout for all tests
 jest.setTimeout(30000);
@@ -14,5 +14,5 @@ global.console = {
   // Silence info and warn in tests
   info: jest.fn(),
   warn: jest.fn(),
-  debug: jest.fn()
+  debug: jest.fn(),
 };

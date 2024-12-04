@@ -50,7 +50,10 @@ export interface SDKEvents {
   "tracking:stopped": () => void;
 }
 
-declare interface GitHubRewardsSDK {
+export interface GitHubRewardsSDK {
+  startTracking(): Promise<void>;
+  stopTracking(): Promise<void>;
+  getMetrics(): Promise<ProcessedMetrics | null>;
   on<E extends keyof SDKEvents>(event: E, listener: SDKEvents[E]): this;
   emit<E extends keyof SDKEvents>(
     event: E,
