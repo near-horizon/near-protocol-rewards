@@ -29,11 +29,8 @@ jobs:
       - name: Type check
         run: npx tsc --noEmit
         
-      - name: Run tests
-        run: npm test
-        env:
-          SKIP_INTEGRATION_TESTS: true
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          
+      - name: Run unit tests
+        run: npm run test:unit
+        
       - name: Build package
         run: npm run build

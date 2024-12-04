@@ -24,7 +24,8 @@
     "version": "npm run format && git add -A src",
     "postversion": "git push && git push --tags",
     "format": "prettier --write \"src/**/*.ts\" \"tests/**/*.ts\"",
-    "docs": "typedoc --out docs/api src/index.ts"
+    "docs": "typedoc --out docs/api src/index.ts",
+    "test:unit": "jest \"tests/unit/.*\\.test\\.ts$\""
   },
   "keywords": [
     "near",
@@ -40,25 +41,25 @@
   "license": "MIT",
   "dependencies": {
     "@octokit/rest": "^20.0.0",
-    "zod": "^3.22.0",
+    "dotenv": "^16.3.0",
     "events": "^3.3.0",
     "express": "^4.18.0",
-    "dotenv": "^16.3.0",
-    "pg": "^8.11.0"
+    "pg": "^8.11.0",
+    "zod": "^3.22.0"
   },
   "devDependencies": {
-    "@types/node": "^20.0.0",
-    "@types/jest": "^29.0.0",
     "@types/express": "^4.17.0",
+    "@types/jest": "^29.0.0",
+    "@types/node": "^20.0.0",
     "@types/pg": "^8.10.0",
     "@typescript-eslint/eslint-plugin": "^6.0.0",
     "@typescript-eslint/parser": "^6.0.0",
     "eslint": "^8.0.0",
     "jest": "^29.0.0",
+    "prettier": "^3.1.0",
     "ts-jest": "^29.0.0",
-    "typescript": "^5.0.0",
     "typedoc": "^0.25.0",
-    "prettier": "^3.1.0"
+    "typescript": "^5.0.0"
   },
   "engines": {
     "node": ">=14.0.0"
