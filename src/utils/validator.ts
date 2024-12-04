@@ -1,6 +1,10 @@
-import { GitHubMetrics } from '../types/metrics';
-import { ValidationResult, ValidationError, ValidationWarning } from '../types/validation';
-import { ErrorCode } from '../types/errors';
+import { GitHubMetrics } from "../types/metrics";
+import {
+  ValidationResult,
+  ValidationError,
+  ValidationWarning,
+} from "../types/validation";
+import { ErrorCode } from "../types/errors";
 
 export class Validator {
   validateMetrics(metrics: GitHubMetrics): ValidationResult {
@@ -11,16 +15,22 @@ export class Validator {
     if (!metrics) {
       errors.push({
         code: ErrorCode.VALIDATION_ERROR,
-        message: 'No metrics provided'
+        message: "No metrics provided",
       });
-      return { isValid: false, errors, warnings, timestamp: Date.now(), metadata: { source: 'github', validationType: 'data' } };
+      return {
+        isValid: false,
+        errors,
+        warnings,
+        timestamp: Date.now(),
+        metadata: { source: "github", validationType: "data" },
+      };
     }
 
     // Validate commit metrics
     if (metrics.commits.count < 0) {
       errors.push({
         code: ErrorCode.VALIDATION_ERROR,
-        message: 'Invalid commit count'
+        message: "Invalid commit count",
       });
     }
 
@@ -28,7 +38,7 @@ export class Validator {
     if (metrics.pullRequests.merged < 0) {
       errors.push({
         code: ErrorCode.VALIDATION_ERROR,
-        message: 'Invalid PR count'
+        message: "Invalid PR count",
       });
     }
 
@@ -36,7 +46,7 @@ export class Validator {
     if (metrics.reviews.count < 0) {
       errors.push({
         code: ErrorCode.VALIDATION_ERROR,
-        message: 'Invalid review count'
+        message: "Invalid review count",
       });
     }
 
@@ -44,7 +54,7 @@ export class Validator {
     if (metrics.issues.closed < 0) {
       errors.push({
         code: ErrorCode.VALIDATION_ERROR,
-        message: 'Invalid issue count'
+        message: "Invalid issue count",
       });
     }
 
@@ -54,17 +64,18 @@ export class Validator {
       warnings,
       timestamp: Date.now(),
       metadata: {
-        source: 'github',
-        validationType: 'data'
-      }
+        source: "github",
+        validationType: "data",
+      },
     };
   }
 
   calculateVelocityPenalty(metrics: GitHubMetrics): number {
-    const totalActivity = metrics.commits.count + 
-                         metrics.pullRequests.merged + 
-                         metrics.reviews.count + 
-                         metrics.issues.closed;
+    const totalActivity =
+      metrics.commits.count +
+      metrics.pullRequests.merged +
+      metrics.reviews.count +
+      metrics.issues.closed;
 
     // No penalty if activity is reasonable
     if (totalActivity <= 100) {
@@ -74,4 +85,4 @@ export class Validator {
     // Apply penalty for excessive activity
     return Math.max(0.5, 100 / totalActivity);
   }
-} 
+}

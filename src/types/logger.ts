@@ -1,7 +1,7 @@
-import { JSONValue } from './json';
-import { ErrorDetail } from './errors';
+import { JSONValue } from "./json";
+import { ErrorDetail } from "./errors";
 
-export type LogLevel = 'debug' | 'info' | 'warn' | 'error';
+export type LogLevel = "debug" | "info" | "warn" | "error";
 
 export interface LogContext {
   [key: string]: JSONValue;
@@ -22,4 +22,4 @@ export interface Logger {
 export interface LoggerConfig {
   level?: LogLevel;
   pretty?: boolean;
-} 
+}

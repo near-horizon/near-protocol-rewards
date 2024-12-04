@@ -1,9 +1,9 @@
-import { Logger } from '../utils/logger';
-import { BaseError } from '../types/errors';
-import { ProcessedMetrics, Score } from './metrics';
+import { Logger } from "../utils/logger";
+import { BaseError } from "../types/errors";
+import { ProcessedMetrics, Score } from "./metrics";
 
 export interface StorageConfig {
-  type: 'postgres';
+  type: "postgres";
   config: {
     host: string;
     port: number;
@@ -18,7 +18,7 @@ export interface SDKConfig {
   githubRepo: string;
   projectId?: string;
   nearAccount?: string;
-  timeframe?: 'day' | 'week' | 'month';
+  timeframe?: "day" | "week" | "month";
   logger?: Logger;
   maxRequestsPerSecond?: number;
   storage?: StorageConfig;
@@ -43,14 +43,17 @@ export interface RewardCalculation {
 }
 
 export interface SDKEvents {
-  'metrics:collected': (metrics: ProcessedMetrics) => void;
-  'reward:calculated': (reward: RewardCalculation) => void;
-  'error': (error: BaseError) => void;
-  'tracking:started': () => void;
-  'tracking:stopped': () => void;
+  "metrics:collected": (metrics: ProcessedMetrics) => void;
+  "reward:calculated": (reward: RewardCalculation) => void;
+  error: (error: BaseError) => void;
+  "tracking:started": () => void;
+  "tracking:stopped": () => void;
 }
 
 declare interface GitHubRewardsSDK {
   on<E extends keyof SDKEvents>(event: E, listener: SDKEvents[E]): this;
-  emit<E extends keyof SDKEvents>(event: E, ...args: Parameters<SDKEvents[E]>): boolean;
-} 
+  emit<E extends keyof SDKEvents>(
+    event: E,
+    ...args: Parameters<SDKEvents[E]>
+  ): boolean;
+}

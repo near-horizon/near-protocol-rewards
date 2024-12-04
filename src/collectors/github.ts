@@ -1,27 +1,27 @@
 /**
  * GitHub Metrics Collector
- * 
+ *
  * Collects metrics from GitHub repositories including:
  * - Commits
  * - Pull requests
- * - Issues and comments  
- * 
+ * - Issues and comments
+ *
  * Features built-in rate limiting and error handling for API calls.
  * Uses exponential backoff for retries on transient failures.
  */
 
-import { Octokit } from '@octokit/rest';
-import { GitHubCollectorConfig } from '../types/collectors';
-import { GitHubMetrics } from '../types/metrics';
-import { 
-  GitHubPullRequest, 
+import { Octokit } from "@octokit/rest";
+import { GitHubCollectorConfig } from "../types/collectors";
+import { GitHubMetrics } from "../types/metrics";
+import {
+  GitHubPullRequest,
   GitHubIssue,
   GitHubCommit,
   GitHubReview,
-  GitHubUser
-} from '../types/github';
-import { RateLimiter } from '../utils/rate-limiter';
-import { BaseError, ErrorCode } from '../types/errors';
+  GitHubUser,
+} from "../types/github";
+import { RateLimiter } from "../utils/rate-limiter";
+import { BaseError, ErrorCode } from "../types/errors";
 
 export class GitHubCollector {
   private readonly octokit: Octokit;
@@ -33,10 +33,10 @@ export class GitHubCollector {
   constructor(config: GitHubCollectorConfig) {
     this.logger = config.logger;
     this.rateLimiter = config.rateLimiter;
-    [this.owner, this.repo] = config.repo.split('/');
+    [this.owner, this.repo] = config.repo.split("/");
 
     this.octokit = new Octokit({
-      auth: config.token
+      auth: config.token,
     });
   }
 
@@ -45,11 +45,11 @@ export class GitHubCollector {
       await this.rateLimiter.acquire();
       await this.octokit.rest.repos.get({
         owner: this.owner,
-        repo: this.repo
+        repo: this.repo,
       });
       await this.rateLimiter.release();
     } catch (error) {
-      this.logger.error('Failed to test GitHub connection', { error });
+      this.logger.error("Failed to test GitHub connection", { error });
       throw error;
     }
   }
@@ -62,7 +62,7 @@ export class GitHubCollector {
         this.collectCommits(),
         this.collectPullRequests(),
         this.collectReviews(),
-        this.collectIssues()
+        this.collectIssues(),
       ]);
 
       await this.rateLimiter.release();
@@ -74,25 +74,28 @@ export class GitHubCollector {
         issues,
         metadata: {
           collectionTimestamp: Date.now(),
-          source: 'github',
-          projectId: `${this.owner}/${this.repo}`
-        }
+          source: "github",
+          projectId: `${this.owner}/${this.repo}`,
+        },
       };
     } catch (error) {
-      this.logger.error('Failed to collect GitHub metrics', { error });
+      this.logger.error("Failed to collect GitHub metrics", { error });
       throw error;
     }
   }
 
   private async collectCommits() {
-    const commits = await this.octokit.paginate(this.octokit.rest.repos.listCommits, {
-      owner: this.owner,
-      repo: this.repo,
-      per_page: 100
-    });
+    const commits = await this.octokit.paginate(
+      this.octokit.rest.repos.listCommits,
+      {
+        owner: this.owner,
+        repo: this.repo,
+        per_page: 100,
+      },
+    );
 
     const authors = new Map<string, number>();
-    commits.forEach(commit => {
+    commits.forEach((commit) => {
       const login = commit.author?.login;
       if (login) {
         authors.set(login, (authors.get(login) || 0) + 1);
@@ -104,9 +107,11 @@ export class GitHubCollector {
     const weekly = 0;
     const monthly = commits.length;
 
-    commits.forEach(commit => {
-      const date = new Date(commit.commit.author?.date || '');
-      const dayIndex = Math.floor((now - date.getTime()) / (24 * 60 * 60 * 1000));
+    commits.forEach((commit) => {
+      const date = new Date(commit.commit.author?.date || "");
+      const dayIndex = Math.floor(
+        (now - date.getTime()) / (24 * 60 * 60 * 1000),
+      );
       if (dayIndex >= 0 && dayIndex < 30) {
         daily[dayIndex]++;
       }
@@ -117,12 +122,12 @@ export class GitHubCollector {
       frequency: {
         daily,
         weekly: Math.floor(monthly / 4),
-        monthly
+        monthly,
       },
       authors: Array.from(authors.entries()).map(([login, count]) => ({
         login,
-        count
-      }))
+        count,
+      })),
     };
   }
 
@@ -131,19 +136,19 @@ export class GitHubCollector {
       this.octokit.paginate(this.octokit.rest.pulls.list, {
         owner: this.owner,
         repo: this.repo,
-        state: 'open',
-        per_page: 100
+        state: "open",
+        per_page: 100,
       }),
       this.octokit.paginate(this.octokit.rest.pulls.list, {
         owner: this.owner,
         repo: this.repo,
-        state: 'closed',
-        per_page: 100
-      })
+        state: "closed",
+        per_page: 100,
+      }),
     ]);
 
     const authors = new Set<string>();
-    [...openPRs, ...closedPRs].forEach(pr => {
+    [...openPRs, ...closedPRs].forEach((pr) => {
       if (pr.user?.login) {
         authors.add(pr.user.login);
       }
@@ -151,9 +156,9 @@ export class GitHubCollector {
 
     return {
       open: openPRs.length,
-      merged: closedPRs.filter(pr => pr.merged_at !== null).length,
-      closed: closedPRs.filter(pr => pr.merged_at === null).length,
-      authors: Array.from(authors)
+      merged: closedPRs.filter((pr) => pr.merged_at !== null).length,
+      closed: closedPRs.filter((pr) => pr.merged_at === null).length,
+      authors: Array.from(authors),
     };
   }
 
@@ -162,24 +167,24 @@ export class GitHubCollector {
     const allPRs = await this.octokit.paginate(this.octokit.rest.pulls.list, {
       owner: this.owner,
       repo: this.repo,
-      state: 'all',
-      per_page: 100
+      state: "all",
+      per_page: 100,
     });
 
     // Then collect reviews for each PR
     const allReviews = await Promise.all(
-      allPRs.map(pr =>
+      allPRs.map((pr) =>
         this.octokit.paginate(this.octokit.rest.pulls.listReviews, {
           owner: this.owner,
           repo: this.repo,
           pull_number: pr.number,
-          per_page: 100
-        })
-      )
+          per_page: 100,
+        }),
+      ),
     );
 
     const authors = new Set<string>();
-    allReviews.flat().forEach(review => {
+    allReviews.flat().forEach((review) => {
       if (review.user?.login) {
         authors.add(review.user.login);
       }
@@ -187,7 +192,7 @@ export class GitHubCollector {
 
     return {
       count: allReviews.flat().length,
-      authors: Array.from(authors)
+      authors: Array.from(authors),
     };
   }
 
@@ -196,26 +201,26 @@ export class GitHubCollector {
       this.octokit.paginate(this.octokit.rest.issues.listForRepo, {
         owner: this.owner,
         repo: this.repo,
-        state: 'open',
-        per_page: 100
+        state: "open",
+        per_page: 100,
       }),
       this.octokit.paginate(this.octokit.rest.issues.listForRepo, {
         owner: this.owner,
         repo: this.repo,
-        state: 'closed',
-        per_page: 100
-      })
+        state: "closed",
+        per_page: 100,
+      }),
     ]);
 
     const participants = new Set<string>();
-    [...openIssues, ...closedIssues].forEach(issue => {
+    [...openIssues, ...closedIssues].forEach((issue) => {
       if (issue.user?.login) {
         participants.add(issue.user.login);
       }
       if (issue.assignee?.login) {
         participants.add(issue.assignee.login);
       }
-      issue.assignees?.forEach(assignee => {
+      issue.assignees?.forEach((assignee) => {
         if (assignee.login) {
           participants.add(assignee.login);
         }
@@ -225,8 +230,7 @@ export class GitHubCollector {
     return {
       open: openIssues.length,
       closed: closedIssues.length,
-      participants: Array.from(participants)
+      participants: Array.from(participants),
     };
   }
 }
-

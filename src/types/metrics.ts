@@ -1,6 +1,6 @@
-import { ValidationResult } from './validation';
+import { ValidationResult } from "./validation";
 
-export type MetricsSource = 'github';
+export type MetricsSource = "github";
 
 export interface Score {
   total: number;
@@ -85,7 +85,7 @@ export interface RewardCalculation {
     name: string;
     description: string;
     earnedAt: string;
-    category: 'commit' | 'pr' | 'review' | 'issue';
+    category: "commit" | "pr" | "review" | "issue";
   }>;
   metadata: {
     timestamp: number;

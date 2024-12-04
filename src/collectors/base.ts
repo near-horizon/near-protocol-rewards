@@ -1,7 +1,7 @@
-import { Logger } from '../utils/logger';
-import { formatError } from '../utils/format-error';
-import { BaseError, ErrorCode } from '../types/errors';
-import { JSONValue, toJSONValue } from '../types/json';
+import { Logger } from "../utils/logger";
+import { formatError } from "../utils/format-error";
+import { BaseError, ErrorCode } from "../types/errors";
+import { JSONValue, toJSONValue } from "../types/json";
 
 export interface BaseCollectorConfig {
   logger: Logger;
@@ -19,16 +19,14 @@ export abstract class BaseCollector {
 
   protected handleError(error: unknown, context: string): never {
     const formattedError = formatError(error);
-    
-    this.logger.error('Collection error', {
+
+    this.logger.error("Collection error", {
       error: formattedError,
-      context: { operation: context }
+      context: { operation: context },
     });
 
-    throw new BaseError(
-      'Collection failed',
-      ErrorCode.COLLECTION_ERROR,
-      { error: toJSONValue(formattedError) }
-    );
+    throw new BaseError("Collection failed", ErrorCode.COLLECTION_ERROR, {
+      error: toJSONValue(formattedError),
+    });
   }
 }

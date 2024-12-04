@@ -18,7 +18,7 @@ const defaultShouldRetry = (error: any): boolean => {
 
 export async function retry<T>(
   fn: () => Promise<T>,
-  options: RetryOptions
+  options: RetryOptions,
 ): Promise<T> {
   const { maxRetries, retryDelay, shouldRetry = defaultShouldRetry } = options;
   let lastError: any;
@@ -34,9 +34,9 @@ export async function retry<T>(
       }
 
       const delay = retryDelay(attempt);
-      await new Promise(resolve => setTimeout(resolve, delay));
+      await new Promise((resolve) => setTimeout(resolve, delay));
     }
   }
 
   throw lastError;
-} 
+}

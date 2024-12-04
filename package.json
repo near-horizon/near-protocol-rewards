@@ -1,6 +1,6 @@
 {
   "name": "near-protocol-rewards",
-  "version": "0.1.0-beta",
+  "version": "0.1.0",
   "description": "NEAR Protocol Rewards SDK - Track and reward developer contributions through GitHub metrics",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

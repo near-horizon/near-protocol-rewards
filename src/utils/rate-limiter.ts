@@ -30,7 +30,7 @@ export class RateLimiter {
     }
 
     if (this.requests >= this.maxRequests) {
-      await new Promise(resolve => setTimeout(resolve, this.retryAfter));
+      await new Promise((resolve) => setTimeout(resolve, this.retryAfter));
       return this.acquire();
     }
 

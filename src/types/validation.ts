@@ -1,18 +1,18 @@
-import { ErrorCode } from './errors';
-import { MetricsSource } from './metrics';
+import { ErrorCode } from "./errors";
+import { MetricsSource } from "./metrics";
 
 export interface ValidationMetadata {
   source: MetricsSource;
-  validationType: 'data' | 'security' | 'performance';
+  validationType: "data" | "security" | "performance";
 }
 
-export type ValidationErrorCode = 
-  | 'TIMESTAMP_DRIFT'
-  | 'STALE_DATA'
-  | 'USER_COUNT_DISCREPANCY'
-  | 'LOW_ACTIVITY_CORRELATION'
-  | 'VALIDATION_ERROR'
-  | ErrorCode;  // Include base error codes
+export type ValidationErrorCode =
+  | "TIMESTAMP_DRIFT"
+  | "STALE_DATA"
+  | "USER_COUNT_DISCREPANCY"
+  | "LOW_ACTIVITY_CORRELATION"
+  | "VALIDATION_ERROR"
+  | ErrorCode; // Include base error codes
 
 export interface ValidationError {
   code: ValidationErrorCode;
@@ -35,6 +35,7 @@ export interface ValidationResult {
 }
 
 export function isValidationError(obj: unknown): obj is ValidationError {
-  return typeof obj === 'object' && obj !== null &&
-    'code' in obj && 'message' in obj;
+  return (
+    typeof obj === "object" && obj !== null && "code" in obj && "message" in obj
+  );
 }

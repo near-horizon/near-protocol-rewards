@@ -1,5 +1,5 @@
-import { ConsoleLogger } from '../utils/logger';
-import { GitHubValidator } from './github';
+import { ConsoleLogger } from "../utils/logger";
+import { GitHubValidator } from "./github";
 
 export function createValidators(logger: ConsoleLogger) {
   return {
@@ -7,9 +7,9 @@ export function createValidators(logger: ConsoleLogger) {
       logger,
       maxDailyCommits: 15,
       minAuthors: 2,
-      minReviewPrRatio: 0.5
-    })
+      minReviewPrRatio: 0.5,
+    }),
   };
 }
 
-export { GitHubValidator } from './github';
+export { GitHubValidator } from "./github";

@@ -1,4 +1,4 @@
-export type JSONValue = 
+export type JSONValue =
   | string
   | number
   | boolean
@@ -15,9 +15,14 @@ export interface ErrorDetail {
 
 export function toJSONValue(value: unknown): JSONValue {
   if (value === null || value === undefined) return null;
-  if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') return value;
+  if (
+    typeof value === "string" ||
+    typeof value === "number" ||
+    typeof value === "boolean"
+  )
+    return value;
   if (Array.isArray(value)) return value.map(toJSONValue);
-  if (typeof value === 'object') {
+  if (typeof value === "object") {
     const result: { [key: string]: JSONValue } = {};
     for (const [k, v] of Object.entries(value)) {
       result[k] = toJSONValue(v);
@@ -25,4 +30,4 @@ export function toJSONValue(value: unknown): JSONValue {
     return result;
   }
   return String(value);
-} 
+}

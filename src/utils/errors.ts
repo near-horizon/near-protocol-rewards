@@ -1,6 +1,10 @@
-import { BaseError, ErrorCode, ErrorDetail } from '../types/errors';
+import { BaseError, ErrorCode, ErrorDetail } from "../types/errors";
 
-export function createError(code: ErrorCode, message: string, details?: Record<string, unknown>): BaseError {
+export function createError(
+  code: ErrorCode,
+  message: string,
+  details?: Record<string, unknown>,
+): BaseError {
   return new BaseError(message, code, details);
 }
 

@@ -1,5 +1,5 @@
-import { z } from 'zod';
-import { BaseError, ErrorCode } from '../types/errors';
+import { z } from "zod";
+import { BaseError, ErrorCode } from "../types/errors";
 
 export class ValidationError extends BaseError {
   constructor(message: string, details?: Record<string, unknown>) {
@@ -12,11 +12,11 @@ export function validateSchema<T>(schema: z.ZodSchema<T>, data: unknown): T {
     return schema.parse(data);
   } catch (error) {
     if (error instanceof z.ZodError) {
-      throw new ValidationError('Invalid configuration', {
-        errors: error.errors.map(err => ({
-          path: err.path.join('.'),
-          message: err.message
-        }))
+      throw new ValidationError("Invalid configuration", {
+        errors: error.errors.map((err) => ({
+          path: err.path.join("."),
+          message: err.message,
+        })),
       });
     }
     throw error;

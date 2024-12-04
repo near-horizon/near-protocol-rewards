@@ -1,6 +1,6 @@
-import { JSONValue } from './json';
-import { ErrorDetail } from './errors';
-import { Logger } from '../utils/logger';
+import { JSONValue } from "./json";
+import { ErrorDetail } from "./errors";
+import { Logger } from "../utils/logger";
 
 export interface LogContext {
   [key: string]: JSONValue | undefined;
@@ -25,4 +25,3 @@ export interface ValidationThresholds {
   };
 }
 export { JSONValue };
-

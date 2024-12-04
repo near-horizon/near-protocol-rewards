@@ -1,7 +1,11 @@
-import { GitHubMetrics } from '../types/metrics';
-import { ValidationResult, ValidationError, ValidationWarning } from '../types/validation';
-import { Logger } from '../utils/logger';
-import { ErrorCode } from '../types/errors';
+import { GitHubMetrics } from "../types/metrics";
+import {
+  ValidationResult,
+  ValidationError,
+  ValidationWarning,
+} from "../types/validation";
+import { Logger } from "../utils/logger";
+import { ErrorCode } from "../types/errors";
 
 export interface GitHubValidatorConfig {
   logger: Logger;
@@ -23,16 +27,22 @@ export class GitHubValidator {
     if (!metrics) {
       errors.push({
         code: ErrorCode.VALIDATION_ERROR,
-        message: 'No metrics provided'
+        message: "No metrics provided",
       });
-      return { isValid: false, errors, warnings, timestamp: Date.now(), metadata: { source: 'github', validationType: 'data' } };
+      return {
+        isValid: false,
+        errors,
+        warnings,
+        timestamp: Date.now(),
+        metadata: { source: "github", validationType: "data" },
+      };
     }
 
     // Validate commit metrics
     if (metrics.commits.count < 0) {
       errors.push({
         code: ErrorCode.VALIDATION_ERROR,
-        message: 'Invalid commit count'
+        message: "Invalid commit count",
       });
     }
 
@@ -41,8 +51,8 @@ export class GitHubValidator {
     if (maxDailyCommits > (this.config.maxDailyCommits || 15)) {
       warnings.push({
         code: ErrorCode.HIGH_VELOCITY,
-        message: 'Suspicious commit activity detected',
-        context: { maxDailyCommits }
+        message: "Suspicious commit activity detected",
+        context: { maxDailyCommits },
       });
     }
 
@@ -50,8 +60,8 @@ export class GitHubValidator {
     if (metrics.commits.authors.length < (this.config.minAuthors || 2)) {
       warnings.push({
         code: ErrorCode.LOW_AUTHOR_DIVERSITY,
-        message: 'Low author diversity',
-        context: { authorCount: metrics.commits.authors.length }
+        message: "Low author diversity",
+        context: { authorCount: metrics.commits.authors.length },
       });
     }
 
@@ -59,7 +69,7 @@ export class GitHubValidator {
     if (metrics.pullRequests.merged < 0) {
       errors.push({
         code: ErrorCode.VALIDATION_ERROR,
-        message: 'Invalid PR count'
+        message: "Invalid PR count",
       });
     }
 
@@ -69,8 +79,8 @@ export class GitHubValidator {
       if (reviewRatio < (this.config.minReviewPrRatio || 0.5)) {
         warnings.push({
           code: ErrorCode.LOW_REVIEW_ENGAGEMENT,
-          message: 'Low review engagement detected',
-          context: { reviewRatio }
+          message: "Low review engagement detected",
+          context: { reviewRatio },
         });
       }
     }
@@ -79,7 +89,7 @@ export class GitHubValidator {
     if (metrics.reviews.count < 0) {
       errors.push({
         code: ErrorCode.VALIDATION_ERROR,
-        message: 'Invalid review count'
+        message: "Invalid review count",
       });
     }
 
@@ -87,7 +97,7 @@ export class GitHubValidator {
     if (metrics.issues.closed < 0) {
       errors.push({
         code: ErrorCode.VALIDATION_ERROR,
-        message: 'Invalid issue count'
+        message: "Invalid issue count",
       });
     }
 
@@ -97,9 +107,9 @@ export class GitHubValidator {
       warnings,
       timestamp: Date.now(),
       metadata: {
-        source: 'github',
-        validationType: 'data'
-      }
+        source: "github",
+        validationType: "data",
+      },
     };
   }
 

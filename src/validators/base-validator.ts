@@ -1,6 +1,6 @@
-import { Logger } from '../utils/logger';
-import { ValidationResult, ValidationError } from '../types/validation';
-import { ErrorCode } from '../types/errors';
+import { Logger } from "../utils/logger";
+import { ValidationResult, ValidationError } from "../types/validation";
+import { ErrorCode } from "../types/errors";
 
 export abstract class BaseValidator {
   constructor(protected readonly logger: Logger) {}
@@ -8,7 +8,7 @@ export abstract class BaseValidator {
   protected createValidationResult(
     isValid: boolean,
     errors: ValidationError[],
-    warnings: ValidationError[] = []
+    warnings: ValidationError[] = [],
   ): ValidationResult {
     return {
       isValid,
@@ -16,16 +16,16 @@ export abstract class BaseValidator {
       warnings,
       timestamp: Date.now(),
       metadata: {
-        source: 'github',
-        validationType: 'data'
-      }
+        source: "github",
+        validationType: "data",
+      },
     };
   }
 
   protected createError(
     code: ErrorCode,
     message: string,
-    context: Record<string, unknown>
+    context: Record<string, unknown>,
   ): ValidationError {
     return { code, message, context };
   }
