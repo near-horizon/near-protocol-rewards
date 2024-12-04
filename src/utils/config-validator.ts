@@ -19,6 +19,13 @@ export function validateConfig(config: SDKConfig): ValidationResult {
     });
   }
 
+  if (config.githubRepo && !config.githubRepo.includes('/')) {
+    errors.push({
+      code: ErrorCode.INVALID_CONFIG,
+      message: 'githubRepo must be in format "owner/repo"'
+    });
+  }
+
   if (!config.isTestMode) {
     if (!config.projectId) {
       errors.push({
@@ -40,22 +47,15 @@ export function validateConfig(config: SDKConfig): ValidationResult {
         message: 'nearAccount must end with .near'
       });
     }
-  }
 
-  if (config.githubRepo && !config.githubRepo.includes('/')) {
-    errors.push({
-      code: ErrorCode.INVALID_CONFIG,
-      message: 'githubRepo must be in format "owner/repo"'
-    });
-  }
-
-  if (config.storage && config.storage.type === 'postgres') {
-    const { host, port, database, user, password } = config.storage.config;
-    if (!host || !port || !database || !user || !password) {
-      errors.push({
-        code: ErrorCode.INVALID_CONFIG,
-        message: 'Invalid postgres configuration'
-      });
+    if (config.storage && config.storage.type === 'postgres') {
+      const { host, port, database, user, password } = config.storage.config;
+      if (!host || !port || !database || !user || !password) {
+        errors.push({
+          code: ErrorCode.INVALID_CONFIG,
+          message: 'Invalid postgres configuration'
+        });
+      }
     }
   }
 

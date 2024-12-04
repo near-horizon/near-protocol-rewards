@@ -40,18 +40,17 @@ export class GitHubCollector {
     });
   }
 
-  async testConnection(): Promise<boolean> {
+  async testConnection(): Promise<void> {
     try {
       await this.rateLimiter.acquire();
-      const response = await this.octokit.rest.repos.get({
+      await this.octokit.rest.repos.get({
         owner: this.owner,
         repo: this.repo
       });
       await this.rateLimiter.release();
-      return response.status === 200;
     } catch (error) {
       this.logger.error('Failed to test GitHub connection', { error });
-      return false;
+      throw error;
     }
   }
 

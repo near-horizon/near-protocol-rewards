@@ -26,7 +26,8 @@ export class GitHubRewardsSDK extends EventEmitter {
     super();
     const validationResult = validateConfig(config);
     if (!validationResult.isValid) {
-      throw new BaseError('Invalid configuration', ErrorCode.INVALID_CONFIG, {
+      const errorMessage = validationResult.errors[0]?.message || 'Invalid configuration';
+      throw new BaseError(errorMessage, ErrorCode.INVALID_CONFIG, {
         errors: validationResult.errors
       });
     }
@@ -69,6 +70,10 @@ export class GitHubRewardsSDK extends EventEmitter {
   }
 
   async stopTracking(): Promise<void> {
+    if (!this.isTracking) {
+      return;
+    }
+
     this.isTracking = false;
     this.emit('tracking:stopped');
   }

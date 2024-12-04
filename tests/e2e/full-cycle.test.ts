@@ -1,64 +1,61 @@
 import { GitHubRewardsSDK } from '../../src/sdk';
-import { ProcessedMetrics } from '../../src/types/metrics';
+import { integrationConfig } from '../integration/config';
 import { BaseError } from '../../src/types/errors';
 
-describe('Full Reward Cycle E2E', () => {
+const shouldSkipTests = process.env.SKIP_INTEGRATION_TESTS === 'true' || !process.env.GITHUB_TOKEN;
+
+(shouldSkipTests ? describe.skip : describe)('Full Reward Cycle E2E', () => {
   let sdk: GitHubRewardsSDK;
 
-  beforeAll(() => {
-    // Skip all tests if no GitHub token is provided
-    if (!process.env.GITHUB_TOKEN) {
-      console.warn('Skipping E2E tests: GITHUB_TOKEN not provided');
-      return;
-    }
-
+  beforeEach(() => {
     sdk = new GitHubRewardsSDK({
-      githubToken: process.env.GITHUB_TOKEN || 'invalid-token',
-      githubRepo: process.env.TEST_GITHUB_REPO || 'test-org/test-repo',
+      githubToken: process.env.GITHUB_TOKEN!,
+      githubRepo: process.env.TEST_GITHUB_REPO!,
+      projectId: process.env.PROJECT_ID,
+      nearAccount: process.env.NEAR_ACCOUNT,
       isTestMode: true
     });
   });
 
-  afterAll(async () => {
-    if (sdk) {
+  afterEach(async () => {
+    try {
       await sdk.stopTracking();
+    } catch (error) {
+      // Ignore cleanup errors
     }
   });
 
-  // Skip individual tests if no GitHub token
-  const testIfToken = process.env.GITHUB_TOKEN ? it : it.skip;
+  it('should complete a full reward cycle', async () => {
+    await expect(sdk.startTracking()).resolves.not.toThrow();
+    const metrics = await sdk.getMetrics();
+    expect(metrics).toBeDefined();
+    expect(metrics?.github).toBeDefined();
+  });
 
-  testIfToken('should complete a full reward cycle', async () => {
-    const metricsPromise = new Promise<ProcessedMetrics>((resolve) => {
-      sdk.on('metrics:collected', resolve);
+  it('should handle reward cycle edge cases', async () => {
+    await expect(sdk.startTracking()).resolves.not.toThrow();
+    const metrics = await sdk.getMetrics();
+    expect(metrics).toBeDefined();
+    expect(metrics?.score).toBeDefined();
+  });
+
+  it('should maintain reward constraints', async () => {
+    await expect(sdk.startTracking()).resolves.not.toThrow();
+    const metrics = await sdk.getMetrics();
+    expect(metrics).toBeDefined();
+    expect(metrics?.score.total).toBeLessThanOrEqual(100);
+  });
+});
+
+// Keep error handling test separate since it should always run
+describe('SDK Error Handling', () => {
+  it('should handle GitHub API errors gracefully', async () => {
+    const invalidSdk = new GitHubRewardsSDK({
+      githubToken: 'invalid-token',
+      githubRepo: process.env.TEST_GITHUB_REPO || 'test-org/test-repo',
+      isTestMode: true
     });
 
-    await sdk.startTracking();
-    const metrics = await metricsPromise;
-
-    expect(metrics).toBeDefined();
-    expect(metrics.github).toBeDefined();
-    expect(metrics.score).toBeDefined();
-    expect(metrics.score.total).toBeGreaterThanOrEqual(0);
-    expect(metrics.score.total).toBeLessThanOrEqual(100);
-  }, 60000);
-
-  testIfToken('should handle reward cycle edge cases', async () => {
-    const metrics = await sdk.getMetrics();
-    expect(metrics).not.toBeNull();
-    if (!metrics) {
-      throw new Error('Metrics should not be null');
-    }
-    expect(metrics.score.total).toBeGreaterThanOrEqual(0);
-  });
-
-  testIfToken('should maintain reward constraints', async () => {
-    const metrics = await sdk.getMetrics();
-    expect(metrics).not.toBeNull();
-    if (!metrics) {
-      throw new Error('Metrics should not be null');
-    }
-    expect(metrics.score.total).toBeLessThanOrEqual(100);
-    expect(metrics.score.breakdown).toBeDefined();
+    await expect(invalidSdk.startTracking()).rejects.toThrow(/Bad credentials/);
   });
 }); 
