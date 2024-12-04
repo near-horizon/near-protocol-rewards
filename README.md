@@ -16,13 +16,16 @@
 Protocol Rewards is a developer-first funding solution for the NEAR ecosystem. We're solving a critical challenge in Web3: how to sustainably fund and reward developers building high-impact projects.
 
 ### The Problem
+
 - Traditional funding models (grants, VCs) require extensive time spent on proposals and pitches
 - Developers want to focus on building, not fundraising
 - Project impact is often measured subjectively
 - Funding is typically front-loaded rather than tied to ongoing development
 
 ### Our Solution
+
 Protocol Rewards provides:
+
 - Automated tracking of development metrics and project impact
 - Merit-based rewards tied directly to contributions
 - Transparent, objective criteria for funding
