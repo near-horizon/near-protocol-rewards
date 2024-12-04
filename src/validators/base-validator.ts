@@ -1,11 +1,9 @@
 import { Logger } from '../utils/logger';
-import { ValidationResult, ValidationError, ValidationThresholds } from '../types';
+import { ValidationResult, ValidationError } from '../types/validation';
+import { ErrorCode } from '../types/errors';
 
 export abstract class BaseValidator {
-  constructor(
-    protected readonly logger: Logger,
-    protected readonly thresholds: Required<ValidationThresholds>
-  ) {}
+  constructor(protected readonly logger: Logger) {}
 
   protected createValidationResult(
     isValid: boolean,
@@ -25,7 +23,7 @@ export abstract class BaseValidator {
   }
 
   protected createError(
-    code: string,
+    code: ErrorCode,
     message: string,
     context: Record<string, unknown>
   ): ValidationError {

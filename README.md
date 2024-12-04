@@ -1,115 +1,126 @@
 # NEAR Protocol Rewards SDK
 
-> A transparent, metric-based rewards system for NEAR projects that directly ties incentives to development activity and user adoption.
+> A transparent, metric-based rewards system for NEAR projects that directly ties incentives to development activity.
 
 <div align="center">
   
-  [![npm version](https://badge.fury.io/js/near-protocol-rewards.svg)](https://badge.fury.io/js/near-protocol-rewards)
+  [![npm version](https://img.shields.io/npm/v/near-protocol-rewards.svg)](https://www.npmjs.com/package/near-protocol-rewards)
   [![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue.svg)](https://www.typescriptlang.org/)
   [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-  [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
+  [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/jbarnes850/near-protocol-rewards/blob/main/CONTRIBUTING.md)
 
 </div>
 
-## 📚 Documentation
+## Why NEAR Protocol Rewards?
 
-### Getting Started
+Building sustainable Web3 projects requires consistent funding and support. Traditional funding models often create barriers for developers who want to focus on building rather than fundraising. The NEAR Protocol Rewards system solves this by:
 
-- [Quick Start Guide](docs/quick-start.md) - Get started in minutes
-- [Environment Variables](docs/environment-variables.md) - Configuration options
-- [API Reference](docs/api-reference.md) - Detailed API documentation
-- [API Examples](docs/api-examples.md) - Real-world usage examples
+- 🌱 Providing sustainable, merit-based funding for developers building on NEAR
+- 🎯 Creating transparent, objective metrics for measuring project impact
+- 💪 Enabling developers to focus on building without immediate funding pressure
+- 🤝 Fostering a sustainable ecosystem of high-impact NEAR projects
 
-### Beta Testing Resources
+Our SDK automates the entire process - from tracking development activity to calculating fair rewards, making it easy to implement a sustainable rewards system for your project.
 
-- [Beta Testing Guide](docs/beta-testing.md) - Guide for beta testers
-- [Beta Checklist](docs/beta-checklist.md) - Pre-testing requirements
-- [Known Limitations](docs/quick-start.md#known-limitations-beta) - Current beta limitations
-- [Testing Setup](tests/setup.ts) - Setup for testing
+## Documentation
 
-### Technical Documentation
+- [Quick Start Guide](https://github.com/jbarnes850/near-protocol-rewards/blob/main/docs/quick-start.md)
+- [Architecture Overview](https://github.com/jbarnes850/near-protocol-rewards/blob/main/docs/architecture.md)
 
-- [Rewards System](docs/rewards.md) - How rewards are calculated
-- [GitHub Actions Setup](docs/github-actions-setup.md) - CI/CD configuration
-- [Architecture](docs/architecture.md) - Technical architecture
+## Dashboard
 
-## 🚀 Quick Install
+While this SDK handles the collection and processing of development metrics, the [NEAR Protocol Rewards Dashboard](https://github.com/jbarnes850/protocol-rewards-dashboard) provides the visualization and storage layer. The dashboard offers:
+
+- 📊 Real-time visualization of developer activity and metrics
+- 💾 Persistent storage of historical contribution data
+- 📈 Analytics and insights for project maintainers
+- 🏆 Reward distribution and tracking interface
+
+View your project's metrics and manage rewards on our [dashboard platform](https://protocol-rewards-dashboard.vercel.app/).
+
+## Installation
 
 ```bash
 npm install near-protocol-rewards
 ```
 
-## 🎯 Basic Usage
+## Quick Start
 
 ```typescript
 import { NEARProtocolRewardsSDK } from 'near-protocol-rewards';
 
 const sdk = new NEARProtocolRewardsSDK({
-  projectId: 'your-project',
-  nearAccount: 'your.near',
   githubRepo: 'org/repo',
-  githubToken: process.env.GITHUB_TOKEN
+  githubToken: process.env.GITHUB_TOKEN,
+  timeframe: 'week'  // 'day' | 'week' | 'month'
 });
 
-// Listen for metrics
+// Start tracking metrics
+await sdk.startTracking();
+
+// Listen for metrics updates
 sdk.on('metrics:collected', (metrics) => {
   console.log('New metrics:', {
-    github: {
-      commits: metrics.github.commits.count,
-      prs: metrics.github.pullRequests.merged,
-      contributors: metrics.github.commits.authors.length
-    },
-    near: {
-      transactions: metrics.near.transactions.count,
-      volume: metrics.near.transactions.volume,
-      users: metrics.near.transactions.uniqueUsers.length
-    }
+    commits: metrics.github.commits.count,
+    prs: metrics.github.pullRequests.merged,
+    reviews: metrics.github.reviews.count,
+    issues: metrics.github.issues.closed
   });
 });
 
-// Start tracking
-await sdk.startTracking();
+// Handle errors
+sdk.on('error', (error) => {
+  console.error('Error:', error);
+});
 ```
 
-## 🔍 Features
+## Configuration
 
-### GitHub Activity Tracking
+```typescript
+interface SDKConfig {
+  // Required
+  githubRepo: string;          // GitHub repository in "owner/repo" format
+  githubToken: string;         // GitHub personal access token
 
-- Commit frequency and quality
-- Pull request activity
-- Community engagement
-- Author diversity metrics
+  // Optional
+  timeframe?: 'day' | 'week' | 'month';  // Default: 'week'
+  logLevel?: 'debug' | 'info' | 'warn' | 'error';  // Default: 'info'
+  maxRequestsPerSecond?: number;  // Default: 5
 
-### NEAR Onchain Monitoring
+  // Optional: Validation rules
+  validation?: {
+    github?: {
+      minCommits?: number;
+      maxCommitsPerDay?: number;
+      minAuthors?: number;
+    }
+  };
 
-- Transaction volume
-- Contract usage
-- User growth
-- Price data integration
+  // Optional: Metric weights
+  weights?: {
+    commits?: number;      // Default: 0.35
+    pullRequests?: number; // Default: 0.25
+    reviews?: number;      // Default: 0.20
+    issues?: number;       // Default: 0.20
+  }
+}
+```
 
-### Automated Rewards
+## Error Handling
 
-- Fair distribution based on metrics
-- Transparent calculations
-- Historical tracking
-- Secure validation
+The SDK uses a comprehensive error system:
 
-## 🛠️ Beta Testing
+```typescript
+sdk.on('error', (error) => {
+  if (error.code === 'RATE_LIMIT_ERROR') {
+    // Handle rate limiting
+  } else if (error.code === 'VALIDATION_ERROR') {
+    // Handle validation errors
+  }
+});
+```
 
-We're currently in beta testing. To participate:
-
-1. Review the [Beta Testing Guide](docs/beta-testing.md)
-2. Complete the [Beta Testing Checklist](docs/beta-checklist.md)
-3. Join our [Discord](https://near.chat) for support
-
-### Prerequisites
-
-- Node.js 16+
-- PostgreSQL database
-- GitHub account with API token
-- NEAR testnet account
-
-## 💻 Development
+## Development
 
 ```bash
 # Install dependencies
@@ -118,21 +129,17 @@ npm install
 # Run tests
 npm test
 
+# Run integration tests (requires GitHub token)
+SKIP_INTEGRATION_TESTS=false npm test
+
 # Build
 npm run build
 ```
 
-## 🤝 Contributing
+## Contributing
 
-Contributions are welcome! Please see our [Contributing Guide](CONTRIBUTING.md).
+We welcome contributions! Please see our [Contributing Guide](https://github.com/jbarnes850/near-protocol-rewards/blob/main/CONTRIBUTING.md).
 
-## 🔗 Resources
+## License
 
-- [NEAR Protocol](https://near.org)
-- [Documentation](https://docs.near.org)
-- [Discord Community](https://near.chat)
-- [GitHub Issues](https://github.com/near/protocol-rewards/issues)
-
-## 📄 License
-
-MIT © [NEAR Protocol](LICENSE)
+MIT © [NEAR Protocol](https://github.com/jbarnes850/near-protocol-rewards/blob/main/LICENSE)

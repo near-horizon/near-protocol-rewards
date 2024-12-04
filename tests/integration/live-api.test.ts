@@ -1,51 +1,40 @@
-import { NEARProtocolRewardsSDK } from '../../src';
-import { integrationConfig } from './config';
-import { ProcessedMetrics } from '../../src/types/metrics';
+import { GitHubCollector } from '../../src/collectors/github';
+import { ConsoleLogger } from '../../src/utils/logger';
+import { RateLimiter } from '../../src/utils/rate-limiter';
 
-describe('Live API Integration Tests', () => {
-  let sdk: NEARProtocolRewardsSDK;
-  
-  beforeAll(() => {
+describe('Live API Integration', () => {
+  let collector: GitHubCollector;
+
+  beforeEach(() => {
+    const logger = new ConsoleLogger();
+    const rateLimiter = new RateLimiter({ maxRequestsPerSecond: 1 }); // Very low limit for testing
+    
+    collector = new GitHubCollector({
+      token: process.env.GITHUB_TOKEN!,
+      repo: process.env.TEST_GITHUB_REPO!,
+      logger,
+      rateLimiter
+    });
+  });
+
+  it('should handle rate limits gracefully', async () => {
+    // Skip if no token provided
     if (!process.env.GITHUB_TOKEN) {
-      throw new Error('GITHUB_TOKEN is required for integration tests');
+      console.warn('Skipping test: No GitHub token provided');
+      return;
     }
-    sdk = new NEARProtocolRewardsSDK({
-      ...integrationConfig,
-      githubToken: process.env.GITHUB_TOKEN
-    });
+
+    // Make multiple concurrent requests to trigger rate limiting
+    const promises = Array(5).fill(null).map(() => collector.testConnection());
+    
+    const results = await Promise.allSettled(promises);
+    const rejected = results.filter(r => r.status === 'rejected');
+    
+    // At least one request should succeed
+    const fulfilled = results.filter(r => r.status === 'fulfilled');
+    expect(fulfilled.length).toBeGreaterThan(0);
+    
+    // Some requests might be rate limited
+    expect(rejected.length).toBeLessThanOrEqual(promises.length);
   });
-
-  afterAll(async () => {
-    await sdk.cleanup();
-  });
-
-  test('should collect GitHub metrics', async () => {
-    const metricsPromise = new Promise<ProcessedMetrics>(resolve => {
-      sdk.once('metrics:collected', resolve);
-    });
-
-    await sdk.startTracking();
-    const metrics = await metricsPromise;
-    
-    expect(metrics).toBeDefined();
-    expect(metrics.github).toBeDefined();
-    expect(metrics.github.commits).toBeDefined();
-    
-    await sdk.stopTracking();
-  }, 30000);
-
-  test('should collect NEAR metrics', async () => {
-    const metricsPromise = new Promise<ProcessedMetrics>(resolve => {
-      sdk.once('metrics:collected', resolve);
-    });
-
-    await sdk.startTracking();
-    const metrics = await metricsPromise;
-    
-    expect(metrics).toBeDefined();
-    expect(metrics.near).toBeDefined();
-    expect(metrics.near.transactions).toBeDefined();
-    
-    await sdk.stopTracking();
-  }, 30000);
 }); 

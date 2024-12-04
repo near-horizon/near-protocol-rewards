@@ -2,9 +2,9 @@
 
 ## Prerequisites
 
-- Node.js 16 or higher
+- Node.js 14 or higher
 - A GitHub account and repository
-- A NEAR testnet account
+- GitHub Personal Access Token with repo scope
 
 ## Installation
 
@@ -12,7 +12,7 @@
 npm install near-protocol-rewards
 ```
 
-## Recommended Implementation
+## Basic Implementation
 
 1. Create a new file `rewards-tracker.ts` (or .js):
 
@@ -26,8 +26,6 @@ dotenv.config();
 
 // Validate required environment variables
 const requiredEnvVars = [
-  'PROJECT_ID',
-  'NEAR_ACCOUNT',
   'GITHUB_REPO',
   'GITHUB_TOKEN'
 ];
@@ -43,20 +41,15 @@ export class RewardsTracker {
 
   constructor() {
     this.sdk = new NEARProtocolRewardsSDK({
-      projectId: process.env.PROJECT_ID!,
-      nearAccount: process.env.NEAR_ACCOUNT!,
       githubRepo: process.env.GITHUB_REPO!,
       githubToken: process.env.GITHUB_TOKEN!,
-      storage: process.env.POSTGRES_HOST ? {
-        type: 'postgres',
-        config: {
-          host: process.env.POSTGRES_HOST,
-          port: parseInt(process.env.POSTGRES_PORT || '5432'),
-          database: process.env.POSTGRES_DB || 'near_rewards',
-          user: process.env.POSTGRES_USER || 'postgres',
-          password: process.env.POSTGRES_PASSWORD || 'postgres'
-        }
-      } : undefined
+      timeframe: 'week',  // 'day' | 'week' | 'month'
+      weights: {
+        commits: 0.35,
+        pullRequests: 0.25,
+        reviews: 0.20,
+        issues: 0.20
+      }
     });
 
     // Setup event listeners
@@ -67,16 +60,10 @@ export class RewardsTracker {
     // Listen for new metrics
     this.sdk.on('metrics:collected', (metrics) => {
       console.log('New metrics collected:', {
-        github: {
-          commits: metrics.github.commits.count,
-          prs: metrics.github.pullRequests.merged,
-          contributors: metrics.github.commits.authors.length
-        },
-        near: {
-          transactions: metrics.near.transactions.count,
-          volume: metrics.near.transactions.volume,
-          users: metrics.near.transactions.uniqueUsers.length
-        },
+        commits: metrics.github.commits.count,
+        prs: metrics.github.pullRequests.merged,
+        reviews: metrics.github.reviews.count,
+        issues: metrics.github.issues.closed,
         score: metrics.score
       });
     });
@@ -89,18 +76,6 @@ export class RewardsTracker {
         context: error.context
       });
     });
-
-    // Listen for reward calculations
-    this.sdk.on('reward:calculated', (reward) => {
-      console.log('Reward calculated:', {
-        score: reward.score.total,
-        usdAmount: reward.rewards.usdAmount,
-        nearAmount: reward.rewards.nearAmount
-      });
-    });
-
-    // Get latest reward calculation
-    const rewards = await this.sdk.getLatestRewards();
   }
 
   async start(): Promise<void> {
@@ -124,17 +99,12 @@ Create a `.env` file:
 
 ```env
 # Required
-PROJECT_ID=my-project
-NEAR_ACCOUNT=your-account.testnet
 GITHUB_REPO=owner/repo
 GITHUB_TOKEN=your_github_token
 
-# Optional: PostgreSQL Configuration
-POSTGRES_HOST=localhost
-POSTGRES_PORT=5432
-POSTGRES_DB=near_rewards
-POSTGRES_USER=postgres
-POSTGRES_PASSWORD=your_password
+# Optional
+LOG_LEVEL=info
+MAX_REQUESTS_PER_SECOND=5
 ```
 
 Usage in your application:
@@ -163,32 +133,27 @@ main().catch(console.error);
 
 ```typescript
 interface SDKConfig {
-  projectId: string;          // Required: Unique project identifier
-  nearAccount: string;        // Required: NEAR account (e.g., "account.testnet")
-  githubRepo: string;         // Required: GitHub repo (e.g., "owner/repo")
-  githubToken: string;        // Required: GitHub personal access token
-  storage?: {                 // Optional: PostgreSQL storage configuration
-    type: 'postgres';
-    config: {
-      host: string;
-      port: number;
-      database: string;
-      user: string;
-      password: string;
-    };
-  };
-  trackingInterval?: number;  // Optional: Interval in ms (default: 6 hours)
+  githubRepo: string;          // Required: GitHub repo (e.g., "owner/repo")
+  githubToken: string;         // Required: GitHub personal access token
+  timeframe?: 'day' | 'week' | 'month';  // Optional: default 'week'
+  logLevel?: 'debug' | 'info' | 'warn' | 'error';  // Optional: default 'info'
+  maxRequestsPerSecond?: number;  // Optional: default 5
+  weights?: {  // Optional
+    commits?: number;
+    pullRequests?: number;
+    reviews?: number;
+    issues?: number;
+  }
 }
 ```
 
 ## Common Issues
 
 - Ensure GitHub token has required permissions (repo scope)
-- NEAR account must be valid and accessible
-- PostgreSQL connection requires proper credentials
+- Check rate limiting settings if experiencing API issues
+- Verify repository name format (owner/repo)
 
 For more details:
 
-- [API Reference](./api-reference.md)
-- [Error Codes](./api-reference.md#error-codes)
-- [Examples](../examples/)
+- [Architecture Overview](./architecture.md)
+- [Rewards System](./rewards.md)

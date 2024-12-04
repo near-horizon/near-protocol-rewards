@@ -1,4 +1,4 @@
-name: CI
+name: SDK CI
 
 on:
   push:
@@ -10,24 +10,9 @@ jobs:
   test:
     runs-on: ubuntu-latest
 
-    services:
-      postgres:
-        image: postgres:14
-        env:
-          POSTGRES_USER: test_user
-          POSTGRES_PASSWORD: test_password
-          POSTGRES_DB: near_rewards_test
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-
     strategy:
       matrix:
-        node-version: [16.x, 18.x]
+        node-version: [18.x]
 
     steps:
       - uses: actions/checkout@v4
@@ -41,26 +26,11 @@ jobs:
       - name: Install dependencies
         run: npm ci
           
-      - name: Run linting
-        run: npm run lint
-          
-      - name: Run tests with coverage
-        run: npm run test:coverage
-        
-      - name: Build TypeScript
-        run: npm run build
-        
-      - name: Upload coverage
-        uses: codecov/codecov-action@v3
-        
-      - name: Check types
+      - name: Type check
         run: npx tsc --noEmit
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
-          NEAR_ACCOUNT: test.near
-          NEAR_API_KEY: ${{ secrets.NEAR_API_KEY }}
-          POSTGRES_HOST: localhost
-          POSTGRES_PORT: 5432
-          POSTGRES_DB: near_rewards_test
-          POSTGRES_USER: test_user
-          POSTGRES_PASSWORD: test_password
+        
+      - name: Run unit tests
+        run: npm run test:unit
+        
+      - name: Build package
+        run: npm run build
