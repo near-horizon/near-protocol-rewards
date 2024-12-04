@@ -139,15 +139,13 @@ sdk.on('error', (error) => {
 # Install dependencies
 npm install
 
-# Run tests
-npm test
-
-# Run integration tests (requires GitHub token)
-SKIP_INTEGRATION_TESTS=false npm test
-
-# Build
-npm run build
+# Setup environment
+cp .env.test.example .env.test    # Copy and configure your test environment
 ```
+
+For local development and testing:
+- Unit tests: `npm run test:unit` (no environment setup needed)
+- Integration tests: Configure `.env.test` with your GitHub token and run `SKIP_INTEGRATION_TESTS=false npm test`
 
 ## Contributing
 
