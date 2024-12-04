@@ -1,237 +1,118 @@
-import { GitHubMetrics, ValidationResult, ValidationError, ValidationWarning, ValidationContext } from '../types';
+import { GitHubMetrics } from '../types/metrics';
+import { ValidationResult, ValidationError, ValidationWarning } from '../types/validation';
 import { Logger } from '../utils/logger';
 import { ErrorCode } from '../types/errors';
-import { JSONValue } from '../types/json';
-import { toJSONErrorContext, toErrorContext } from '../utils/format-error';
 
-interface GitHubValidatorThresholds {
-  minCommits: number;
-  maxCommitsPerDay: number;
-  minAuthors: number;
-  suspiciousAuthorRatio: number;
-}
-
-interface GitHubValidatorConfig {
+export interface GitHubValidatorConfig {
   logger: Logger;
-  thresholds?: Partial<GitHubValidatorThresholds>;
+  minCommits?: number;
+  maxCommitsPerDay?: number;
+  minAuthors?: number;
+  maxDailyCommits?: number;
+  minReviewPrRatio?: number;
 }
 
 export class GitHubValidator {
-  private readonly logger: Logger;
-  private readonly thresholds: GitHubValidatorThresholds;
-
-  constructor(config: GitHubValidatorConfig) {
-    this.logger = config.logger;
-    this.thresholds = {
-      minCommits: config.thresholds?.minCommits ?? 1,
-      maxCommitsPerDay: config.thresholds?.maxCommitsPerDay ?? 50,
-      minAuthors: config.thresholds?.minAuthors ?? 1,
-      suspiciousAuthorRatio: config.thresholds?.suspiciousAuthorRatio ?? 0.8
-    };
-  }
+  constructor(private readonly config: GitHubValidatorConfig) {}
 
   validate(metrics: GitHubMetrics): ValidationResult {
     const errors: ValidationError[] = [];
     const warnings: ValidationWarning[] = [];
 
-    try {
-      this.validateCommits(metrics, errors, warnings);
-      this.validatePullRequests(metrics, errors, warnings);
-      this.validateIssues(metrics, errors, warnings);
-      this.validateTimestamps(metrics, errors);
-
-      const isValid = errors.length === 0;
-
-      if (!isValid) {
-        this.logger.warn('GitHub validation failed', { 
-          validation: {
-            errors: errors.map(e => ({
-              code: e.code,
-              message: e.message,
-              context: e.context || {}
-            }))
-          }
-        });
-      }
-      
-      if (warnings.length > 0) {
-        this.logger.warn('GitHub validation warnings', { 
-          validation: {
-            warnings: warnings.map(w => ({
-              code: w.code,
-              message: w.message,
-              context: w.context || {}
-            }))
-          }
-        });
-      }
-
-      return {
-        isValid,
-        errors,
-        warnings,
-        timestamp: Date.now(),
-        metadata: {
-          source: 'github',
-          validationType: 'data'
-        }
-      };
-    } catch (error) {
-      this.logger.error('Validation failed unexpectedly', toErrorContext(error));
-      throw error;
+    // Basic validation
+    if (!metrics) {
+      errors.push({
+        code: ErrorCode.VALIDATION_ERROR,
+        message: 'No metrics provided'
+      });
+      return { isValid: false, errors, warnings, timestamp: Date.now(), metadata: { source: 'github', validationType: 'data' } };
     }
-  }
 
-  private validateCommits(
-    metrics: GitHubMetrics,
-    errors: ValidationError[],
-    warnings: ValidationWarning[]
-  ): void {
-    const { minCommits, maxCommitsPerDay, minAuthors } = this.thresholds;
-    const commits = metrics.commits;
-    const count = commits?.count ?? 0;
-    const frequency = commits?.frequency ?? 0;
-    const authors = commits?.authors ?? [];
-
-    if (count < minCommits) {
-      warnings.push({
-        code: ErrorCode.LOW_COMMIT_COUNT,
-        message: `Commit count (${count}) below minimum threshold`,
-        context: { count, threshold: minCommits }
+    // Validate commit metrics
+    if (metrics.commits.count < 0) {
+      errors.push({
+        code: ErrorCode.VALIDATION_ERROR,
+        message: 'Invalid commit count'
       });
     }
 
-    // Check for suspicious commit frequency
-    const commitsPerDay = frequency * 7;
-    if (commitsPerDay > maxCommitsPerDay) {
-      errors.push({
-        code: ErrorCode.SUSPICIOUS_COMMIT_FREQUENCY,
-        message: 'Unusually high commit frequency detected',
-        context: { 
-          commitsPerDay,
-          threshold: maxCommitsPerDay
-        }
+    // Check commit frequency
+    const maxDailyCommits = Math.max(...metrics.commits.frequency.daily);
+    if (maxDailyCommits > (this.config.maxDailyCommits || 15)) {
+      warnings.push({
+        code: ErrorCode.HIGH_VELOCITY,
+        message: 'Suspicious commit activity detected',
+        context: { maxDailyCommits }
       });
     }
 
     // Check author diversity
-    if (authors.length < minAuthors) {
+    if (metrics.commits.authors.length < (this.config.minAuthors || 2)) {
       warnings.push({
         code: ErrorCode.LOW_AUTHOR_DIVERSITY,
-        message: 'Low number of unique commit authors',
-        context: { 
-          authorCount: authors.length,
-          threshold: minAuthors
-        }
-      });
-    }
-  }
-
-  private validatePullRequests(
-    metrics: GitHubMetrics,
-    errors: ValidationError[],
-    warnings: ValidationWarning[]
-  ): void {
-    const { minAuthors } = this.thresholds;
-    const prs = metrics.pullRequests;
-    const open = prs?.open ?? 0;
-    const merged = prs?.merged ?? 0;
-    const authors = prs?.authors ?? [];
-
-    // Check for suspicious PR patterns
-    const totalPRs = open + merged;
-    if (totalPRs > 0 && authors.length === 1) {
-      warnings.push({
-        code: ErrorCode.SINGLE_PR_AUTHOR,
-        message: 'All PRs from single author',
-        context: { 
-          totalPRs, 
-          author: authors[0],
-          threshold: minAuthors
-        }
+        message: 'Low author diversity',
+        context: { authorCount: metrics.commits.authors.length }
       });
     }
 
-    // Check PR merge ratio
-    if (totalPRs > 10 && (merged / totalPRs) < 0.3) {
-      warnings.push({
-        code: ErrorCode.LOW_PR_MERGE_RATE,
-        message: 'Low PR merge rate detected',
-        context: {
-          totalPRs,
-          mergedPRs: merged,
-          mergeRate: merged / totalPRs
-        }
-      });
-    }
-  }
-
-  private validateIssues(
-    metrics: GitHubMetrics,
-    errors: ValidationError[],
-    warnings: ValidationWarning[]
-  ): void {
-    const { minAuthors } = this.thresholds;
-    const issues = metrics.issues;
-    const open = issues?.open ?? 0;
-    const closed = issues?.closed ?? 0;
-    const participants = issues?.participants ?? [];
-
-    // Check for healthy issue engagement
-    const totalIssues = open + closed;
-    if (totalIssues > 0 && participants.length === 1) {
-      warnings.push({
-        code: ErrorCode.LOW_ISSUE_ENGAGEMENT,
-        message: 'Low community engagement in issues',
-        context: { 
-          totalIssues,
-          participantCount: participants.length,
-          threshold: minAuthors
-        }
-      });
-    }
-
-    // Check issue resolution rate
-    if (totalIssues > 10 && (closed / totalIssues) < 0.5) {
-      warnings.push({
-        code: ErrorCode.LOW_ISSUE_RESOLUTION_RATE,
-        message: 'Low issue resolution rate',
-        context: {
-          totalIssues,
-          closedIssues: closed,
-          resolutionRate: closed / totalIssues
-        }
-      });
-    }
-  }
-
-  private validateTimestamps(
-    metrics: GitHubMetrics,
-    errors: ValidationError[]
-  ): void {
-    const timestamp = metrics.metadata?.collectionTimestamp;
-    if (!timestamp) {
+    // Validate PR metrics
+    if (metrics.pullRequests.merged < 0) {
       errors.push({
-        code: ErrorCode.MISSING_TIMESTAMP,
-        message: 'Missing collection timestamp',
-        context: { metadata: metrics.metadata }
+        code: ErrorCode.VALIDATION_ERROR,
+        message: 'Invalid PR count'
       });
-      return;
     }
 
-    const now = Date.now();
-    const maxAge = 24 * 60 * 60 * 1000; // 24 hours
+    // Validate review ratio
+    if (metrics.pullRequests.merged > 0) {
+      const reviewRatio = metrics.reviews.count / metrics.pullRequests.merged;
+      if (reviewRatio < (this.config.minReviewPrRatio || 0.5)) {
+        warnings.push({
+          code: ErrorCode.LOW_REVIEW_ENGAGEMENT,
+          message: 'Low review engagement detected',
+          context: { reviewRatio }
+        });
+      }
+    }
 
-    if (now - timestamp > maxAge) {
+    // Validate review metrics
+    if (metrics.reviews.count < 0) {
       errors.push({
-        code: ErrorCode.STALE_DATA,
-        message: 'Metrics data is too old',
-        context: { 
-          timestamp,
-          maxAge,
-          age: now - timestamp
-        }
+        code: ErrorCode.VALIDATION_ERROR,
+        message: 'Invalid review count'
       });
     }
+
+    // Validate issue metrics
+    if (metrics.issues.closed < 0) {
+      errors.push({
+        code: ErrorCode.VALIDATION_ERROR,
+        message: 'Invalid issue count'
+      });
+    }
+
+    return {
+      isValid: errors.length === 0,
+      errors,
+      warnings,
+      timestamp: Date.now(),
+      metadata: {
+        source: 'github',
+        validationType: 'data'
+      }
+    };
+  }
+
+  calculateVelocityPenalty(metrics: GitHubMetrics): number {
+    const maxDailyCommits = Math.max(...metrics.commits.frequency.daily);
+    const maxAllowedDaily = this.config.maxDailyCommits || 15;
+
+    if (maxDailyCommits > maxAllowedDaily) {
+      // Apply penalty based on how much the limit was exceeded
+      const excessRatio = maxDailyCommits / maxAllowedDaily;
+      return Math.max(0.5, 1 / excessRatio); // Minimum 50% penalty
+    }
+
+    return 1; // No penalty
   }
 }

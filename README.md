@@ -1,6 +1,6 @@
 # NEAR Protocol Rewards SDK
 
-> A transparent, metric-based rewards system for NEAR projects that directly ties incentives to development activity and user adoption.
+> A transparent, metric-based rewards system for NEAR projects that directly ties incentives to development activity.
 
 <div align="center">
   
@@ -16,22 +16,8 @@
 ### Getting Started
 
 - [Quick Start Guide](docs/quick-start.md) - Get started in minutes
-- [Environment Variables](docs/environment-variables.md) - Configuration options
-- [API Reference](docs/api-reference.md) - Detailed API documentation
-- [API Examples](docs/api-examples.md) - Real-world usage examples
-
-### Beta Testing Resources
-
-- [Beta Testing Guide](docs/beta-testing.md) - Guide for beta testers
-- [Beta Checklist](docs/beta-checklist.md) - Pre-testing requirements
-- [Known Limitations](docs/quick-start.md#known-limitations-beta) - Current beta limitations
-- [Testing Setup](tests/setup.ts) - Setup for testing
-
-### Technical Documentation
-
+- [Architecture Overview](docs/architecture.md) - Technical architecture
 - [Rewards System](docs/rewards.md) - How rewards are calculated
-- [GitHub Actions Setup](docs/github-actions-setup.md) - CI/CD configuration
-- [Architecture](docs/architecture.md) - Technical architecture
 
 ## 🚀 Quick Install
 
@@ -45,30 +31,28 @@ npm install near-protocol-rewards
 import { NEARProtocolRewardsSDK } from 'near-protocol-rewards';
 
 const sdk = new NEARProtocolRewardsSDK({
-  projectId: 'your-project',
-  nearAccount: 'your.near',
   githubRepo: 'org/repo',
-  githubToken: process.env.GITHUB_TOKEN
+  githubToken: process.env.GITHUB_TOKEN,
+  timeframe: 'week'  // 'day' | 'week' | 'month'
 });
 
-// Listen for metrics
+// Start tracking metrics
+await sdk.startTracking();
+
+// Listen for metrics updates
 sdk.on('metrics:collected', (metrics) => {
   console.log('New metrics:', {
-    github: {
-      commits: metrics.github.commits.count,
-      prs: metrics.github.pullRequests.merged,
-      contributors: metrics.github.commits.authors.length
-    },
-    near: {
-      transactions: metrics.near.transactions.count,
-      volume: metrics.near.transactions.volume,
-      users: metrics.near.transactions.uniqueUsers.length
-    }
+    commits: metrics.github.commits.count,
+    prs: metrics.github.pullRequests.merged,
+    reviews: metrics.github.reviews.count,
+    issues: metrics.github.issues.closed
   });
 });
 
-// Start tracking
-await sdk.startTracking();
+// Handle errors
+sdk.on('error', (error) => {
+  console.error('Error:', error);
+});
 ```
 
 ## 🔍 Features
@@ -77,15 +61,10 @@ await sdk.startTracking();
 
 - Commit frequency and quality
 - Pull request activity
-- Community engagement
-- Author diversity metrics
-
-### NEAR Onchain Monitoring
-
-- Transaction volume
-- Contract usage
-- User growth
-- Price data integration
+- Code review participation
+- Issue management
+- Community engagement metrics
+- Contributor diversity analysis
 
 ### Automated Rewards
 
@@ -94,33 +73,68 @@ await sdk.startTracking();
 - Historical tracking
 - Secure validation
 
-## 🛠️ Beta Testing
+### Advanced Features
 
-We're currently in beta testing. To participate:
+- Configurable scoring weights
+- Custom validation rules
+- Flexible timeframe options
+- Rate limiting protection
+- Comprehensive error handling
 
-1. Review the [Beta Testing Guide](docs/beta-testing.md)
-2. Complete the [Beta Testing Checklist](docs/beta-checklist.md)
-3. Join our [Discord](https://near.chat) for support
+## ⚙️ Configuration
 
-### Prerequisites
+```typescript
+interface SDKConfig {
+  githubRepo: string;          // Required: "owner/repo" format
+  githubToken: string;         // Required: GitHub API token
+  timeframe?: 'day' | 'week' | 'month';  // Optional: default 'week'
+  logLevel?: 'debug' | 'info' | 'warn' | 'error';  // Optional: default 'info'
+  maxRequestsPerSecond?: number;  // Optional: default 5
+  validation?: {  // Optional
+    github?: {
+      minCommits?: number;
+      maxCommitsPerDay?: number;
+      minAuthors?: number;
+    }
+  };
+  weights?: {  // Optional
+    commits?: number;
+    pullRequests?: number;
+    reviews?: number;
+    issues?: number;
+  }
+}
+```
 
-- Node.js 16+
-- PostgreSQL database
-- GitHub account with API token
-- NEAR testnet account
-
-## 💻 Development
+## 🛠️ Development
 
 ```bash
 # Install dependencies
 npm install
 
-# Run tests
+# Run unit tests (no GitHub token needed)
 npm test
+
+# Run all tests including integration tests
+# Requires setting up .env.test with a valid GitHub token
+SKIP_INTEGRATION_TESTS=false npm test
 
 # Build
 npm run build
 ```
+
+### Testing
+
+The test suite includes:
+- Unit tests: No external dependencies, fully mocked
+- Integration tests: Requires GitHub token (optional)
+- E2E tests: Requires full configuration (optional)
+
+To run integration tests:
+1. Copy `.env.test.example` to `.env.test`
+2. Add your GitHub token to `.env.test`
+3. Set `SKIP_INTEGRATION_TESTS=false`
+4. Run `npm test`
 
 ## 🤝 Contributing
 
@@ -128,10 +142,7 @@ Contributions are welcome! Please see our [Contributing Guide](CONTRIBUTING.md).
 
 ## 🔗 Resources
 
-- [NEAR Protocol](https://near.org)
-- [Documentation](https://docs.near.org)
-- [Discord Community](https://near.chat)
-- [GitHub Issues](https://github.com/near/protocol-rewards/issues)
+- [GitHub Issues](https://github.com/jbarnes850/near-protocol-rewards/issues)
 
 ## 📄 License
 

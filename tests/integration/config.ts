@@ -1,16 +1,25 @@
 export const integrationConfig = {
-  projectId: process.env.TEST_PROJECT_ID || 'test-project',
-  nearAccount: process.env.TEST_NEAR_ACCOUNT || 'test.testnet',
   githubRepo: process.env.TEST_GITHUB_REPO || 'test-org/test-repo',
   githubToken: process.env.GITHUB_TOKEN,
-  storage: {
-    type: 'postgres' as const,
-    config: {
-      host: process.env.TEST_DB_HOST || 'localhost',
-      port: parseInt(process.env.TEST_DB_PORT || '5432'),
-      database: process.env.TEST_DB_NAME || 'near_rewards_test',
-      user: process.env.TEST_DB_USER || 'test_user',
-      password: process.env.TEST_DB_PASSWORD || 'test_password'
+  timeframe: 'week' as const,
+  weights: {
+    commits: 0.35,
+    pullRequests: 0.25,
+    reviews: 0.20,
+    issues: 0.20
+  },
+  validation: {
+    github: {
+      minCommits: 1,
+      maxCommitsPerDay: 15,
+      minAuthors: 1,
+      suspiciousAuthorRatio: 0.8
     }
   }
-}; 
+};
+
+export const shouldSkipIntegrationTests = !process.env.GITHUB_TOKEN;
+
+if (shouldSkipIntegrationTests) {
+  console.warn('Skipping integration tests: GITHUB_TOKEN not provided');
+} 

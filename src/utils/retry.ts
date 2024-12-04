@@ -1,35 +1,42 @@
-interface RetryConfig {
-  maxAttempts: number;
-  baseDelay: number;
-  maxDelay: number;
+/**
+ * Retry utility with exponential backoff
+ * Handles transient failures in API calls
+ */
+
+interface RetryOptions {
+  maxRetries: number;
+  retryDelay: (attempt: number) => number;
+  shouldRetry?: (error: any) => boolean;
 }
 
-export async function withRetry<T>(
-  operation: () => Promise<T>,
-  config: RetryConfig = {
-    maxAttempts: 3,
-    baseDelay: 1000,
-    maxDelay: 5000
-  }
+const defaultShouldRetry = (error: any): boolean => {
+  // Retry on network errors and rate limits
+  if (!error.response) return true;
+  const status = error.response.status;
+  return status === 429 || (status >= 500 && status < 600);
+};
+
+export async function retry<T>(
+  fn: () => Promise<T>,
+  options: RetryOptions
 ): Promise<T> {
-  let lastError: Error;
-  
-  for (let attempt = 1; attempt <= config.maxAttempts; attempt++) {
+  const { maxRetries, retryDelay, shouldRetry = defaultShouldRetry } = options;
+  let lastError: any;
+
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
-      return await operation();
+      return await fn();
     } catch (error) {
-      lastError = error as Error;
-      
-      if (attempt === config.maxAttempts) break;
-      
-      const delay = Math.min(
-        config.baseDelay * Math.pow(2, attempt - 1),
-        config.maxDelay
-      );
-      
+      lastError = error;
+
+      if (attempt === maxRetries || !shouldRetry(error)) {
+        throw error;
+      }
+
+      const delay = retryDelay(attempt);
       await new Promise(resolve => setTimeout(resolve, delay));
     }
   }
-  
+
   throw lastError;
-}
+} 

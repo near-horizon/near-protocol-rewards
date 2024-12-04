@@ -1,39 +1,39 @@
-import { ValidationThresholds } from './common';
 import { Logger } from '../utils/logger';
 import { BaseError } from '../types/errors';
-import { ProcessedMetrics } from './metrics';
+import { ProcessedMetrics, Score } from './metrics';
 
-export interface SDKConfig {
-  projectId: string;
-  nearAccount: string;
-  githubRepo: string;
-  githubToken: string;
-  storage?: {
-    type: 'postgres';
-    config: {
-      host: string;
-      port: number;
-      database: string;
-      user: string;
-      password: string;
-    };
+export interface StorageConfig {
+  type: 'postgres';
+  config: {
+    host: string;
+    port: number;
+    database: string;
+    user: string;
+    password: string;
   };
-  logger?: Logger;
-  trackingInterval?: number;
-  maxRequestsPerSecond?: number;
-  minRewardUsd?: number;
-  maxRewardUsd?: number;
 }
 
-export type RequiredSDKConfig = Required<Omit<SDKConfig, 'storage'>> & {
-  storage?: SDKConfig['storage'];
-};
+export interface SDKConfig {
+  githubToken: string;
+  githubRepo: string;
+  projectId?: string;
+  nearAccount?: string;
+  timeframe?: 'day' | 'week' | 'month';
+  logger?: Logger;
+  maxRequestsPerSecond?: number;
+  storage?: StorageConfig;
+  isTestMode?: boolean;
+}
+
+export type RequiredSDKConfig = Required<SDKConfig>;
 
 export interface RewardCalculation {
-  amount: number;
+  score: Score;
   breakdown: {
-    github: number;
-    near: number;
+    commits: number;
+    pullRequests: number;
+    reviews: number;
+    issues: number;
   };
   metadata: {
     timestamp: number;
@@ -50,8 +50,7 @@ export interface SDKEvents {
   'tracking:stopped': () => void;
 }
 
-// Update SDK class to use typed events
-declare interface NEARProtocolRewardsSDK {
+declare interface GitHubRewardsSDK {
   on<E extends keyof SDKEvents>(event: E, listener: SDKEvents[E]): this;
   emit<E extends keyof SDKEvents>(event: E, ...args: Parameters<SDKEvents[E]>): boolean;
 } 

@@ -1,8 +1,9 @@
-import { BaseCollectorConfig } from ".";
+import { ConsoleLogger } from '../utils/logger';
+import { RateLimiter } from '../utils/rate-limiter';
 
-export interface NEARCollectorConfig extends BaseCollectorConfig {
-  account: string;
-  projectId: string;
-  apiKey?: string;
-  apiUrl?: string;
+export interface GitHubCollectorConfig {
+  token: string;
+  repo: string;
+  logger: ConsoleLogger;
+  rateLimiter: RateLimiter;
 } 

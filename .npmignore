@@ -1,32 +1,30 @@
 # Source
 src/
-tests/
-scripts/
-.github/
-.env*
-jest.config.js
-tsconfig.json
-.eslintrc
-.gitignore
-coverage/
 
-# Config files
+# Tests
+tests/
+coverage/
+*.test.ts
+jest.config.js
+
+# Development configs
+.github/
+.vscode/
+.env*
+tsconfig.json
 .eslintrc.js
 .prettierrc
 .gitignore
-tsconfig.json
-jest.config.js
 
-# Development
-coverage/
-.nyc_output/
-.github/
-.vscode/
-.idea/
-
-# Logs
-*.log
+# Documentation source
+docs/
 
 # Misc
+*.log
 .DS_Store
-.env*
+node_modules/
+examples/
+
+# Include dist and type definitions
+!dist/
+!dist/**/*.d.ts

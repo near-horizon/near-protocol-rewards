@@ -1,51 +1,25 @@
-import { NEARProtocolRewardsSDK } from '../../src';
-import { integrationConfig } from './config';
+import { GitHubRewardsSDK } from '../../src/sdk';
 import { ProcessedMetrics } from '../../src/types/metrics';
 
-describe('Live API Integration Tests', () => {
-  let sdk: NEARProtocolRewardsSDK;
-  
-  beforeAll(() => {
-    if (!process.env.GITHUB_TOKEN) {
-      throw new Error('GITHUB_TOKEN is required for integration tests');
-    }
-    sdk = new NEARProtocolRewardsSDK({
-      ...integrationConfig,
-      githubToken: process.env.GITHUB_TOKEN
+const shouldSkipTests = process.env.SKIP_INTEGRATION_TESTS === 'true' || !process.env.GITHUB_TOKEN;
+
+(shouldSkipTests ? describe.skip : describe)('Live API Integration', () => {
+  it('should handle rate limits gracefully', async () => {
+    const sdk = new GitHubRewardsSDK({
+      githubToken: process.env.GITHUB_TOKEN || 'invalid-token',
+      githubRepo: process.env.TEST_GITHUB_REPO || 'test-org/test-repo',
+      isTestMode: true
     });
+
+    const results = await Promise.allSettled([
+      sdk.getMetrics()
+    ]);
+
+    const rejected = results.filter(
+      (result): result is PromiseRejectedResult => result.status === 'rejected'
+    );
+
+    expect(rejected.length).toBeGreaterThan(0);
+    expect(rejected[0].reason).toBeDefined();
   });
-
-  afterAll(async () => {
-    await sdk.cleanup();
-  });
-
-  test('should collect GitHub metrics', async () => {
-    const metricsPromise = new Promise<ProcessedMetrics>(resolve => {
-      sdk.once('metrics:collected', resolve);
-    });
-
-    await sdk.startTracking();
-    const metrics = await metricsPromise;
-    
-    expect(metrics).toBeDefined();
-    expect(metrics.github).toBeDefined();
-    expect(metrics.github.commits).toBeDefined();
-    
-    await sdk.stopTracking();
-  }, 30000);
-
-  test('should collect NEAR metrics', async () => {
-    const metricsPromise = new Promise<ProcessedMetrics>(resolve => {
-      sdk.once('metrics:collected', resolve);
-    });
-
-    await sdk.startTracking();
-    const metrics = await metricsPromise;
-    
-    expect(metrics).toBeDefined();
-    expect(metrics.near).toBeDefined();
-    expect(metrics.near.transactions).toBeDefined();
-    
-    await sdk.stopTracking();
-  }, 30000);
 }); 

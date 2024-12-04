@@ -1,33 +1,38 @@
 /**
  * NEAR Protocol Rewards SDK
- * Public exports for SDK integration
+ * 
+ * Track and reward developer contributions through GitHub metrics
  */
 
-// Main SDK class
-export { NEARProtocolRewardsSDK } from './sdk';
+export { GitHubRewardsSDK } from './sdk';
+export { GitHubCollector } from './collectors/github';
+export { ConsoleLogger } from './utils/logger';
+export { RateLimiter } from './utils/rate-limiter';
 
 // Types
-export type {
-  GitHubMetrics,
-  NEARMetrics,
-  ProcessedMetrics,
-  StoredMetrics,
-  MetricsMetadata,
-  MetricsSource
-} from './types/metrics';
-
-export type {
+export {
   SDKConfig,
   RequiredSDKConfig,
-  RewardCalculation
+  RewardCalculation,
+  StorageConfig
 } from './types/sdk';
 
-export type {
+export {
+  GitHubMetrics,
+  ProcessedMetrics,
+  Score
+} from './types/metrics';
+
+export {
   ValidationResult,
   ValidationError,
-  ValidationWarning
+  ValidationWarning,
+  ValidationMetadata
 } from './types/validation';
 
-// Error handling
-export { BaseError, ErrorCode } from './utils/errors';
+export {
+  BaseError,
+  ErrorCode,
+  ErrorDetail
+} from './types/errors';
 
