@@ -13,7 +13,7 @@
 - Single-author repository support
 - Real-time metrics dashboard
 
-## Q1 2024: Enhanced Metrics & Multi-Contributor Support
+## Q1 2025: Enhanced Metrics & Multi-Contributor Support
 
 ### NEAR Transaction Integration
 
@@ -36,7 +36,7 @@
 - [ ] Granular permission management
 - [ ] Team member authorization controls
 
-## Q2 2024: Advanced Analytics & Automation
+## Q1 2025: Advanced Analytics & Automation
 
 ### Enhanced Scoring Algorithm
 
@@ -59,7 +59,7 @@
 - [ ] Automated reward distribution
 - [ ] Custom payout schedules and thresholds
 
-## Q3 2024: Ecosystem Integration & Scale
+## Q2 2025: Ecosystem Integration & Scale
 
 ### Multi-Platform Support
 
