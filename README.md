@@ -44,7 +44,7 @@ That's it! This command will:
 
 1. Set up automatic metrics collection via GitHub Actions
 2. Configure your repository for rewards tracking
-3. Start collecting metrics every 5 minutes
+3. Start collecting metrics every 12 hours
 
 Your metrics will be available at [Protocol Rewards Dashboard](https://protocol-rewards-dashboard.vercel.app/) - just login with GitHub to view them!
 
@@ -54,7 +54,7 @@ See our dashboard repo for more details: [protocol-rewards-dashboard](https://gi
 
 The SDK runs as a GitHub Action in your repository:
 
-- Collects metrics every 5 minutes
+- Collects metrics every 12 hours
 - Uses your repository's built-in GitHub token
 - No infrastructure or setup needed
 - Runs completely in GitHub's cloud

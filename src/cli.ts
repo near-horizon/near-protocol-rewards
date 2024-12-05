@@ -26,7 +26,7 @@ program
       const workflowContent = `name: NEAR Protocol Rewards Tracking
 on:
   schedule:
-    - cron: '*/5 * * * *'  # Every 5 minutes
+    - cron: '0 */12 * * *'  # Every 12 hours
   workflow_dispatch:        # Manual trigger
   push:
     branches: [ main ]     # Start on main branch updates
@@ -39,9 +39,6 @@ jobs:
       - uses: actions/setup-node@v3
         with:
           node-version: '18'
-      
-      - name: Install SDK
-        run: npm install near-protocol-rewards
 
       - name: Run Metrics Collection
         env:
@@ -56,7 +53,7 @@ jobs:
       console.log('\n🎉 NEAR Protocol Rewards initialized successfully!');
       console.log('\nMetrics collection will start automatically on:');
       console.log('- Every push to main branch');
-      console.log('- Every 5 minutes via scheduled run');
+      console.log('- Every 12 hours via scheduled run');
       console.log('\nView your metrics at: https://protocol-rewards-dashboard.vercel.app');
     } catch (error) {
       console.error('Failed to initialize:', error);
