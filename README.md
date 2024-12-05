@@ -13,7 +13,7 @@
 
 ## What is Protocol Rewards?
 
-Protocol Rewards is a developer-first funding solution for the NEAR ecosystem. We're solving a critical challenge in Web3: how to sustainably fund and reward developers building high-impact projects.
+Protocol Rewards is a developer-first funding solution for the NEAR ecosystem. We're solving a critical challenge in Web3: how to transform traditional one-time grants into sustainable, ongoing capital for developers - where funding automatically grows with their impact and contribution to NEAR.
 
 ### The Problem
 
@@ -31,121 +31,81 @@ Protocol Rewards provides:
 - Transparent, objective criteria for funding
 - Sustainable, ongoing rewards that scale with project growth
 
-By automating the entire process from tracking to distribution, we enable developers to focus on what they do best - building innovative solutions on NEAR.
+By automating the entire process from tracking to distribution, we enable developers to focus
+on what they do best - building innovative solutions on NEAR.
+
+## Getting Started in One Step
+
+```bash
+npx near-protocol-rewards init
+```
+
+That's it! This command will:
+
+1. Set up automatic metrics collection via GitHub Actions
+2. Configure your repository for rewards tracking
+3. Start collecting metrics every 5 minutes
+
+Your metrics will be available at [Protocol Rewards Dashboard](https://protocol-rewards-dashboard.vercel.app/) - just login with GitHub to view them!
+
+See our dashboard repo for more details: [protocol-rewards-dashboard](https://github.com/jbarnes850/protocol-rewards-dashboard).
+
+## How It Works
+
+The SDK runs as a GitHub Action in your repository:
+
+- Collects metrics every 5 minutes
+- Uses your repository's built-in GitHub token
+- No infrastructure or setup needed
+- Runs completely in GitHub's cloud
+
+![Architecture](public/assets/architecture.png)
 
 ## Documentation
 
 - [Quick Start Guide](https://github.com/jbarnes850/near-protocol-rewards/blob/main/docs/quick-start.md)
 - [Architecture Overview](https://github.com/jbarnes850/near-protocol-rewards/blob/main/docs/architecture.md)
 
-## Dashboard
+## Advanced Usage
 
-While this SDK handles the collection and processing of development metrics, the [NEAR Protocol Rewards Dashboard](https://github.com/jbarnes850/protocol-rewards-dashboard) provides the visualization and storage layer. The dashboard offers:
-
-- 📊 Real-time visualization of developer activity and metrics
-- 💾 Persistent storage of historical contribution data
-- 📈 Analytics and insights for project maintainers
-- 🏆 Reward distribution and tracking interface
-
-![NEAR Protocol Rewards Dashboard](public/assets/og-image.png)
-
-View your project's metrics and manage rewards on our [dashboard platform](https://github.com/jbarnes850/protocol-rewards-dashboard).
-
-## Installation
-
-```bash
-npm install near-protocol-rewards
-```
-
-## Quick Start
+If you need more control, you can still use the SDK programmatically:
 
 ```typescript
 import { NEARProtocolRewardsSDK } from 'near-protocol-rewards';
 
 const sdk = new NEARProtocolRewardsSDK({
-  githubRepo: 'org/repo',
-  githubToken: process.env.GITHUB_TOKEN,
-  timeframe: 'week'  // 'day' | 'week' | 'month'
+  githubRepo: 'your-org/repo',
+  githubToken: process.env.GITHUB_TOKEN
 });
 
-// Start tracking metrics
 await sdk.startTracking();
-
-// Listen for metrics updates
-sdk.on('metrics:collected', (metrics) => {
-  console.log('New metrics:', {
-    commits: metrics.github.commits.count,
-    prs: metrics.github.pullRequests.merged,
-    reviews: metrics.github.reviews.count,
-    issues: metrics.github.issues.closed
-  });
-});
-
-// Handle errors
-sdk.on('error', (error) => {
-  console.error('Error:', error);
-});
 ```
 
 ## Configuration
 
-```typescript
-interface SDKConfig {
-  // Required
-  githubRepo: string;          // GitHub repository in "owner/repo" format
-  githubToken: string;         // GitHub personal access token
+The GitHub Action can be customized by editing `.github/workflows/near-rewards.yml`:
 
-  // Optional
-  timeframe?: 'day' | 'week' | 'month';  // Default: 'week'
-  logLevel?: 'debug' | 'info' | 'warn' | 'error';  // Default: 'info'
-  maxRequestsPerSecond?: number;  // Default: 5
+```yaml
+name: NEAR Protocol Rewards Tracking
+on:
+  schedule:
+    - cron: '*/5 * * * *'  # Adjust frequency
+  workflow_dispatch:        # Manual trigger
+  push:
+    branches: [ main ]     # Trigger on push
 
-  // Optional: Validation rules
-  validation?: {
-    github?: {
-      minCommits?: number;
-      maxCommitsPerDay?: number;
-      minAuthors?: number;
-    }
-  };
-
-  // Optional: Metric weights
-  weights?: {
-    commits?: number;      // Default: 0.35
-    pullRequests?: number; // Default: 0.25
-    reviews?: number;      // Default: 0.20
-    issues?: number;       // Default: 0.20
-  }
-}
+jobs:
+  track-metrics:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+      - name: Run Metrics Collection
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPO: ${{ github.repository }}
+        run: npx near-protocol-rewards track
 ```
-
-## Error Handling
-
-The SDK uses a comprehensive error system:
-
-```typescript
-sdk.on('error', (error) => {
-  if (error.code === 'RATE_LIMIT_ERROR') {
-    // Handle rate limiting
-  } else if (error.code === 'VALIDATION_ERROR') {
-    // Handle validation errors
-  }
-});
-```
-
-## Development
-
-```bash
-# Install dependencies
-npm install
-
-# Setup environment
-cp .env.test.example .env.test    # Copy and configure your test environment
-```
-
-For local development and testing:
-- Unit tests: `npm run test:unit` (no environment setup needed)
-- Integration tests: Configure `.env.test` with your GitHub token and run `SKIP_INTEGRATION_TESTS=false npm test`
 
 ## Contributing
 

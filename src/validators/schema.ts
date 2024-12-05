@@ -1,24 +1,42 @@
 import { z } from "zod";
-import { BaseError, ErrorCode } from "../types/errors";
+import { ValidationResult } from "../types/validation";
 
-export class ValidationError extends BaseError {
-  constructor(message: string, details?: Record<string, unknown>) {
-    super(message, ErrorCode.VALIDATION_ERROR, details);
-  }
-}
-
-export function validateSchema<T>(schema: z.ZodSchema<T>, data: unknown): T {
+export const validateWithSchema = <T>(
+  schema: z.ZodSchema<T>,
+  data: unknown,
+): ValidationResult => {
   try {
-    return schema.parse(data);
+    schema.parse(data);
+    return {
+      isValid: true,
+      errors: [],
+      warnings: [],
+      timestamp: Date.now(),
+      metadata: {
+        source: "github",
+        validationType: "data"
+      }
+    };
   } catch (error) {
     if (error instanceof z.ZodError) {
-      throw new ValidationError("Invalid configuration", {
+      return {
+        isValid: false,
         errors: error.errors.map((err) => ({
-          path: err.path.join("."),
+          code: "VALIDATION_ERROR",
           message: err.message,
+          context: {
+            path: err.path,
+            code: err.code,
+          },
         })),
-      });
+        warnings: [],
+        timestamp: Date.now(),
+        metadata: {
+          source: "github",
+          validationType: "data"
+        }
+      };
     }
     throw error;
   }
-}
+};

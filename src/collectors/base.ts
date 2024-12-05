@@ -1,32 +1,28 @@
 import { Logger } from "../utils/logger";
-import { formatError } from "../utils/format-error";
-import { BaseError, ErrorCode } from "../types/errors";
-import { JSONValue, toJSONValue } from "../types/json";
-
-export interface BaseCollectorConfig {
-  logger: Logger;
-  maxRequestsPerSecond?: number;
-}
+import { RateLimiter } from "../utils/rate-limiter";
 
 export abstract class BaseCollector {
-  protected readonly logger: Logger;
-  protected readonly maxRequestsPerSecond: number;
+  protected readonly logger?: Logger;
+  protected readonly rateLimiter?: RateLimiter;
 
-  constructor(config: BaseCollectorConfig) {
-    this.logger = config.logger;
-    this.maxRequestsPerSecond = config.maxRequestsPerSecond || 5;
+  constructor(logger?: Logger, rateLimiter?: RateLimiter) {
+    this.logger = logger;
+    this.rateLimiter = rateLimiter;
   }
 
-  protected handleError(error: unknown, context: string): never {
-    const formattedError = formatError(error);
+  protected error(message: string, context?: Record<string, unknown>): void {
+    this.logger?.error(message, context);
+  }
 
-    this.logger.error("Collection error", {
-      error: formattedError,
-      context: { operation: context },
-    });
-
-    throw new BaseError("Collection failed", ErrorCode.COLLECTION_ERROR, {
-      error: toJSONValue(formattedError),
-    });
+  protected async withRateLimit<T>(fn: () => Promise<T>): Promise<T> {
+    try {
+      await this.rateLimiter?.acquire();
+      const result = await fn();
+      await this.rateLimiter?.release();
+      return result;
+    } catch (error) {
+      await this.rateLimiter?.release();
+      throw error;
+    }
   }
 }

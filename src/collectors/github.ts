@@ -11,117 +11,143 @@
  */
 
 import { Octokit } from "@octokit/rest";
-import { GitHubCollectorConfig } from "../types/collectors";
-import { GitHubMetrics } from "../types/metrics";
-import {
-  GitHubPullRequest,
-  GitHubIssue,
-  GitHubCommit,
-  GitHubReview,
-  GitHubUser,
-} from "../types/github";
 import { RateLimiter } from "../utils/rate-limiter";
+import { Logger } from "../utils/logger";
+import { BaseCollector } from "./base";
+import { GitHubMetrics } from "../types/metrics";
 import { BaseError, ErrorCode } from "../types/errors";
 
-export class GitHubCollector {
+interface GitHubPullRequest {
+  number: number;
+  user: {
+    login: string;
+  } | null;
+  merged_at: string | null;
+}
+
+interface GitHubIssue {
+  user: {
+    login: string;
+  } | null;
+  assignee: {
+    login: string;
+  } | null;
+  assignees: Array<{
+    login: string;
+  }>;
+}
+
+interface GitHubCommit {
+  author: {
+    login: string;
+  } | null;
+  commit: {
+    author: {
+      date: string;
+    } | null;
+  };
+}
+
+interface GitHubReview {
+  user: {
+    login: string;
+  } | null;
+}
+
+interface GitHubUser {
+  login: string;
+}
+
+export class GitHubCollector extends BaseCollector {
   private readonly octokit: Octokit;
   private readonly owner: string;
   private readonly repo: string;
-  private readonly rateLimiter: RateLimiter;
-  private readonly logger: any;
 
-  constructor(config: GitHubCollectorConfig) {
-    this.logger = config.logger;
-    this.rateLimiter = config.rateLimiter;
-    [this.owner, this.repo] = config.repo.split("/");
+  constructor({
+    token,
+    repo,
+    logger,
+    rateLimiter,
+  }: {
+    token: string;
+    repo: string;
+    logger?: Logger;
+    rateLimiter?: RateLimiter;
+  }) {
+    super(logger, rateLimiter);
 
-    this.octokit = new Octokit({
-      auth: config.token,
-    });
+    const [owner, repoName] = repo.split("/");
+    if (!owner || !repoName) {
+      throw new Error("Invalid repository format. Expected 'owner/repo'");
+    }
+
+    this.owner = owner;
+    this.repo = repoName;
+    this.octokit = new Octokit({ auth: token });
   }
 
   async testConnection(): Promise<void> {
     try {
-      await this.rateLimiter.acquire();
-      await this.octokit.rest.repos.get({
-        owner: this.owner,
-        repo: this.repo,
+      await this.withRateLimit(async () => {
+        await this.octokit.rest.repos.get({
+          owner: this.owner,
+          repo: this.repo,
+        });
       });
-      await this.rateLimiter.release();
     } catch (error) {
-      this.logger.error("Failed to test GitHub connection", { error });
+      this.error("Failed to test GitHub connection", { error });
       throw error;
     }
   }
 
-  async collectMetrics(): Promise<GitHubMetrics> {
-    try {
-      await this.rateLimiter.acquire();
-
-      const [commits, pullRequests, reviews, issues] = await Promise.all([
-        this.collectCommits(),
-        this.collectPullRequests(),
-        this.collectReviews(),
-        this.collectIssues(),
-      ]);
-
-      await this.rateLimiter.release();
-
-      return {
-        commits,
-        pullRequests,
-        reviews,
-        issues,
-        metadata: {
-          collectionTimestamp: Date.now(),
-          source: "github",
-          projectId: `${this.owner}/${this.repo}`,
-        },
-      };
-    } catch (error) {
-      this.logger.error("Failed to collect GitHub metrics", { error });
-      throw error;
-    }
-  }
-
-  private async collectCommits() {
-    const commits = await this.octokit.paginate(
-      this.octokit.rest.repos.listCommits,
-      {
-        owner: this.owner,
-        repo: this.repo,
-        per_page: 100,
-      },
-    );
+  async collectCommitMetrics(): Promise<GitHubMetrics["commits"]> {
+    const commits = await this.withRateLimit(async () => {
+      const response = await this.octokit.paginate(
+        'GET /repos/{owner}/{repo}/commits',
+        {
+          owner: this.owner,
+          repo: this.repo,
+          per_page: 100,
+        }
+      );
+      return response as GitHubCommit[];
+    });
 
     const authors = new Map<string, number>();
-    commits.forEach((commit) => {
+    const daily: number[] = new Array(7).fill(0);
+    let weekly = 0;
+    let monthly = 0;
+
+    for (const commit of commits) {
       const login = commit.author?.login;
       if (login) {
         authors.set(login, (authors.get(login) || 0) + 1);
       }
-    });
 
-    const now = Date.now();
-    const daily = Array(30).fill(0);
-    const weekly = 0;
-    const monthly = commits.length;
-
-    commits.forEach((commit) => {
       const date = new Date(commit.commit.author?.date || "");
-      const dayIndex = Math.floor(
-        (now - date.getTime()) / (24 * 60 * 60 * 1000),
-      );
-      if (dayIndex >= 0 && dayIndex < 30) {
+      const dayIndex = date.getDay();
+      if (!isNaN(dayIndex)) {
         daily[dayIndex]++;
       }
-    });
+
+      const now = new Date();
+      const daysDiff = Math.floor(
+        (now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24)
+      );
+
+      if (daysDiff <= 7) {
+        weekly++;
+      }
+      if (daysDiff <= 30) {
+        monthly++;
+      }
+    }
 
     return {
       count: commits.length,
       frequency: {
         daily,
-        weekly: Math.floor(monthly / 4),
+        weekly,
         monthly,
       },
       authors: Array.from(authors.entries()).map(([login, count]) => ({
@@ -131,23 +157,36 @@ export class GitHubCollector {
     };
   }
 
-  private async collectPullRequests() {
+  async collectPullRequestMetrics(): Promise<GitHubMetrics["pullRequests"]> {
     const [openPRs, closedPRs] = await Promise.all([
-      this.octokit.paginate(this.octokit.rest.pulls.list, {
-        owner: this.owner,
-        repo: this.repo,
-        state: "open",
-        per_page: 100,
+      this.withRateLimit(async () => {
+        const response = await this.octokit.paginate(
+          'GET /repos/{owner}/{repo}/pulls',
+          {
+            owner: this.owner,
+            repo: this.repo,
+            state: "open",
+            per_page: 100,
+          }
+        );
+        return response as GitHubPullRequest[];
       }),
-      this.octokit.paginate(this.octokit.rest.pulls.list, {
-        owner: this.owner,
-        repo: this.repo,
-        state: "closed",
-        per_page: 100,
+      this.withRateLimit(async () => {
+        const response = await this.octokit.paginate(
+          'GET /repos/{owner}/{repo}/pulls',
+          {
+            owner: this.owner,
+            repo: this.repo,
+            state: "closed",
+            per_page: 100,
+          }
+        );
+        return response as GitHubPullRequest[];
       }),
     ]);
 
     const authors = new Set<string>();
+
     [...openPRs, ...closedPRs].forEach((pr) => {
       if (pr.user?.login) {
         authors.add(pr.user.login);
@@ -162,57 +201,82 @@ export class GitHubCollector {
     };
   }
 
-  private async collectReviews() {
-    // First get all PRs
-    const allPRs = await this.octokit.paginate(this.octokit.rest.pulls.list, {
-      owner: this.owner,
-      repo: this.repo,
-      state: "all",
-      per_page: 100,
-    });
-
-    // Then collect reviews for each PR
-    const allReviews = await Promise.all(
-      allPRs.map((pr) =>
-        this.octokit.paginate(this.octokit.rest.pulls.listReviews, {
+  async collectReviewMetrics(): Promise<GitHubMetrics["reviews"]> {
+    const allPRs = await this.withRateLimit(async () => {
+      const response = await this.octokit.paginate(
+        'GET /repos/{owner}/{repo}/pulls',
+        {
           owner: this.owner,
           repo: this.repo,
-          pull_number: pr.number,
+          state: "all",
           per_page: 100,
-        }),
-      ),
-    );
-
-    const authors = new Set<string>();
-    allReviews.flat().forEach((review) => {
-      if (review.user?.login) {
-        authors.add(review.user.login);
-      }
+        }
+      );
+      return response as GitHubPullRequest[];
     });
 
+    const authors = new Set<string>();
+    let count = 0;
+
+    for (const pr of allPRs) {
+      const reviews = await this.withRateLimit(async () => {
+        const response = await this.octokit.paginate(
+          'GET /repos/{owner}/{repo}/pulls/{pull_number}/reviews',
+          {
+            owner: this.owner,
+            repo: this.repo,
+            pull_number: pr.number,
+            per_page: 100,
+          }
+        );
+        return response as GitHubReview[];
+      });
+
+      count += reviews.length;
+
+      reviews.forEach((review) => {
+        if (review.user?.login) {
+          authors.add(review.user.login);
+        }
+      });
+    }
+
     return {
-      count: allReviews.flat().length,
+      count,
       authors: Array.from(authors),
     };
   }
 
-  private async collectIssues() {
+  async collectIssueMetrics(): Promise<GitHubMetrics["issues"]> {
     const [openIssues, closedIssues] = await Promise.all([
-      this.octokit.paginate(this.octokit.rest.issues.listForRepo, {
-        owner: this.owner,
-        repo: this.repo,
-        state: "open",
-        per_page: 100,
+      this.withRateLimit(async () => {
+        const response = await this.octokit.paginate(
+          'GET /repos/{owner}/{repo}/issues',
+          {
+            owner: this.owner,
+            repo: this.repo,
+            state: "open",
+            per_page: 100,
+          }
+        );
+        return response as GitHubIssue[];
       }),
-      this.octokit.paginate(this.octokit.rest.issues.listForRepo, {
-        owner: this.owner,
-        repo: this.repo,
-        state: "closed",
-        per_page: 100,
+      this.withRateLimit(async () => {
+        const response = await this.octokit.paginate(
+          'GET /repos/{owner}/{repo}/issues',
+          {
+            owner: this.owner,
+            repo: this.repo,
+            state: "closed",
+            per_page: 100,
+          }
+        );
+        return response as GitHubIssue[];
       }),
     ]);
 
     const participants = new Set<string>();
+
     [...openIssues, ...closedIssues].forEach((issue) => {
       if (issue.user?.login) {
         participants.add(issue.user.login);
@@ -232,5 +296,31 @@ export class GitHubCollector {
       closed: closedIssues.length,
       participants: Array.from(participants),
     };
+  }
+
+  async collectMetrics(): Promise<GitHubMetrics> {
+    try {
+      const [commits, pullRequests, reviews, issues] = await Promise.all([
+        this.collectCommitMetrics(),
+        this.collectPullRequestMetrics(),
+        this.collectReviewMetrics(),
+        this.collectIssueMetrics(),
+      ]);
+
+      return {
+        commits,
+        pullRequests,
+        reviews,
+        issues,
+        metadata: {
+          collectionTimestamp: Date.now(),
+          source: "github",
+          projectId: `${this.owner}/${this.repo}`,
+        },
+      };
+    } catch (error) {
+      this.error("Failed to collect GitHub metrics", { error });
+      throw error;
+    }
   }
 }

@@ -1,51 +1,38 @@
 {
   "name": "near-protocol-rewards",
-  "version": "0.1.0",
-  "description": "NEAR Protocol Rewards SDK - Track and reward developer contributions through GitHub metrics",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
+  "version": "0.2.5",
+  "description": "A transparent, metric-based rewards system for NEAR projects",
+  "main": "dist/src/index.js",
+  "types": "dist/src/index.d.ts",
+  "bin": "./dist/src/cli.js",
+  "scripts": {
+    "build": "npm run clean && tsc -p tsconfig.json && chmod +x ./dist/src/cli.js",
+    "clean": "rm -rf dist",
+    "test": "jest",
+    "test:unit": "jest \"tests/unit/.*\\.test\\.ts$\"",
+    "lint": "eslint src --ext .ts",
+    "format": "prettier --write \"src/**/*.ts\" \"tests/**/*.ts\"",
+    "prepare": "npm run build",
+    "prepublishOnly": "npm test && npm run lint"
+  },
   "files": [
     "dist",
-    "README.md",
-    "LICENSE",
     "docs"
   ],
-  "scripts": {
-    "clean": "rm -rf dist",
-    "build": "npm run clean && tsc -p tsconfig.json",
-    "test": "jest",
-    "test:watch": "jest --watch",
-    "test:coverage": "jest --coverage",
-    "test:compile": "tsc -p tsconfig.test.json --noEmit",
-    "lint": "eslint src --ext .ts",
-    "prepare": "npm run build",
-    "prepublishOnly": "npm test && npm run lint",
-    "preversion": "npm run lint",
-    "version": "npm run format && git add -A src",
-    "postversion": "git push && git push --tags",
-    "format": "prettier --write \"src/**/*.ts\" \"tests/**/*.ts\"",
-    "docs": "typedoc --out docs/api src/index.ts",
-    "test:unit": "jest \"tests/unit/.*\\.test\\.ts$\""
-  },
   "keywords": [
     "near",
-    "near-protocol",
-    "github",
-    "metrics",
+    "protocol",
     "rewards",
-    "contributions",
-    "analytics",
-    "developer-tools"
+    "github",
+    "metrics"
   ],
   "author": "NEAR Protocol",
   "license": "MIT",
   "dependencies": {
-    "@octokit/rest": "^20.0.0",
-    "dotenv": "^16.3.0",
-    "events": "^3.3.0",
-    "express": "^4.18.0",
-    "pg": "^8.11.0",
-    "zod": "^3.22.0"
+    "@octokit/rest": "^19.0.0",
+    "commander": "11.1.0",
+    "dotenv": "^16.0.0",
+    "zod": "3.23.8"
   },
   "devDependencies": {
     "@types/express": "^4.17.0",
