@@ -1,8 +1,10 @@
 import { GitHubMetrics } from "../types/metrics";
 import { ValidationResult, ValidationError } from "../types/validation";
 import { ErrorCode } from "../types/errors";
+import { Logger } from "../utils/logger";
 
 export interface GitHubValidatorConfig {
+  logger?: Logger;
   minCommits?: number;
   maxCommitsPerDay?: number;
   minAuthors?: number;
@@ -10,9 +12,11 @@ export interface GitHubValidatorConfig {
 }
 
 export class GitHubValidator {
-  private config: Required<GitHubValidatorConfig>;
+  private config: Required<Omit<GitHubValidatorConfig, 'logger'>>;
+  private logger?: Logger;
 
   constructor(config: GitHubValidatorConfig = {}) {
+    this.logger = config.logger;
     this.config = {
       minCommits: config.minCommits || 10,
       maxCommitsPerDay: config.maxCommitsPerDay || 15,

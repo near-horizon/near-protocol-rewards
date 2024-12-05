@@ -5,7 +5,7 @@ export function createValidators(logger: ConsoleLogger) {
   return {
     github: new GitHubValidator({
       logger,
-      maxDailyCommits: 15,
+      maxCommitsPerDay: 15,
       minAuthors: 2,
       minReviewPrRatio: 0.5,
     }),

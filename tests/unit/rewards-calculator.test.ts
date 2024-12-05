@@ -12,9 +12,8 @@ describe("GitHubRewardsCalculator", () => {
     validator = new GitHubValidator({
       logger,
       minCommits: 10,
-      maxCommitsPerDay: 50,
+      maxCommitsPerDay: 15,
       minAuthors: 2,
-      maxDailyCommits: 15,
       minReviewPrRatio: 0.5,
     });
 

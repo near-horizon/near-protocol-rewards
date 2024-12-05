@@ -7,8 +7,8 @@
 
 import { EventEmitter } from "events";
 import { GitHubCollector } from "./collectors/github";
-import { GitHubMetrics, ProcessedMetrics } from "./types/metrics";
-import { SDKConfig, SDKEvents, RewardCalculation } from "./types/sdk";
+import { ProcessedMetrics } from "./types/metrics";
+import { SDKConfig } from "./types/sdk";
 import { BaseError, ErrorCode } from "./types/errors";
 import { ConsoleLogger } from "./utils/logger";
 import { RateLimiter } from "./utils/rate-limiter";
@@ -42,7 +42,7 @@ export class GitHubRewardsSDK extends EventEmitter {
 
     this.validator = new GitHubValidator({
       logger: this.logger,
-      maxDailyCommits: 15,
+      maxCommitsPerDay: 15,
       minAuthors: 2,
       minReviewPrRatio: 0.5,
     });
