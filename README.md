@@ -27,7 +27,7 @@ Protocol Rewards is a developer-first funding solution for the NEAR ecosystem. W
 Protocol Rewards provides:
 
 - Automated tracking of development metrics and project impact
-- Merit-based rewards tied directly to contributions
+- Merit-based rewards tied directly to contributions ([Learn more about our rewards structure](docs/rewards.md))
 - Transparent, objective criteria for funding
 - Sustainable, ongoing rewards that scale with project growth
 
@@ -63,8 +63,10 @@ The SDK runs as a GitHub Action in your repository:
 
 ## Documentation
 
-- [Quick Start Guide](https://github.com/jbarnes850/near-protocol-rewards/blob/main/docs/quick-start.md)
-- [Architecture Overview](https://github.com/jbarnes850/near-protocol-rewards/blob/main/docs/architecture.md)
+- [Quick Start Guide](docs/quick-start.md)
+- [Rewards Structure](docs/rewards.md)
+- [Development Roadmap](docs/roadmap.md)
+- [Architecture](docs/architecture.md)
 
 ## Advanced Usage
 
@@ -110,6 +112,10 @@ jobs:
 ## Contributing
 
 We welcome contributions! Please see our [Contributing Guide](https://github.com/jbarnes850/near-protocol-rewards/blob/main/CONTRIBUTING.md).
+
+## Future Development
+
+Check out our [development roadmap](docs/roadmap.md) to see what's coming next and how you can get involved.
 
 ## License
 

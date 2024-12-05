@@ -1,103 +1,67 @@
 import { GitHubMetrics } from "../types/metrics";
-import {
-  ValidationResult,
-  ValidationError,
-  ValidationWarning,
-} from "../types/validation";
-import { Logger } from "../utils/logger";
+import { ValidationResult, ValidationError } from "../types/validation";
 import { ErrorCode } from "../types/errors";
 
 export interface GitHubValidatorConfig {
-  logger: Logger;
   minCommits?: number;
   maxCommitsPerDay?: number;
   minAuthors?: number;
-  maxDailyCommits?: number;
   minReviewPrRatio?: number;
 }
 
 export class GitHubValidator {
-  constructor(private readonly config: GitHubValidatorConfig) {}
+  private config: Required<GitHubValidatorConfig>;
+
+  constructor(config: GitHubValidatorConfig = {}) {
+    this.config = {
+      minCommits: config.minCommits || 10,
+      maxCommitsPerDay: config.maxCommitsPerDay || 15,
+      minAuthors: config.minAuthors || 1,
+      minReviewPrRatio: config.minReviewPrRatio || 0.5,
+    };
+  }
 
   validate(metrics: GitHubMetrics): ValidationResult {
     const errors: ValidationError[] = [];
-    const warnings: ValidationWarning[] = [];
+    const warnings: ValidationError[] = [];
 
-    // Basic validation
-    if (!metrics) {
-      errors.push({
-        code: ErrorCode.VALIDATION_ERROR,
-        message: "No metrics provided",
-      });
-      return {
-        isValid: false,
-        errors,
-        warnings,
-        timestamp: Date.now(),
-        metadata: { source: "github", validationType: "data" },
-      };
-    }
-
-    // Validate commit metrics
-    if (metrics.commits.count < 0) {
-      errors.push({
-        code: ErrorCode.VALIDATION_ERROR,
-        message: "Invalid commit count",
-      });
-    }
-
-    // Check commit frequency
-    const maxDailyCommits = Math.max(...metrics.commits.frequency.daily);
-    if (maxDailyCommits > (this.config.maxDailyCommits || 15)) {
+    // Single author validation
+    if (metrics.commits.authors.length === 1) {
       warnings.push({
-        code: ErrorCode.HIGH_VELOCITY,
-        message: "Suspicious commit activity detected",
-        context: { maxDailyCommits },
-      });
-    }
-
-    // Check author diversity
-    if (metrics.commits.authors.length < (this.config.minAuthors || 2)) {
-      warnings.push({
-        code: ErrorCode.LOW_AUTHOR_DIVERSITY,
-        message: "Low author diversity",
-        context: { authorCount: metrics.commits.authors.length },
-      });
-    }
-
-    // Validate PR metrics
-    if (metrics.pullRequests.merged < 0) {
-      errors.push({
         code: ErrorCode.VALIDATION_ERROR,
-        message: "Invalid PR count",
+        message: "Single-author repository detected. Consider seeking contributors for project sustainability.",
       });
-    }
 
-    // Validate review ratio
-    if (metrics.pullRequests.merged > 0) {
-      const reviewRatio = metrics.reviews.count / metrics.pullRequests.merged;
-      if (reviewRatio < (this.config.minReviewPrRatio || 0.5)) {
+      // Enhanced validation for single-author repos
+      if (metrics.commits.count > this.config.maxCommitsPerDay * 5) {
+        errors.push({
+          code: ErrorCode.VALIDATION_ERROR,
+          message: "Excessive commits for single-author repository",
+        });
+      }
+
+      if (!metrics.pullRequests.merged && metrics.commits.count > 50) {
         warnings.push({
-          code: ErrorCode.LOW_REVIEW_ENGAGEMENT,
-          message: "Low review engagement detected",
-          context: { reviewRatio },
+          code: ErrorCode.VALIDATION_ERROR,
+          message: "Consider using pull requests for better change management",
         });
       }
     }
 
-    // Validate review metrics
-    if (metrics.reviews.count < 0) {
-      errors.push({
-        code: ErrorCode.VALIDATION_ERROR,
-        message: "Invalid review count",
-      });
-    }
+    // Validate commit frequency
+    const maxDailyCommits = metrics.commits.frequency.daily.reduce(
+      (max, count) => Math.max(max, count),
+      0
+    );
 
-    // Validate issue metrics
-    if (metrics.issues.closed < 0) {
+    if (maxDailyCommits > this.config.maxCommitsPerDay) {
       errors.push({
         code: ErrorCode.VALIDATION_ERROR,
-        message: "Invalid issue count",
+        message: "Daily commit limit exceeded",
+        context: {
+          maxAllowed: this.config.maxCommitsPerDay,
+          found: maxDailyCommits,
+        },
       });
     }
 
@@ -111,18 +75,5 @@ export class GitHubValidator {
         validationType: "data",
       },
     };
-  }
-
-  calculateVelocityPenalty(metrics: GitHubMetrics): number {
-    const maxDailyCommits = Math.max(...metrics.commits.frequency.daily);
-    const maxAllowedDaily = this.config.maxDailyCommits || 15;
-
-    if (maxDailyCommits > maxAllowedDaily) {
-      // Apply penalty based on how much the limit was exceeded
-      const excessRatio = maxDailyCommits / maxAllowedDaily;
-      return Math.max(0.5, 1 / excessRatio); // Minimum 50% penalty
-    }
-
-    return 1; // No penalty
   }
 }
