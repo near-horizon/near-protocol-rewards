@@ -43,7 +43,7 @@ export class GitHubRewardsSDK extends EventEmitter {
     this.validator = new GitHubValidator({
       logger: this.logger,
       maxCommitsPerDay: 15,
-      minAuthors: 2,
+      minAuthors: 1,
       minReviewPrRatio: 0.5,
     });
 

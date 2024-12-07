@@ -16,8 +16,6 @@ export interface StorageConfig {
 export interface SDKConfig {
   githubToken: string;
   githubRepo: string;
-  projectId?: string;
-  nearAccount?: string;
   timeframe?: "day" | "week" | "month";
   logger?: Logger;
   maxRequestsPerSecond?: number;
@@ -25,7 +23,7 @@ export interface SDKConfig {
   isTestMode?: boolean;
 }
 
-export type RequiredSDKConfig = Required<SDKConfig>;
+export type RequiredSDKConfig = Required<Omit<SDKConfig, 'logger' | 'storage' | 'isTestMode'>>;
 
 export interface RewardCalculation {
   score: Score;

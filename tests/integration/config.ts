@@ -1,8 +1,6 @@
 export const integrationConfig = {
   githubRepo: process.env.TEST_GITHUB_REPO || "test-org/test-repo",
   githubToken: process.env.GITHUB_TOKEN,
-  projectId: process.env.PROJECT_ID,
-  nearAccount: process.env.NEAR_ACCOUNT,
   timeframe: "week" as const,
   weights: {
     commits: 0.35,

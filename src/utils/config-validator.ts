@@ -26,36 +26,13 @@ export function validateConfig(config: SDKConfig): ValidationResult {
     });
   }
 
-  if (!config.isTestMode) {
-    if (!config.projectId) {
+  if (config.storage && config.storage.type === "postgres") {
+    const { host, port, database, user, password } = config.storage.config;
+    if (!host || !port || !database || !user || !password) {
       errors.push({
         code: ErrorCode.INVALID_CONFIG,
-        message: "projectId is required",
+        message: "Invalid postgres configuration",
       });
-    }
-
-    if (!config.nearAccount) {
-      errors.push({
-        code: ErrorCode.INVALID_CONFIG,
-        message: "nearAccount is required",
-      });
-    }
-
-    if (config.nearAccount && !config.nearAccount.endsWith(".near")) {
-      errors.push({
-        code: ErrorCode.INVALID_CONFIG,
-        message: "nearAccount must end with .near",
-      });
-    }
-
-    if (config.storage && config.storage.type === "postgres") {
-      const { host, port, database, user, password } = config.storage.config;
-      if (!host || !port || !database || !user || !password) {
-        errors.push({
-          code: ErrorCode.INVALID_CONFIG,
-          message: "Invalid postgres configuration",
-        });
-      }
     }
   }
 

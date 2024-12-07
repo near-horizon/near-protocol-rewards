@@ -27,96 +27,74 @@ Protocol Rewards is a developer-first funding solution for the NEAR ecosystem. W
 Protocol Rewards provides:
 
 - Automated tracking of development metrics and project impact
-- Merit-based rewards tied directly to contributions ([Learn more about our rewards structure](docs/rewards.md))
+- Merit-based rewards tied directly to contributions
 - Transparent, objective criteria for funding
 - Sustainable, ongoing rewards that scale with project growth
 
-By automating the entire process from tracking to distribution, we enable developers to focus
-on what they do best - building innovative solutions on NEAR.
+By automating the entire process from tracking to distribution, we enable developers to focus on what they do best - building innovative solutions on NEAR.
 
-## Getting Started in One Step
+## Get Started in 30 Seconds
+
+1. Open terminal in your repository
+2. Run this command:
 
 ```bash
 npx near-protocol-rewards init
 ```
 
-That's it! This command will:
+3. Push to main branch
 
-1. Set up automatic metrics collection via GitHub Actions
-2. Configure your repository for rewards tracking
-3. Start collecting metrics every 12 hours
-
-Your metrics will be available at [Protocol Rewards Dashboard](https://protocol-rewards-dashboard.vercel.app/) - just login with GitHub to view them!
-
-See our dashboard repo for more details: [protocol-rewards-dashboard](https://github.com/jbarnes850/protocol-rewards-dashboard).
+That's it! 🎉 Your metrics will show up at [Protocol Rewards Dashboard](https://protocol-rewards-dashboard.vercel.app/)
 
 ## How It Works
 
-The SDK runs as a GitHub Action in your repository:
-
-- Collects metrics every 12 hours
-- Uses your repository's built-in GitHub token
-- No infrastructure or setup needed
-- Runs completely in GitHub's cloud
-
 ![Architecture](public/assets/architecture.png)
+
+We automatically track:
+
+- **Commits**: How often you code
+- **Pull Requests**: How you integrate changes
+- **Reviews**: How you help others
+- **Issues**: How you manage tasks
+
+Everything runs through GitHub Actions:
+
+- No setup needed
+- Uses GitHub's built-in security
+- Updates every 12 hours and on push
+
+## Common Questions
+
+### When do metrics update?
+
+- Every push to main branch
+- Every 12 hours automatically
+- Check Actions tab for status
+
+### Do I need any tokens?
+
+No! We use GitHub's built-in security.
+
+### Not seeing your metrics?
+
+1. Push something to main branch
+2. Wait ~2 minutes for Action to run
+3. Check Actions tab for status
+4. See our [Troubleshooting Guide](docs/troubleshooting.md)
 
 ## Documentation
 
 - [Quick Start Guide](docs/quick-start.md)
+- [Troubleshooting Guide](docs/troubleshooting.md)
+- [Dashboard Guide](docs/dashboard.md)
 - [Rewards Structure](docs/rewards.md)
 - [Development Roadmap](docs/roadmap.md)
-- [Architecture](docs/architecture.md)
 
-## Advanced Usage
+## Need Help?
 
-If you need more control, you can still use the SDK programmatically:
-
-```typescript
-import { NEARProtocolRewardsSDK } from 'near-protocol-rewards';
-
-const sdk = new NEARProtocolRewardsSDK({
-  githubRepo: 'your-org/repo',
-  githubToken: process.env.GITHUB_TOKEN
-});
-
-await sdk.startTracking();
-```
-
-## Configuration
-
-The GitHub Action can be customized by editing `.github/workflows/near-rewards.yml`:
-
-```yaml
-name: NEAR Protocol Rewards Tracking
-on:
-  schedule:
-    - cron: '*/5 * * * *'  # Adjust frequency
-  workflow_dispatch:        # Manual trigger
-  push:
-    branches: [ main ]     # Trigger on push
-
-jobs:
-  track-metrics:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-node@v3
-      - name: Run Metrics Collection
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GITHUB_REPO: ${{ github.repository }}
-        run: npx near-protocol-rewards track
-```
-
-## Contributing
-
-We welcome contributions! Please see our [Contributing Guide](https://github.com/jbarnes850/near-protocol-rewards/blob/main/CONTRIBUTING.md).
-
-## Future Development
-
-Check out our [development roadmap](docs/roadmap.md) to see what's coming next and how you can get involved.
+- [Report Issues](https://github.com/jbarnes850/near-protocol-rewards/issues)
+- [Dashboard Support](https://github.com/jbarnes850/protocol-rewards-dashboard/issues)
 
 ## License
 
-MIT © [NEAR Protocol](https://github.com/jbarnes850/near-protocol-rewards/blob/main/LICENSE)
+MIT © [NEAR Protocol](LICENSE)

@@ -12,8 +12,6 @@ const shouldSkipTests =
     sdk = new GitHubRewardsSDK({
       githubToken: process.env.GITHUB_TOKEN!,
       githubRepo: process.env.TEST_GITHUB_REPO!,
-      projectId: process.env.PROJECT_ID,
-      nearAccount: process.env.NEAR_ACCOUNT,
       isTestMode: true,
     });
   });

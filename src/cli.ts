@@ -11,7 +11,7 @@ export const program = new Command();
 program
   .name('near-protocol-rewards')
   .description('CLI for NEAR Protocol Rewards SDK')
-  .version('0.1.0');
+  .version('0.3.0');
 
 program
   .command('init')
@@ -51,10 +51,15 @@ jobs:
       console.log('✅ Created GitHub Action workflow');
       
       console.log('\n🎉 NEAR Protocol Rewards initialized successfully!');
-      console.log('\nMetrics collection will start automatically on:');
-      console.log('- Every push to main branch');
-      console.log('- Every 12 hours via scheduled run');
-      console.log('\nView your metrics at: https://protocol-rewards-dashboard.vercel.app');
+      console.log('\nMetrics collection will start automatically:');
+      console.log('1. On every push to main branch');
+      console.log('2. Every 12 hours via scheduled run');
+      console.log('\n📊 View your metrics at: https://protocol-rewards-dashboard.vercel.app');
+      console.log('\nTo connect your repository to the dashboard:');
+      console.log('1. Go to https://protocol-rewards-dashboard.vercel.app');
+      console.log('2. Sign in with your GitHub account');
+      console.log('3. Select this repository from the list');
+      console.log('\nNote: First metrics will appear after your next push to main');
     } catch (error) {
       console.error('Failed to initialize:', error);
       process.exit(1);
@@ -63,12 +68,12 @@ jobs:
 
 program
   .command('track')
-  .description('Start tracking metrics (used by GitHub Action)')
+  .description('Track metrics (used by GitHub Action)')
   .action(async () => {
     try {
       // Validate environment
       if (!process.env.GITHUB_TOKEN || !process.env.GITHUB_REPO) {
-        throw new Error('Missing required environment variables: GITHUB_TOKEN and GITHUB_REPO');
+        throw new Error('This command should only be run in GitHub Actions environment');
       }
 
       const sdk = new GitHubRewardsSDK({
