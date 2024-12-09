@@ -17,7 +17,7 @@ export const program = new Command();
 program
   .name('near-protocol-rewards')
   .description('CLI for NEAR Protocol Rewards SDK')
-  .version('0.3.2');
+  .version('0.3.3');
 
 program
   .command('init')
