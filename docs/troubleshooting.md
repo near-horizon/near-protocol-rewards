@@ -21,9 +21,11 @@
 
 ### "track command not working"
 
-- The `track` command is ONLY for GitHub Actions
-- You should only run `init` on your local machine
-- GitHub Actions will run `track` automatically
+⚠️ The `track` command has been replaced with `calculate`:
+
+- Use `calculate` in GitHub Actions and locally
+- Run `init` to update your workflow file
+- Your metrics history is preserved
 
 ## GitHub Actions
 
@@ -72,17 +74,17 @@ npx near-protocol-rewards calculate
 
 ### "calculate command not working"
 
-1. Check environment variables:
+1. In GitHub Actions:
+   - Run `init` to generate the correct workflow
+   - Check Actions tab for any errors
+   - Verify workflow permissions
 
-```bash
-echo $GITHUB_TOKEN
-echo $GITHUB_REPO
-```
-
-2. Verify correct format:
-
-- GITHUB_REPO should be "owner/repo"
-- GITHUB_TOKEN needs 'repo' scope
+2. For local testing:
+   ```bash
+   export GITHUB_TOKEN="your_github_pat_token"
+   export GITHUB_REPO="owner/repo"
+   npx near-protocol-rewards calculate
+   ```
 
 ### "Rewards showing $0 or incorrect level?"
 
