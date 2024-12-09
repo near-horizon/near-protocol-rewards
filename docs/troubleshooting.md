@@ -48,6 +48,23 @@
 - GitHub Actions provides this automatically
 - Just make sure workflow permissions are correct
 
+### "Resource not accessible by integration" Error
+
+If you see this error in GitHub Actions:
+
+1. Add permissions to your workflow file:
+
+```yaml
+permissions:
+  contents: read
+  issues: read
+  pull-requests: read
+```
+
+2. Commit the changes to your repository
+
+3. Re-run the failed workflow
+
 ## Dashboard Connection
 
 ### "Repository not showing up?"

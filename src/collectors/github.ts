@@ -54,10 +54,6 @@ interface GitHubReview {
   } | null;
 }
 
-interface GitHubUser {
-  login: string;
-}
-
 export class GitHubCollector extends BaseCollector {
   private readonly octokit: Octokit;
   private readonly owner: string;
@@ -318,8 +314,27 @@ export class GitHubCollector extends BaseCollector {
           projectId: `${this.owner}/${this.repo}`,
         },
       };
-    } catch (error) {
-      this.error("Failed to collect GitHub metrics", { error });
+    } catch (error: unknown) {
+      if (
+        error && 
+        typeof error === 'object' && 
+        'status' in error &&
+        'message' in error &&
+        error.status === 403 && 
+        typeof error.message === 'string' && 
+        error.message.includes('not accessible by integration')
+      ) {
+        throw new BaseError(
+          'GitHub permissions error: Please ensure your workflow has the correct permissions. ' +
+          'Add these permissions to your workflow file:\n\n' +
+          'permissions:\n' +
+          '  contents: read\n' +
+          '  issues: read\n' +
+          '  pull-requests: read\n',
+          ErrorCode.UNAUTHORIZED,
+          { originalError: error }
+        );
+      }
       throw error;
     }
   }
