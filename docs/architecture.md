@@ -92,7 +92,7 @@ try {
 ## Best Practices
 
 1. **Security**
-   - Use GitHub Actions for automated tracking
+   - Use GitHub Actions for automated rewards calculation
    - Leverage GitHub's built-in security
    - Never expose tokens in logs
 

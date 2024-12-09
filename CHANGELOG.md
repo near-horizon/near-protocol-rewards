@@ -5,6 +5,42 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.2] - 2024-12-09
+
+### Changed
+
+- Renamed GitHub Actions workflow job from `track-metrics` to `calculate-rewards`
+- Updated workflow step name for clarity
+- Added required permissions block to workflow file
+- Standardized command terminology across documentation
+
+### Fixed
+
+- Fixed GitHub Actions workflow using deprecated `track` command
+- Added missing permissions in workflow file
+- Updated all documentation references to use `calculate` instead of `track`
+- Ensured consistent terminology across all documentation
+
+### Migration
+
+- Existing users should update their `.github/workflows/near-rewards.yml`:
+
+  ```yaml
+  jobs:
+    calculate-rewards:    # Changed from track-metrics
+      permissions:        # Added permissions block
+        contents: read
+        issues: read
+        pull-requests: read
+      steps:
+        # ... other steps ...
+        - name: Calculate Rewards    # Updated name
+          run: npx near-protocol-rewards calculate    # Changed from track
+  ```
+
+- No data loss: All historical metrics are preserved
+- No token changes needed: Uses same GitHub security
+
 ## [0.3.1] - 2024-12-08
 
 ### Added

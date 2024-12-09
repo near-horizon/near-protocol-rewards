@@ -15,57 +15,46 @@ jest.mock('../../src/utils/logger', () => ({
   })
 }));
 
-// Mock fs and path
-jest.mock('fs');
-jest.mock('path');
+// Mock fs
+jest.mock('fs', () => ({
+  mkdirSync: jest.fn(),
+  writeFileSync: jest.fn()
+}));
+
+// Mock path
+jest.mock('path', () => ({
+  join: (...args: string[]) => args.join('/')
+}));
 
 describe('CLI', () => {
   let logger: jest.Mocked<ConsoleLogger>;
   let mockExit: SpyInstance<(code?: number) => never>;
-
+  const expectedPath = '/fake/path/.github/workflows/near-rewards.yml';
+  
   beforeEach(() => {
     jest.clearAllMocks();
-
-    // Setup logger mock
     logger = new ConsoleLogger() as jest.Mocked<ConsoleLogger>;
-
-    // Mock process.exit with correct SpyInstance typing
     mockExit = jest.spyOn(process, 'exit').mockImplementation(() => undefined as never);
-
-    // Mock process.cwd
     jest.spyOn(process, 'cwd').mockReturnValue('/fake/path');
-
-    // Correctly type and mock path.join
-    const mockedJoin = path.join as jest.MockedFunction<typeof path.join>;
-    mockedJoin.mockImplementation((...args: string[]) => args.join('/'));
-
-    // Clear environment variables
-    delete process.env.GITHUB_TOKEN;
-    delete process.env.GITHUB_REPO;
-  });
-
-  afterEach(() => {
-    jest.restoreAllMocks();
   });
 
   describe('init command', () => {
-    it('should create workflow directory and file', async () => {
-      // Mock fs functions
-      (fs.mkdirSync as jest.Mock).mockImplementation(() => undefined);
-      (fs.writeFileSync as jest.Mock).mockImplementation(() => undefined);
-
+    it('should create workflow directory and file with correct content', async () => {
       await program.parseAsync(['node', 'test', 'init']);
 
+      // Verify directory creation
       expect(fs.mkdirSync).toHaveBeenCalledWith(
         '/fake/path/.github/workflows',
         { recursive: true }
       );
 
+      // Verify file content
       expect(fs.writeFileSync).toHaveBeenCalledWith(
-        '/fake/path/.github/workflows/near-rewards.yml',
-        expect.stringContaining('name: NEAR Protocol Rewards Tracking')
+        expectedPath,
+        expect.stringContaining('calculate-rewards:')
       );
 
+      // Verify success message
       expect(logger.info).toHaveBeenCalledWith('✅ Created GitHub Action workflow');
     });
 
@@ -79,6 +68,20 @@ describe('CLI', () => {
       expect(logger.error).toHaveBeenCalledWith(
         'Failed to initialize:',
         { message: 'Failed to create directory' }
+      );
+      expect(mockExit).toHaveBeenCalledWith(1);
+    });
+  });
+
+  describe('command validation', () => {
+    it('should require environment variables for calculate', async () => {
+      delete process.env.GITHUB_TOKEN;
+      delete process.env.GITHUB_REPO;
+
+      await program.parseAsync(['node', 'test', 'calculate']);
+
+      expect(logger.error).toHaveBeenCalledWith(
+        expect.stringContaining('Missing required environment variables')
       );
       expect(mockExit).toHaveBeenCalledWith(1);
     });
