@@ -4,14 +4,20 @@ import { Command } from 'commander';
 import { GitHubRewardsSDK } from './sdk';
 import { writeFileSync, mkdirSync } from 'fs';
 import { join } from 'path';
-import type { ProcessedMetrics } from './types/metrics';
+import { GitHubRewardsCalculator, DEFAULT_WEIGHTS, DEFAULT_THRESHOLDS } from './calculator/github-rewards';
+import { ConsoleLogger } from './utils/logger';
+import { GitHubValidator } from './validators/github';
+import { BaseError } from './types/errors';
+
+// Create a logger instance for consistent logging
+const logger = new ConsoleLogger();
 
 export const program = new Command();
 
 program
   .name('near-protocol-rewards')
   .description('CLI for NEAR Protocol Rewards SDK')
-  .version('0.3.0');
+  .version('0.3.1');
 
 program
   .command('init')
@@ -48,32 +54,44 @@ jobs:
 `;
 
       writeFileSync(join(workflowDir, 'near-rewards.yml'), workflowContent);
-      console.log('✅ Created GitHub Action workflow');
+      logger.info('✅ Created GitHub Action workflow');
       
-      console.log('\n🎉 NEAR Protocol Rewards initialized successfully!');
-      console.log('\nMetrics collection will start automatically:');
-      console.log('1. On every push to main branch');
-      console.log('2. Every 12 hours via scheduled run');
-      console.log('\n📊 View your metrics at: https://protocol-rewards-dashboard.vercel.app');
-      console.log('\nTo connect your repository to the dashboard:');
-      console.log('1. Go to https://protocol-rewards-dashboard.vercel.app');
-      console.log('2. Sign in with your GitHub account');
-      console.log('3. Select this repository from the list');
-      console.log('\nNote: First metrics will appear after your next push to main');
+      logger.info('\n🎉 NEAR Protocol Rewards initialized successfully!');
+      logger.info('\nMetrics collection will start automatically:');
+      logger.info('1. On every push to main branch');
+      logger.info('2. Every 12 hours via scheduled run');
+      logger.info('\n📊 View your metrics at: https://protocol-rewards-dashboard.vercel.app');
+      logger.info('\nTo connect your repository to the dashboard:');
+      logger.info('1. Go to https://protocol-rewards-dashboard.vercel.app');
+      logger.info('2. Sign in with your GitHub account');
+      logger.info('3. Select this repository from the list');
+      logger.info('\nNote: First metrics will appear after your next push to main');
     } catch (error) {
-      console.error('Failed to initialize:', error);
+      logger.error('Failed to initialize:', { 
+        message: error instanceof Error ? error.message : String(error)
+      });
       process.exit(1);
     }
   });
 
 program
-  .command('track')
-  .description('Track metrics (used by GitHub Action)')
+  .command('calculate')
+  .description('Calculate rewards based on current metrics')
   .action(async () => {
     try {
-      // Validate environment
+      // Environment variable validation
       if (!process.env.GITHUB_TOKEN || !process.env.GITHUB_REPO) {
-        throw new Error('This command should only be run in GitHub Actions environment');
+        logger.error(`
+❌ Missing required environment variables
+
+This command requires:
+- GITHUB_TOKEN: GitHub access token
+- GITHUB_REPO: Repository in format "owner/repo"
+
+These are automatically set in GitHub Actions environment.
+If running locally, please set these variables first.
+`);
+        throw new Error('Required environment variables not found');
       }
 
       const sdk = new GitHubRewardsSDK({
@@ -82,21 +100,20 @@ program
         timeframe: 'week'
       });
 
-      // Setup event handlers
-      sdk.on('metrics:collected', (metrics: ProcessedMetrics) => {
-        console.log('📊 Metrics collected:', {
-          commits: metrics.github.commits.count,
-          prs: metrics.github.pullRequests.merged,
-          reviews: metrics.github.reviews.count,
-          issues: metrics.github.issues.closed
-        });
-      });
+      // Initialize calculator with default settings
+      const calculator = new GitHubRewardsCalculator(
+        DEFAULT_WEIGHTS,
+        DEFAULT_THRESHOLDS,
+        logger,
+        new GitHubValidator({
+          minCommits: 10,
+          maxCommitsPerDay: 15,
+          minAuthors: 1,
+          minReviewPrRatio: 0.5
+        })
+      );
 
-      sdk.on('error', (error: Error) => {
-        console.error('❌ Error:', error.message);
-      });
-
-      // Collect metrics once
+      // Collect metrics
       await sdk.startTracking();
       const metrics = await sdk.getMetrics();
       await sdk.stopTracking();
@@ -105,10 +122,63 @@ program
         throw new Error('Failed to collect metrics');
       }
 
-      console.log('✅ Metrics collection complete');
+        // Check for validation warnings
+        if (metrics?.validation?.warnings?.length > 0) {
+          logger.info('\n⚠️ Validation Warnings:');
+          metrics.validation.warnings.forEach(warning => {
+            logger.info(`- ${warning}`);
+          });
+          logger.info('\nThese warnings won\'t affect your rewards calculation, but addressing them may improve your score.\n');
+        }
+
+      // Calculate rewards
+      const rewards = calculator.calculateRewards(metrics.github, 'week');
+
+      // Calculate monetary reward (weekly basis)
+      const calculateMonetaryReward = (score: number): number => {
+        if (score >= 90) return 2500;      // Diamond:  $2,500/week
+        if (score >= 80) return 2000;      // Platinum: $2,000/week
+        if (score >= 70) return 1500;      // Gold:     $1,500/week
+        if (score >= 60) return 1000;      // Silver:   $1,000/week
+        return 500;                        // Bronze:   $500/week
+      };
+
+      // Display results
+      logger.info('\n📊 Rewards Calculation Results:\n');
+      const weeklyReward = calculateMonetaryReward(rewards.score.total);
+      logger.info(`🏆 Level: ${rewards.level.name} (${rewards.score.total.toFixed(2)}/100)`);
+      logger.info(`💰 Weekly Reward: $${weeklyReward.toLocaleString()}`);
+      logger.info(`💰 Monthly Projection: $${(weeklyReward * 4).toLocaleString()}`);
+      logger.info('\nNote: Coming in v0.4.0 - NEAR transaction tracking will increase reward potential! 🚀\n');
+      logger.info('\nBreakdown:');
+      logger.info(`📝 Commits: ${rewards.score.breakdown.commits.toFixed(2)}`);
+      logger.info(`🔄 Pull Requests: ${rewards.score.breakdown.pullRequests.toFixed(2)}`);
+      logger.info(`👀 Reviews: ${rewards.score.breakdown.reviews.toFixed(2)}`);
+      logger.info(`🎯 Issues: ${rewards.score.breakdown.issues.toFixed(2)}\n`);
+
+        if (rewards.achievements.length > 0) {
+          logger.info('🌟 Achievements:');
+          rewards.achievements.forEach(achievement => {
+            logger.info(`- ${achievement.name}: ${achievement.description}`);
+          });
+        }
+
       process.exit(0);
     } catch (error) {
-      console.error('Failed to track metrics:', error);
+      if (error instanceof BaseError) {
+        logger.error('Failed to calculate rewards:', { 
+          message: error.message, 
+          details: error.details 
+        });
+      } else if (error instanceof Error) {
+        logger.error('Failed to calculate rewards:', { 
+          message: error.message 
+        });
+      } else {
+        logger.error('Failed to calculate rewards:', { 
+          message: String(error) 
+        });
+      }
       process.exit(1);
     }
   });

@@ -108,7 +108,7 @@ We actively welcome community input on feature prioritization. Please:
 
 ## Version Planning
 
-- **v0.3.0**: NEAR transaction integration
+- **v0.3.5**: NEAR transaction integration
 - **v0.4.0**: Multi-contributor support
 - **v0.5.0**: Advanced analytics
 - **v0.6.0**: Automated compliance
