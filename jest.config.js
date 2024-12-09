@@ -21,5 +21,6 @@ module.exports = {
     '/dist/',
     '/coverage/',
     '/tests/setup.ts'
-  ]
+  ],
+  moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json', 'node']
 };

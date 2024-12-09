@@ -62,8 +62,62 @@ permissions:
 ```
 
 2. Commit the changes to your repository
-
 3. Re-run the failed workflow
+
+## Rewards Calculation
+
+```bash
+npx near-protocol-rewards calculate
+```
+
+### "calculate command not working"
+
+1. Check environment variables:
+
+```bash
+echo $GITHUB_TOKEN
+echo $GITHUB_REPO
+```
+
+2. Verify correct format:
+
+- GITHUB_REPO should be "owner/repo"
+- GITHUB_TOKEN needs 'repo' scope
+
+### "Rewards showing $0 or incorrect level?"
+
+1. Verify recent activity:
+
+- Need minimum activity in last week
+- Check your recent commits/PRs
+- Review validation warnings
+
+### "Monthly projection seems wrong?"
+
+1. Monthly projection is 4x weekly reward
+2. Weekly reward tiers are:
+
+- Diamond ($2,500/week): 90+ score
+- Platinum ($2,000/week): 80-89 score
+- Gold ($1,500/week): 70-79 score
+- Silver ($1,000/week): 60-69 score
+- Bronze ($500/week): Below 60
+
+### "Score seems low?"
+
+Check contribution mix:
+
+1. Commits: Regular coding activity
+2. Pull Requests: Integrating changes
+3. Reviews: Helping others
+4. Issues: Task management
+
+Improve score by:
+
+- Maintaining consistent activity
+- Reviewing others' PRs
+- Closing issues regularly
+- Following PR best practices
 
 ## Dashboard Connection
 

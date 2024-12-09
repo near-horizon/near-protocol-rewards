@@ -28,19 +28,19 @@ export interface Level {
   color: string;
 }
 
-const DEFAULT_WEIGHTS: ActivityWeights = {
+export const DEFAULT_WEIGHTS: ActivityWeights = {
   commits: 0.3,
   pullRequests: 0.3,
   reviews: 0.2,
   issues: 0.2,
-};
+} as const;
 
-const DEFAULT_THRESHOLDS: ActivityThresholds = {
-  commits: 100, // per month
+export const DEFAULT_THRESHOLDS: ActivityThresholds = {
+  commits: 100,
   pullRequests: 20,
   reviews: 30,
   issues: 30,
-};
+} as const;
 
 const LEVELS: Level[] = [
   { name: "Diamond", minScore: 90, maxScore: 100, color: "#B9F2FF" },

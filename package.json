@@ -1,6 +1,6 @@
 {
   "name": "near-protocol-rewards",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "A transparent, metric-based rewards system for NEAR projects",
   "main": "dist/src/index.js",
   "types": "dist/src/index.d.ts",
@@ -9,7 +9,10 @@
     "build": "npm run clean && tsc -p tsconfig.json && chmod +x ./dist/src/cli.js",
     "clean": "rm -rf dist",
     "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
     "test:unit": "jest \"tests/unit/.*\\.test\\.ts$\"",
+    "test:unit:watch": "jest \"tests/unit/.*\\.test\\.ts$\" --watch",
     "lint": "eslint src --ext .ts",
     "format": "prettier --write \"src/**/*.ts\" \"tests/**/*.ts\"",
     "prepare": "npm run build",

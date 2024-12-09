@@ -5,6 +5,28 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.1] - 2024-12-08
+
+### Added
+
+- New `calculate` command to display rewards calculation results
+- Detailed rewards breakdown in CLI output
+- Achievement tracking and display
+- Weekly and monthly reward projections
+- Comprehensive validation warnings
+
+### Changed
+
+- Refactored CLI command structure for better organization
+- Enhanced error handling and messaging
+- Improved test coverage for CLI commands
+- Updated documentation for new calculate command
+
+### Removed
+
+- Deprecated `track` command in favor of `calculate`
+- Legacy metrics display format
+
 ## [0.3.0] - 2024-12-07
 
 ### Changed

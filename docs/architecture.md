@@ -1,179 +1,129 @@
 # NEAR Protocol Rewards SDK Architecture
 
-```mermaid
-graph TD
-    subgraph "Core SDK"
-        SDK[NEAR Protocol Rewards SDK]
-        Config[SDK Configuration]
-        SDK --> Config
-    end
-
-    subgraph "Data Collection"
-        GH[GitHub Collector]
-        SDK --> GH
-    end
-
-    subgraph "Processing Pipeline"
-        VAL[Metrics Validator]
-        AGG[Data Aggregator]
-        MA[Metrics Analyzer]
-        
-        GH --> VAL
-        VAL --> AGG
-        AGG --> MA
-    end
-
-    subgraph "Scoring System"
-        CALC[Score Calculator]
-        LEVEL[Level Determiner]
-        
-        MA --> CALC
-        CALC --> LEVEL
-    end
-
-    subgraph "Event System"
-        EH[Event Handler]
-        LOG[Logger]
-        
-        GH --> EH
-        VAL --> EH
-        AGG --> EH
-        CALC --> EH
-        EH --> LOG
-    end
-```
+![Architecture](public/assets/architecture.png)
 
 ## Component Overview
 
-### Core SDK
+### Core SDK Components
 
-- Main SDK class handling initialization and orchestration
-- Configuration management and validation
-- Event system coordination
+1. **Metrics Processor**
+   - Handles GitHub metrics collection
+   - Calculates reward scores
+   - Determines achievement levels
+   - Currently focused on GitHub activity (see [v0.4.0 roadmap](roadmap.md) for NEAR transaction integration)
 
-### Data Collection
+2. **Validation Layer**
+   - Input validation
+   - Anti-gaming checks
+   - Activity thresholds
+   - Coming in v0.4.0: Multi-contributor validation
 
-- GitHub API integration with rate limiting
-- Metrics collection for commits, PRs, reviews, and issues
-- Data normalization and preprocessing
+3. **Data Collection Layer**
+   - GitHub API integration
+   - Rate limiting management
+   - Data normalization
+   - Future: Multi-platform support ([roadmap](roadmap.md))
 
-### Processing Pipeline
+### Dashboard Components (Separate Repository)
 
-1. **Metrics Validator**
-   - Data format validation
-   - Threshold checking
-   - Anti-gaming measures
+1. **Developer Dashboard**
+   - Real-time metrics display
+   - Achievement tracking
+   - Progress visualization
+   - OAuth authentication
 
-2. **Data Aggregator**
-   - Combines metrics from different time periods
-   - Calculates running averages
-   - Handles data gaps
-
-3. **Metrics Analyzer**
-   - Pattern recognition
-   - Trend analysis
-   - Quality assessment
-
-### Scoring System
-
-1. **Score Calculator**
-   - Component score calculation
-   - Weight application
-   - Total score computation
-
-2. **Level Determiner**
-   - Achievement level assignment
-   - Progress tracking
-   - Milestone detection
-
-### Event System
-
-- Asynchronous event handling
-- Real-time metric updates
-- Error reporting and logging
+2. **Data Storage**
+   - Metrics persistence
+   - Historical tracking
+   - Analytics data
+   - Future: Multi-repository aggregation
 
 ## Data Flow
 
-1. **Collection Phase**
+1. **Collection**
 
-   ```typescript
-   // GitHub metrics collection
-   const metrics = await githubCollector.collect();
-   ```
+```typescript
+// GitHub metrics collection via SDK
+const metrics = await sdk.getMetrics();
+```
 
-2. **Validation Phase**
+2. **Validation & Processing**
 
-   ```typescript
-   // Metrics validation
-   const validationResult = await validator.validate(metrics);
-   ```
+```typescript
+// Automatic validation and reward calculation
+const rewards = calculator.calculateRewards(metrics.github, 'week');
+```
 
-3. **Processing Phase**
+3. **Results Display**
 
-   ```typescript
-   // Metrics processing
-   const processed = await aggregator.process(metrics);
-   const analyzed = await analyzer.analyze(processed);
-   ```
+```typescript
+// CLI output format
+logger.info(`🏆 Level: ${rewards.level.name} (${rewards.score.total.toFixed(2)}/100)`);
+logger.info(`💰 Weekly Reward: $${weeklyReward.toLocaleString()}`);
+```
 
-4. **Scoring Phase**
+## Reward Tiers
 
-   ```typescript
-   // Score calculation
-   const score = calculator.calculate(analyzed);
-   const level = determiner.determineLevel(score);
-   ```
+Current implementation uses five tiers:
+
+- Diamond ($2,500/week): 90+ score
+- Platinum ($2,000/week): 80-89 score
+- Gold ($1,500/week): 70-79 score
+- Silver ($1,000/week): 60-69 score
+- Bronze ($500/week): Below 60
+
+See [roadmap](roadmap.md) for upcoming changes to scoring system.
 
 ## Error Handling
 
 ```typescript
 try {
-  await collector.collect();
+  const metrics = await sdk.getMetrics();
 } catch (error) {
-  if (error instanceof RateLimitError) {
-    // Handle rate limiting
-    await rateLimiter.wait();
-  } else if (error instanceof ValidationError) {
-    // Handle validation errors
-    logger.error('Validation failed', error);
+  if (error instanceof BaseError) {
+    logger.error('Failed to calculate rewards:', { 
+      message: error.message, 
+      details: error.details 
+    });
   }
 }
 ```
 
-## Event Flow
-
-```typescript
-sdk.on('metrics:collected', (metrics) => {
-  // Handle new metrics
-});
-
-sdk.on('validation:failed', (errors) => {
-  // Handle validation failures
-});
-
-sdk.on('score:updated', (score) => {
-  // Handle score updates
-});
-```
-
 ## Best Practices
 
-1. **Rate Limiting**
-   - Respect GitHub API limits
-   - Implement exponential backoff
-   - Cache frequently accessed data
+1. **Security**
+   - Use GitHub Actions for automated tracking
+   - Leverage GitHub's built-in security
+   - Never expose tokens in logs
 
-2. **Error Recovery**
-   - Graceful degradation
-   - Automatic retry logic
-   - Clear error reporting
+2. **Performance**
+   - Respect API rate limits
+   - Cache metrics where possible
+   - Batch process updates
 
-3. **Data Integrity**
+3. **Reliability**
    - Validate all inputs
-   - Verify data consistency
    - Handle missing data gracefully
+   - Clear error messaging
 
-4. **Performance**
-   - Efficient API usage
-   - Smart caching strategies
-   - Batch processing where possible
+## Future Architecture
+
+See our [development roadmap](roadmap.md) for upcoming features:
+
+1. **Q1 2025**
+   - NEAR transaction integration
+   - Multi-contributor support
+   - Enhanced authorization
+
+2. **Q2 2025**
+   - Multi-platform support
+   - Organization-level metrics
+   - Enterprise features
+
+## Integration Guide
+
+For implementation details, see:
+
+- [Quick Start Guide](quick-start.md)
+- [Troubleshooting Guide](troubleshooting.md)
+- [Dashboard Guide](dashboard.md)
