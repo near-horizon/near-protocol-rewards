@@ -75,7 +75,7 @@ describe("GitHubRewardsCalculator", () => {
 
       const result: RewardCalculation = calculator.calculateRewards(
         metrics,
-        "month",
+        "calendar-month",
       );
       expect(result.score.total).toBeGreaterThanOrEqual(90);
       expect(result.score.total).toBeLessThanOrEqual(100);

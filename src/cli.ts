@@ -151,9 +151,10 @@ If running locally, please set these variables first.
         return 500;                        // Bronze:   $500/week
       };
 
-      // Display results
-      logger.info('\n📊 Rewards Calculation Results:\n');
       const weeklyReward = calculateMonetaryReward(rewards.score.total);
+
+      // Display results header
+      logger.info('\n📊 Rewards Calculation Results:\n');
 
       // Display calendar month specific information if available
       if (timeframe === 'calendar-month' && rewards.metadata.monthProgress) {
@@ -173,10 +174,7 @@ If running locally, please set these variables first.
         logger.info(`💰 Projected Monthly Total: $${projectedMonthTotal.toLocaleString()}`);
       }
 
-      // Always show level and weekly reward
-      logger.info(`🏆 Level: ${rewards.level.name} (${rewards.score.total.toFixed(2)}/100)`);
-      logger.info(`💰 Weekly Reward: $${weeklyReward.toLocaleString()}`);
-
+      // Display level and reward info
       logger.info(`🏆 Level: ${rewards.level.name} (${rewards.score.total.toFixed(2)}/100)`);
       logger.info(`💰 Weekly Reward: $${weeklyReward.toLocaleString()}`);
       
@@ -184,8 +182,9 @@ If running locally, please set these variables first.
       if (timeframe === 'week') {
         logger.info(`💰 Monthly Projection: $${(weeklyReward * 4).toLocaleString()}`);
       }
-      
-      logger.info('\nNote: Coming in v0.4.0 - NEAR transaction tracking will increase reward potential! 🚀\n');
+
+      logger.info(''); // Add blank line before note
+      logger.info('Note: Coming in v0.4.0 - NEAR transaction tracking will increase reward potential! 🚀');
       logger.info('\nBreakdown:');
       logger.info(`📝 Commits: ${rewards.score.breakdown.commits.toFixed(2)}`);
       logger.info(`🔄 Pull Requests: ${rewards.score.breakdown.pullRequests.toFixed(2)}`);
@@ -222,4 +221,4 @@ If running locally, please set these variables first.
 // Only parse if this is the main module
 if (require.main === module) {
   program.parse();
-}            
+}                  
