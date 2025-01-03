@@ -65,9 +65,11 @@ export class GitHubRewardsCalculator {
     if (isNaN(date.getTime())) {
       throw new Error('Invalid timestamp provided for month progress calculation');
     }
-    const year = date.getFullYear();
-    const month = date.getMonth();
-    const currentDay = date.getDate();
+    
+    // Use UTC methods to avoid timezone issues
+    const year = date.getUTCFullYear();
+    const month = date.getUTCMonth();
+    const currentDay = date.getUTCDate();
     
     // Get last day of current month
     const lastDay = new Date(year, month + 1, 0).getDate();
@@ -211,7 +213,10 @@ export class GitHubRewardsCalculator {
     // Calculate total score with ultra-enhanced scaling
     const rawTotal = commitScore + prScore + reviewScore + issueScore;
     // Scale to ensure Diamond tier (90-100) is achievable
-    const scaledTotal = Math.min(Math.max(rawTotal * 1.5, 0), 100); // Increased multiplier to 1.5
+    // Use exponential scaling for higher scores
+    const baseScaling = 2.0; // Increased base scaling factor
+    const exponentialBoost = Math.pow(rawTotal / 50, 0.5); // Add exponential boost
+    const scaledTotal = Math.min(Math.max(rawTotal * baseScaling * exponentialBoost, 0), 100);
     const scalingFactor = rawTotal > 0 ? scaledTotal / rawTotal : 1;
 
     return {
