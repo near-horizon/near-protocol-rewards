@@ -171,12 +171,14 @@ export class GitHubRewardsCalculator {
       issues: this.thresholds.issues * periodMultiplier
     };
 
-    // Calculate individual scores with progressive scaling
+    // Calculate individual scores with enhanced progressive scaling
     const calculateProgressiveScore = (actual: number, threshold: number, weight: number) => {
       const ratio = actual / threshold;
-      // Apply progressive scaling: faster growth at higher ratios
-      const scaledRatio = ratio <= 1 ? ratio : 1 + Math.log10(ratio);
-      return Math.min(scaledRatio, 2) * weight * 100; // Cap at 200% of base score
+      // Enhanced progressive scaling with exponential growth
+      const scaledRatio = ratio <= 1 
+        ? ratio 
+        : 1 + Math.pow(ratio - 1, 0.7); // More aggressive scaling for higher ratios
+      return Math.min(scaledRatio * weight * 100, weight * 150); // Allow up to 150% per category
     };
 
     const commitScore = calculateProgressiveScore(
@@ -203,10 +205,10 @@ export class GitHubRewardsCalculator {
       this.weights.issues
     );
 
-    // Calculate total score with progressive scaling
+    // Calculate total score with enhanced scaling
     const rawTotal = commitScore + prScore + reviewScore + issueScore;
     // Scale to ensure Diamond tier (90-100) is achievable
-    const scaledTotal = Math.min(Math.max(rawTotal * 1.1, 0), 100); // 1.1 multiplier to boost scores for Diamond tier
+    const scaledTotal = Math.min(Math.max(rawTotal * 1.2, 0), 100); // Increased multiplier to 1.2
     const scalingFactor = rawTotal > 0 ? scaledTotal / rawTotal : 1;
 
     return {
