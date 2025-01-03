@@ -108,7 +108,7 @@ thresholds = {
 
 ### 4. Time-Based Controls (Implemented)
 
-- Metrics are collected every 5 minutes via GitHub Actions
+- Metrics are collected every 12 hours via GitHub Actions
 - Weekly aggregation smooths out activity spikes
 - Continuous monitoring enables pattern detection
 
@@ -259,7 +259,7 @@ To maximize your rewards while maintaining development quality:
 ## FAQ
 
 **Q: How often are rewards calculated?**
-A: Metrics are collected every 5 minutes, but rewards are calculated on a weekly basis to ensure consistency.
+A: Metrics are collected every 12 hours, but rewards are calculated on a weekly basis to ensure consistency.
 
 **Q: What happens if we have a spike in activity?**
 A: Sudden spikes trigger additional validation. Consistent, sustainable development is rewarded over burst activity.
