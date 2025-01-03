@@ -103,8 +103,9 @@ If running locally, please set these variables first.
         throw new Error('Required environment variables not found');
       }
 
-      // Get timeframe from command line or default to week
-      const timeframe = process.argv.includes('--calendar-month') ? 'calendar-month' : 'week';
+      // Get timeframe from command line options
+      const options = program.opts();
+      const timeframe = options.calendarMonth ? 'calendar-month' : 'week';
       
       sdk = new GitHubRewardsSDK({
         githubToken: process.env.GITHUB_TOKEN,
@@ -158,12 +159,18 @@ If running locally, please set these variables first.
       // Calculate reward first so it's available for all sections
       const weeklyReward = calculateMonetaryReward(rewards.score.total);
 
-      if (timeframe === 'calendar-month' && metrics.metadata?.collectionTimestamp) {
-        const timestamp = metrics.metadata.collectionTimestamp;
+      // Always display the header first for weekly timeframe
+      if (timeframe === 'week') {
+        logger.info('\n📊 Rewards Calculation Results:\n');
+      }
+
+      // Display calendar month progress if applicable
+      if (timeframe === 'calendar-month') {
+        const timestamp = new Date().getTime(); // Use current time for consistency
         const monthProgress = calculator.getMonthProgress(timestamp);
         const { monthName, year, daysCompleted, daysRemaining } = monthProgress;
         
-        // Format exactly as expected by tests with parentheses around "days complete"
+        // Format exactly as expected by tests
         logger.info(`📅 ${monthName} ${year} (${daysCompleted} days complete)`);
         logger.info(`⏳ Days Remaining: ${daysRemaining}`);
         
@@ -175,9 +182,6 @@ If running locally, please set these variables first.
         logger.info(`💰 Month-to-Date: $${monthToDateEarnings.toLocaleString()}`);
         logger.info(`💰 Projected Monthly Total: $${projectedMonthTotal.toLocaleString()}`);
         logger.info(''); // Add newline before level display
-      } else {
-        // Display weekly timeframe header with exact formatting and newlines
-        logger.info('\n📊 Rewards Calculation Results:\n');
       }
 
       // Display level and reward info
@@ -226,4 +230,4 @@ If running locally, please set these variables first.
 // Only parse if this is the main module
 if (require.main === module) {
   program.parse();
-}                                                                                                            
+}                                                                                                               
