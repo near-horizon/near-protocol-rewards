@@ -155,12 +155,9 @@ If running locally, please set these variables first.
         return 500;                        // Bronze:   $500/week
       };
 
-      // Display header with exact formatting as expected by tests
-      logger.info('\n📊 Rewards Calculation Results:\n');
-      
+      // Calculate reward first so it's available for all sections
       const weeklyReward = calculateMonetaryReward(rewards.score.total);
 
-      // Display calendar month specific information if available
       if (timeframe === 'calendar-month' && metrics.metadata?.collectionTimestamp) {
         const timestamp = metrics.metadata.collectionTimestamp;
         const monthProgress = calculator.getMonthProgress(timestamp);
@@ -177,21 +174,22 @@ If running locally, please set these variables first.
         
         logger.info(`💰 Month-to-Date: $${monthToDateEarnings.toLocaleString()}`);
         logger.info(`💰 Projected Monthly Total: $${projectedMonthTotal.toLocaleString()}`);
-        logger.info('');
+        logger.info(''); // Add newline before level display
+      } else {
+        // Display weekly timeframe header with exact formatting
+        logger.info('\n📊 Rewards Calculation Results:\n');
       }
 
       // Display level and reward info
       logger.info(`🏆 Level: ${rewards.level.name} (${rewards.score.total.toFixed(2)}/100)`);
-      logger.info('');
       logger.info(`💰 Weekly Reward: $${weeklyReward.toLocaleString()}`);
       
       // Show monthly projection only for week timeframe
       if (timeframe === 'week') {
         logger.info(`💰 Monthly Projection: $${(weeklyReward * 4).toLocaleString()}`);
-        logger.info(''); // Add newline after monthly projection
       }
 
-      logger.info('Note: Coming in v0.4.0 - NEAR transaction tracking will increase reward potential! 🚀\n');
+      logger.info('\nNote: Coming in v0.4.0 - NEAR transaction tracking will increase reward potential! 🚀\n');
       logger.info('\nBreakdown:');
       logger.info(`📝 Commits: ${rewards.score.breakdown.commits.toFixed(2)}`);
       logger.info(`🔄 Pull Requests: ${rewards.score.breakdown.pullRequests.toFixed(2)}`);
@@ -228,4 +226,4 @@ If running locally, please set these variables first.
 // Only parse if this is the main module
 if (require.main === module) {
   program.parse();
-}                                                                                                
+}                                                                                                         

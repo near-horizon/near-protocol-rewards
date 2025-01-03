@@ -74,7 +74,9 @@ export class GitHubRewardsCalculator {
     // Get last day of current month using UTC
     const lastDay = new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
     
-    // Last day already calculated above using UTC
+    // Handle February leap year
+    const isLeapYear = year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0);
+    const daysInMonth = month === 1 && isLeapYear ? 29 : lastDay;
     
     const monthNames = [
       "January", "February", "March", "April", "May", "June",
@@ -83,7 +85,7 @@ export class GitHubRewardsCalculator {
 
     return {
       daysCompleted: currentDay,
-      daysRemaining: lastDay - currentDay,
+      daysRemaining: daysInMonth - currentDay,
       monthName: monthNames[month],
       year: year
     };
