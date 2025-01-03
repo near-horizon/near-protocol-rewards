@@ -160,8 +160,10 @@ If running locally, please set these variables first.
       logger.info('\n📊 Rewards Calculation Results:\n');
 
       // Display calendar month specific information if available
-      if (timeframe === 'calendar-month' && rewards.metadata.monthProgress) {
-        const { monthName, year, daysCompleted, daysRemaining } = rewards.metadata.monthProgress;
+      if (timeframe === 'calendar-month') {
+        const timestamp = metrics.metadata?.collectionTimestamp || Date.now();
+        const monthProgress = calculator.getMonthProgress(timestamp);
+        const { monthName, year, daysCompleted, daysRemaining } = monthProgress;
         
         // Calculate month-to-date and projected earnings
         const daysInMonth = daysCompleted + daysRemaining;
@@ -222,4 +224,4 @@ If running locally, please set these variables first.
 // Only parse if this is the main module
 if (require.main === module) {
   program.parse();
-}                                                            
+}                                                                  

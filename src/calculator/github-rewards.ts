@@ -59,7 +59,7 @@ export interface MonthProgress {
 }
 
 export class GitHubRewardsCalculator {
-  private getMonthProgress(timestamp: number): MonthProgress {
+  public getMonthProgress(timestamp: number): MonthProgress {
     const date = new Date(timestamp);
     // Ensure we're working with a valid date
     if (isNaN(date.getTime())) {
@@ -171,16 +171,17 @@ export class GitHubRewardsCalculator {
       issues: this.thresholds.issues * periodMultiplier
     };
 
-    // Calculate individual scores with super-enhanced progressive scaling
+    // Calculate individual scores with ultra-enhanced progressive scaling
     const calculateProgressiveScore = (actual: number, threshold: number, weight: number) => {
       const ratio = actual / threshold;
-      // Super-enhanced progressive scaling with more aggressive exponential growth
+      // Ultra-enhanced progressive scaling with extremely aggressive exponential growth
       const scaledRatio = ratio <= 1 
         ? ratio 
-        : 1 + Math.pow(ratio - 1, 0.5); // Even more aggressive scaling for higher ratios
-      const baseScore = Math.min(scaledRatio * weight * 100, weight * 200); // Allow up to 200% per category
+        : 1 + Math.pow(ratio - 1, 0.3); // Ultra-aggressive scaling for higher ratios
+      const baseScore = Math.min(scaledRatio * weight * 100, weight * 300); // Allow up to 300% per category
       // Apply additional boost for exceeding threshold significantly
-      return ratio > 2 ? baseScore * 1.2 : baseScore; // Extra 20% boost for high performers
+      const boostMultiplier = ratio > 2 ? 1.5 : (ratio > 1.5 ? 1.3 : 1.0); // Tiered boost system
+      return baseScore * boostMultiplier; // Apply tiered boost
     };
 
     const commitScore = calculateProgressiveScore(
@@ -207,10 +208,10 @@ export class GitHubRewardsCalculator {
       this.weights.issues
     );
 
-    // Calculate total score with super-enhanced scaling
+    // Calculate total score with ultra-enhanced scaling
     const rawTotal = commitScore + prScore + reviewScore + issueScore;
     // Scale to ensure Diamond tier (90-100) is achievable
-    const scaledTotal = Math.min(Math.max(rawTotal * 1.3, 0), 100); // Increased multiplier to 1.3
+    const scaledTotal = Math.min(Math.max(rawTotal * 1.5, 0), 100); // Increased multiplier to 1.5
     const scalingFactor = rawTotal > 0 ? scaledTotal / rawTotal : 1;
 
     return {
