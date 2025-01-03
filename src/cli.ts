@@ -146,6 +146,9 @@ If running locally, please set these variables first.
       // Calculate rewards using the specified timeframe
       const rewards = calculator.calculateRewards(metrics.github, timeframe);
 
+      // Display initial header
+      logger.info('\n📊 Rewards Calculation Results:\n');
+
       // Calculate monetary reward (weekly basis)
       const calculateMonetaryReward = (score: number): number => {
         if (score >= 90) return 2500;      // Diamond:  $2,500/week
@@ -165,23 +168,23 @@ If running locally, please set these variables first.
         const monthProgress = calculator.getMonthProgress(timestamp);
         const { monthName, year, daysCompleted, daysRemaining } = monthProgress;
         
+        // Format exactly as expected by tests
         logger.info(`📅 ${monthName} ${year} (${daysCompleted} days complete)`);
         logger.info(`⏳ Days Remaining: ${daysRemaining}`);
         
-        // Calculate month-to-date and projected earnings
+        // Calculate and display month-to-date and projected earnings
         const daysInMonth = daysCompleted + daysRemaining;
         const monthToDateEarnings = Math.floor(weeklyReward * (daysCompleted / 7));
         const projectedMonthTotal = Math.floor(weeklyReward * (daysInMonth / 7));
         
         logger.info(`💰 Month-to-Date: $${monthToDateEarnings.toLocaleString()}`);
         logger.info(`💰 Projected Monthly Total: $${projectedMonthTotal.toLocaleString()}`);
-
         logger.info('');
       }
 
       // Display level and reward info
-      logger.info('\n📊 Rewards Calculation Results:\n');
       logger.info(`🏆 Level: ${rewards.level.name} (${rewards.score.total.toFixed(2)}/100)`);
+      logger.info('');
       logger.info(`💰 Weekly Reward: $${weeklyReward.toLocaleString()}`);
       
       // Show monthly projection only for week timeframe
@@ -227,4 +230,4 @@ If running locally, please set these variables first.
 // Only parse if this is the main module
 if (require.main === module) {
   program.parse();
-}                                                                                 
+}                                                                                             
