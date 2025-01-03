@@ -127,10 +127,10 @@ If running locally, please set these variables first.
       }
 
         // Check for validation warnings
-        if (metrics?.validation?.warnings?.length > 0) {
+        if (metrics.validation.warnings.length > 0) {
           logger.info('\n⚠️ Validation Warnings:');
           metrics.validation.warnings.forEach(warning => {
-            logger.info(`- ${warning}`);
+            logger.info(`- ${warning.message}${warning.context ? ` (${JSON.stringify(warning.context)})` : ''}`);
           });
           logger.info('\nThese warnings won\'t affect your rewards calculation, but addressing them may improve your score.\n');
         }
@@ -190,4 +190,4 @@ If running locally, please set these variables first.
 // Only parse if this is the main module
 if (require.main === module) {
   program.parse();
-} 
+}   
