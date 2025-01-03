@@ -17,14 +17,14 @@ describe("GitHubRewardsCalculator", () => {
       minReviewPrRatio: 0.5,
     });
 
-    calculator = new GitHubRewardsCalculator(
-      {
+    calculator = new GitHubRewardsCalculator({
+      weights: {
         commits: 0.35,
         pullRequests: 0.25,
         reviews: 0.2,
         issues: 0.2,
       },
-      {
+      thresholds: {
         commits: 100,
         pullRequests: 20,
         reviews: 30,
@@ -32,7 +32,7 @@ describe("GitHubRewardsCalculator", () => {
       },
       logger,
       validator,
-    );
+    });
   });
 
   describe("Reward Tiers", () => {

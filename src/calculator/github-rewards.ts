@@ -206,7 +206,7 @@ export class GitHubRewardsCalculator {
     // Calculate total score with progressive scaling
     const rawTotal = commitScore + prScore + reviewScore + issueScore;
     // Scale to ensure Diamond tier (90-100) is achievable
-    const scaledTotal = Math.min(Math.max(rawTotal * 0.9, 0), 100); // 0.9 multiplier to fit within 100
+    const scaledTotal = Math.min(Math.max(rawTotal * 1.1, 0), 100); // 1.1 multiplier to boost scores for Diamond tier
     const scalingFactor = rawTotal > 0 ? scaledTotal / rawTotal : 1;
 
     return {
