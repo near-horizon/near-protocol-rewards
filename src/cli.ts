@@ -175,8 +175,6 @@ If running locally, please set these variables first.
         logger.info('');
       }
 
-      logger.info('\n📊 Rewards Calculation Results:\n');
-
       // Display level and reward info
       logger.info(`🏆 Level: ${rewards.level.name} (${rewards.score.total.toFixed(2)}/100)`);
       logger.info(`💰 Weekly Reward: $${weeklyReward.toLocaleString()}`);
@@ -224,4 +222,4 @@ If running locally, please set these variables first.
 // Only parse if this is the main module
 if (require.main === module) {
   program.parse();
-}                                                      
+}                                                            
