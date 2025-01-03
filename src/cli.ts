@@ -146,9 +146,6 @@ If running locally, please set these variables first.
       // Calculate rewards using the specified timeframe
       const rewards = calculator.calculateRewards(metrics.github, timeframe);
 
-      // Display initial header
-      logger.info('\n📊 Rewards Calculation Results:\n');
-
       // Calculate monetary reward (weekly basis)
       const calculateMonetaryReward = (score: number): number => {
         if (score >= 90) return 2500;      // Diamond:  $2,500/week
@@ -158,6 +155,7 @@ If running locally, please set these variables first.
         return 500;                        // Bronze:   $500/week
       };
 
+      // Display header with exact formatting as expected by tests
       logger.info('\n📊 Rewards Calculation Results:\n');
       
       const weeklyReward = calculateMonetaryReward(rewards.score.total);
@@ -230,4 +228,4 @@ If running locally, please set these variables first.
 // Only parse if this is the main module
 if (require.main === module) {
   program.parse();
-}                                                                                             
+}                                                                                                

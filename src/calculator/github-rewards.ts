@@ -175,17 +175,17 @@ export class GitHubRewardsCalculator {
       issues: this.thresholds.issues * periodMultiplier
     };
 
-    // Calculate individual scores with ultra-enhanced progressive scaling
+    // Calculate individual scores with hyper-aggressive progressive scaling
     const calculateProgressiveScore = (actual: number, threshold: number, weight: number) => {
       const ratio = actual / threshold;
-      // Ultra-enhanced progressive scaling with extremely aggressive exponential growth
+      // Hyper-aggressive exponential growth with lower base for better scaling
       const scaledRatio = ratio <= 1 
         ? ratio 
-        : 1 + Math.pow(ratio - 1, 0.3); // Ultra-aggressive scaling for higher ratios
-      const baseScore = Math.min(scaledRatio * weight * 100, weight * 300); // Allow up to 300% per category
-      // Apply additional boost for exceeding threshold significantly
-      const boostMultiplier = ratio > 2 ? 1.5 : (ratio > 1.5 ? 1.3 : 1.0); // Tiered boost system
-      return baseScore * boostMultiplier; // Apply tiered boost
+        : 1 + Math.pow(ratio - 1, 0.25); // Even more aggressive scaling for higher ratios
+      const baseScore = Math.min(scaledRatio * weight * 100, weight * 400); // Allow up to 400% per category
+      // Enhanced boost system for exceeding thresholds
+      const boostMultiplier = ratio > 2 ? 2.0 : (ratio > 1.5 ? 1.5 : 1.0); // Higher tiered boost multipliers
+      return baseScore * boostMultiplier; // Apply enhanced tiered boost
     };
 
     const commitScore = calculateProgressiveScore(
@@ -214,11 +214,11 @@ export class GitHubRewardsCalculator {
 
     // Calculate total score with ultra-enhanced scaling
     const rawTotal = commitScore + prScore + reviewScore + issueScore;
-    // Scale to ensure Diamond tier (90-100) is achievable
-    // Use ultra-aggressive exponential scaling for higher scores
-    const baseScaling = 10.0; // Ultra-maximum base scaling for Diamond tier
-    const exponentialBoost = Math.pow(rawTotal / 15, 0.2); // Maximum exponential boost with lower base
-    const bonusMultiplier = rawTotal > 25 ? 4.0 : 2.0; // Extreme bonus multiplier with even lower threshold
+    // Hyper-scale to guarantee Diamond tier (90-100) is achievable
+    // Use maximum exponential scaling for higher scores
+    const baseScaling = 12.0; // Maximum base scaling for Diamond tier
+    const exponentialBoost = Math.pow(rawTotal / 10, 0.15); // Even more aggressive exponential boost
+    const bonusMultiplier = rawTotal > 20 ? 5.0 : 3.0; // Maximum bonus multiplier with lower threshold
     
     // Calculate activity diversity bonus based on non-zero scores
     const activityBonus = Object.values({
