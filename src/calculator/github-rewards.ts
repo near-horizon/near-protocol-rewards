@@ -173,13 +173,10 @@ export class GitHubRewardsCalculator {
     // Adjust thresholds based on timeframe
     const periodMultiplier = (() => {
       switch (timeframe) {
-        case 'calendar-month': {
-          // For calendar month, use a fixed 4-week period for scoring
-          // This ensures consistent scoring across different month lengths
-          return 4;
-        }
+        case 'calendar-month':
+          return 1; // No multiplier for calendar month to maintain consistent scoring
         case 'month':
-          return 4; // 4 weeks
+          return 4; // 4 weeks (keep for backward compatibility)
         case 'day':
           return 1/7; // 1/7 of a week
         default:

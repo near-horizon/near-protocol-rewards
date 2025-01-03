@@ -153,7 +153,6 @@ If running locally, please set these variables first.
 
       const weeklyReward = calculateMonetaryReward(rewards.score.total);
 
-      // Display results header
       logger.info('\n📊 Rewards Calculation Results:\n');
 
       // Display calendar month specific information if available
@@ -162,16 +161,13 @@ If running locally, please set these variables first.
         
         // Calculate month-to-date and projected earnings
         const daysInMonth = daysCompleted + daysRemaining;
-        // Calculate actual month-to-date earnings based on score
         const monthToDateEarnings = Math.floor(weeklyReward * (daysCompleted / 7));
-        // Project monthly total based on current performance
         const projectedMonthTotal = Math.floor(weeklyReward * (daysInMonth / 7));
 
-        // Display month progress and earnings in the exact format expected by tests
         logger.info(`📅 ${monthName} ${year} (${daysCompleted} days complete)`);
         logger.info(`⏳ Days Remaining: ${daysRemaining}`);
         logger.info(`💰 Month-to-Date: $${monthToDateEarnings.toLocaleString()}`);
-        logger.info(`💰 Projected Monthly Total: $${projectedMonthTotal.toLocaleString()}`);
+        logger.info(`💰 Projected Monthly Total: $${projectedMonthTotal.toLocaleString()}\n`);
       }
 
       // Display level and reward info
@@ -221,4 +217,4 @@ If running locally, please set these variables first.
 // Only parse if this is the main module
 if (require.main === module) {
   program.parse();
-}                  
+}                     
