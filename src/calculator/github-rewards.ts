@@ -71,8 +71,10 @@ export class GitHubRewardsCalculator {
     const month = date.getUTCMonth();
     const currentDay = date.getUTCDate();
     
-    // Get last day of current month
-    const lastDay = new Date(year, month + 1, 0).getDate();
+    // Get last day of current month using UTC
+    const lastDay = new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
+    
+    // Last day already calculated above using UTC
     
     const monthNames = [
       "January", "February", "March", "April", "May", "June",
@@ -213,10 +215,11 @@ export class GitHubRewardsCalculator {
     // Calculate total score with ultra-enhanced scaling
     const rawTotal = commitScore + prScore + reviewScore + issueScore;
     // Scale to ensure Diamond tier (90-100) is achievable
-    // Use exponential scaling for higher scores
-    const baseScaling = 2.0; // Increased base scaling factor
-    const exponentialBoost = Math.pow(rawTotal / 50, 0.5); // Add exponential boost
-    const scaledTotal = Math.min(Math.max(rawTotal * baseScaling * exponentialBoost, 0), 100);
+    // Use ultra-aggressive exponential scaling for higher scores
+    const baseScaling = 2.5; // Further increased base scaling
+    const exponentialBoost = Math.pow(rawTotal / 40, 0.4); // More aggressive exponential boost
+    const bonusMultiplier = rawTotal > 60 ? 1.5 : 1.0; // Additional bonus for high raw scores
+    const scaledTotal = Math.min(Math.max(rawTotal * baseScaling * exponentialBoost * bonusMultiplier, 0), 100);
     const scalingFactor = rawTotal > 0 ? scaledTotal / rawTotal : 1;
 
     return {

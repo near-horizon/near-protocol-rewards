@@ -157,11 +157,16 @@ If running locally, please set these variables first.
 
       const weeklyReward = calculateMonetaryReward(rewards.score.total);
 
+      logger.info('\n📊 Rewards Calculation Results:\n');
+
       // Display calendar month specific information if available
-      if (timeframe === 'calendar-month') {
-        const timestamp = metrics.metadata?.collectionTimestamp || Date.now();
+      if (timeframe === 'calendar-month' && metrics.metadata?.collectionTimestamp) {
+        const timestamp = metrics.metadata.collectionTimestamp;
         const monthProgress = calculator.getMonthProgress(timestamp);
         const { monthName, year, daysCompleted, daysRemaining } = monthProgress;
+        
+        logger.info(`📅 ${monthName} ${year} (${daysCompleted} days complete)`);
+        logger.info(`⏳ Days Remaining: ${daysRemaining}`);
         
         // Calculate month-to-date and projected earnings
         const daysInMonth = daysCompleted + daysRemaining;
@@ -175,8 +180,6 @@ If running locally, please set these variables first.
         logger.info('');
       }
 
-      logger.info('\n📊 Rewards Calculation Results:\n');
-      
       // Display level and reward info
       logger.info(`🏆 Level: ${rewards.level.name} (${rewards.score.total.toFixed(2)}/100)`);
       logger.info(`💰 Weekly Reward: $${weeklyReward.toLocaleString()}`);
@@ -224,4 +227,4 @@ If running locally, please set these variables first.
 // Only parse if this is the main module
 if (require.main === module) {
   program.parse();
-}                                                                     
+}                                                                        
