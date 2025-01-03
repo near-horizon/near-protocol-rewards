@@ -59,7 +59,8 @@ export interface MonthProgress {
 }
 
 export class GitHubRewardsCalculator {
-  private getMonthProgress(date: Date): MonthProgress {
+  private getMonthProgress(timestamp: number): MonthProgress {
+    const date = new Date(timestamp);
     const year = date.getFullYear();
     const month = date.getMonth();
     const currentDay = date.getDate();
@@ -67,18 +68,14 @@ export class GitHubRewardsCalculator {
     // Get last day of current month
     const lastDay = new Date(year, month + 1, 0).getDate();
     
-    // Handle edge case: if we're at month transition (last day)
-    const isLastDay = currentDay === lastDay;
-    
     const monthNames = [
       "January", "February", "March", "April", "May", "June",
       "July", "August", "September", "October", "November", "December"
     ];
 
-    // If it's the last day, show the month as complete
     return {
-      daysCompleted: isLastDay ? lastDay : currentDay,
-      daysRemaining: isLastDay ? 0 : lastDay - currentDay,
+      daysCompleted: currentDay,
+      daysRemaining: lastDay - currentDay,
       monthName: monthNames[month],
       year: year
     };
@@ -105,54 +102,33 @@ export class GitHubRewardsCalculator {
     timeframe: string,
   ): RewardCalculation {
     const score = this.calculateScore(metrics, timeframe);
-    const now = Date.now();
-    let periodStart: number;
-    let periodEnd: number = now;
-
-    const currentDate = new Date(now);
-    
-    switch (timeframe) {
-      case "day":
-        periodStart = now - 24 * 60 * 60 * 1000;
-        break;
-      case "week":
-        periodStart = now - 7 * 24 * 60 * 60 * 1000;
-        break;
-      case "calendar-month":
-        // Get first day of current month
-        periodStart = new Date(
-          currentDate.getFullYear(),
-          currentDate.getMonth(),
-          1
-        ).getTime();
-        // Get last day of current month (0th day of next month is last day of current month)
-        periodEnd = new Date(
-          currentDate.getFullYear(),
-          currentDate.getMonth() + 1,
-          0,
-          23,
-          59,
-          59,
-          999
-        ).getTime();
-        break;
-      case "month":
-        periodStart = now - 30 * 24 * 60 * 60 * 1000; // Keep for backward compatibility
-        break;
-      default:
-        periodStart = now - 7 * 24 * 60 * 60 * 1000; // Default to week
-    }
-
-    // Calculate level based on score
     const level = this.determineLevel(score.total);
-
-    // Calculate achievements
     const achievements = this.calculateAchievements(metrics);
 
-    // Calculate month progress for calendar-month timeframe
-    const monthProgress = timeframe === 'calendar-month' 
-      ? this.getMonthProgress(currentDate)
-      : undefined;
+    // Use metrics collection timestamp or current time
+    const currentDate = metrics.metadata?.collectionTimestamp 
+      ? new Date(metrics.metadata.collectionTimestamp)
+      : new Date();
+
+    let periodStart: Date;
+    let periodEnd: Date;
+
+    if (timeframe === 'calendar-month') {
+      // For calendar month, use first and last day of current month
+      periodStart = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+      periodEnd = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
+    } else {
+      // Default to weekly calculation
+      periodEnd = new Date(currentDate);
+      periodStart = new Date(periodEnd);
+      periodStart.setDate(periodEnd.getDate() - 7);
+    }
+
+    // Get month progress for calendar month calculations
+    let monthProgress: MonthProgress | undefined;
+    if (timeframe === 'calendar-month') {
+      monthProgress = this.getMonthProgress(currentDate.getTime());
+    }
 
     return {
       score,
@@ -160,12 +136,12 @@ export class GitHubRewardsCalculator {
       level,
       achievements,
       metadata: {
-        timestamp: now,
-        periodStart,
-        periodEnd,
+        timestamp: currentDate.getTime(),
+        periodStart: periodStart.getTime(),
+        periodEnd: periodEnd.getTime(),
         timeframe,
-        monthProgress, // Add month progress data for CLI display
-      },
+        monthProgress
+      }
     };
   }
 
@@ -174,7 +150,7 @@ export class GitHubRewardsCalculator {
     const periodMultiplier = (() => {
       switch (timeframe) {
         case 'calendar-month':
-          return 1; // No multiplier for calendar month to maintain consistent scoring
+          return 4; // Use 4x multiplier for calendar month to match weekly scoring
         case 'month':
           return 4; // 4 weeks (keep for backward compatibility)
         case 'day':
@@ -191,30 +167,42 @@ export class GitHubRewardsCalculator {
       issues: this.thresholds.issues * periodMultiplier
     };
 
+    // Increase base scores to allow reaching Diamond tier
+    const baseMultiplier = 1.5; // Increase base scores by 50%
+    
     const commitScore =
       Math.min(metrics.commits.count / adjustedThresholds.commits, 1) *
       this.weights.commits *
-      100;
+      100 *
+      baseMultiplier;
     const prScore =
       Math.min(metrics.pullRequests.merged / adjustedThresholds.pullRequests, 1) *
       this.weights.pullRequests *
-      100;
+      100 *
+      baseMultiplier;
     const reviewScore =
       Math.min(metrics.reviews.count / adjustedThresholds.reviews, 1) *
       this.weights.reviews *
-      100;
+      100 *
+      baseMultiplier;
     const issueScore =
       Math.min(metrics.issues.closed / adjustedThresholds.issues, 1) *
       this.weights.issues *
-      100;
+      100 *
+      baseMultiplier;
+
+    // Calculate total score and scale breakdown proportionally
+    const rawTotal = commitScore + prScore + reviewScore + issueScore;
+    const scaledTotal = Math.min(rawTotal, 100);
+    const scalingFactor = scaledTotal / rawTotal;
 
     return {
-      total: Math.min(commitScore + prScore + reviewScore + issueScore, 100),
+      total: scaledTotal,
       breakdown: {
-        commits: commitScore,
-        pullRequests: prScore,
-        reviews: reviewScore,
-        issues: issueScore,
+        commits: commitScore * scalingFactor,
+        pullRequests: prScore * scalingFactor,
+        reviews: reviewScore * scalingFactor,
+        issues: issueScore * scalingFactor,
       },
     };
   }

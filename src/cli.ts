@@ -179,8 +179,7 @@ If running locally, please set these variables first.
         logger.info(`💰 Monthly Projection: $${(weeklyReward * 4).toLocaleString()}`);
       }
 
-      logger.info(''); // Add blank line before note
-      logger.info('Note: Coming in v0.4.0 - NEAR transaction tracking will increase reward potential! 🚀');
+      logger.info('\nNote: Coming in v0.4.0 - NEAR transaction tracking will increase reward potential! 🚀\n');
       logger.info('\nBreakdown:');
       logger.info(`📝 Commits: ${rewards.score.breakdown.commits.toFixed(2)}`);
       logger.info(`🔄 Pull Requests: ${rewards.score.breakdown.pullRequests.toFixed(2)}`);
@@ -217,4 +216,4 @@ If running locally, please set these variables first.
 // Only parse if this is the main module
 if (require.main === module) {
   program.parse();
-}                     
+}                                 
