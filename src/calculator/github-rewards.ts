@@ -61,6 +61,10 @@ export interface MonthProgress {
 export class GitHubRewardsCalculator {
   private getMonthProgress(timestamp: number): MonthProgress {
     const date = new Date(timestamp);
+    // Ensure we're working with a valid date
+    if (isNaN(date.getTime())) {
+      throw new Error('Invalid timestamp provided for month progress calculation');
+    }
     const year = date.getFullYear();
     const month = date.getMonth();
     const currentDay = date.getDate();
@@ -80,22 +84,22 @@ export class GitHubRewardsCalculator {
       year: year
     };
   }
-  constructor(
-    private readonly weights: {
-      commits: number;
-      pullRequests: number;
-      reviews: number;
-      issues: number;
-    },
-    private readonly thresholds: {
-      commits: number;
-      pullRequests: number;
-      reviews: number;
-      issues: number;
-    },
-    private readonly logger: Logger,
-    private readonly validator: GitHubValidator,
-  ) {}
+  private readonly weights: ActivityWeights;
+  private readonly thresholds: ActivityThresholds;
+  private readonly logger: Logger;
+  private readonly validator: GitHubValidator;
+
+  constructor(config: {
+    weights: ActivityWeights;
+    thresholds: ActivityThresholds;
+    logger: Logger;
+    validator: GitHubValidator;
+  }) {
+    this.weights = config.weights;
+    this.thresholds = config.thresholds;
+    this.logger = config.logger;
+    this.validator = config.validator;
+  }
 
   calculateRewards(
     metrics: GitHubMetrics,
@@ -167,34 +171,43 @@ export class GitHubRewardsCalculator {
       issues: this.thresholds.issues * periodMultiplier
     };
 
-    // Increase base scores to allow reaching Diamond tier
-    const baseMultiplier = 1.5; // Increase base scores by 50%
-    
-    const commitScore =
-      Math.min(metrics.commits.count / adjustedThresholds.commits, 1) *
-      this.weights.commits *
-      100 *
-      baseMultiplier;
-    const prScore =
-      Math.min(metrics.pullRequests.merged / adjustedThresholds.pullRequests, 1) *
-      this.weights.pullRequests *
-      100 *
-      baseMultiplier;
-    const reviewScore =
-      Math.min(metrics.reviews.count / adjustedThresholds.reviews, 1) *
-      this.weights.reviews *
-      100 *
-      baseMultiplier;
-    const issueScore =
-      Math.min(metrics.issues.closed / adjustedThresholds.issues, 1) *
-      this.weights.issues *
-      100 *
-      baseMultiplier;
+    // Calculate individual scores with progressive scaling
+    const calculateProgressiveScore = (actual: number, threshold: number, weight: number) => {
+      const ratio = actual / threshold;
+      // Apply progressive scaling: faster growth at higher ratios
+      const scaledRatio = ratio <= 1 ? ratio : 1 + Math.log10(ratio);
+      return Math.min(scaledRatio, 2) * weight * 100; // Cap at 200% of base score
+    };
 
-    // Calculate total score and scale breakdown proportionally
+    const commitScore = calculateProgressiveScore(
+      metrics.commits.count,
+      adjustedThresholds.commits,
+      this.weights.commits
+    );
+
+    const prScore = calculateProgressiveScore(
+      metrics.pullRequests.merged,
+      adjustedThresholds.pullRequests,
+      this.weights.pullRequests
+    );
+
+    const reviewScore = calculateProgressiveScore(
+      metrics.reviews.count,
+      adjustedThresholds.reviews,
+      this.weights.reviews
+    );
+
+    const issueScore = calculateProgressiveScore(
+      metrics.issues.closed,
+      adjustedThresholds.issues,
+      this.weights.issues
+    );
+
+    // Calculate total score with progressive scaling
     const rawTotal = commitScore + prScore + reviewScore + issueScore;
-    const scaledTotal = Math.min(rawTotal, 100);
-    const scalingFactor = scaledTotal / rawTotal;
+    // Scale to ensure Diamond tier (90-100) is achievable
+    const scaledTotal = Math.min(Math.max(rawTotal * 0.9, 0), 100); // 0.9 multiplier to fit within 100
+    const scalingFactor = rawTotal > 0 ? scaledTotal / rawTotal : 1;
 
     return {
       total: scaledTotal,

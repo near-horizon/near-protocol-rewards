@@ -83,6 +83,10 @@ program
   .description('Calculate rewards based on current metrics')
   .option('--calendar-month', 'Use calendar month for calculations instead of week')
   .action(async () => {
+    let sdk: GitHubRewardsSDK;
+    let calculator: GitHubRewardsCalculator;
+    let metrics: any;
+    
     try {
       // Environment variable validation
       if (!process.env.GITHUB_TOKEN || !process.env.GITHUB_REPO) {
@@ -102,24 +106,24 @@ If running locally, please set these variables first.
       // Get timeframe from command line or default to week
       const timeframe = process.argv.includes('--calendar-month') ? 'calendar-month' : 'week';
       
-      const sdk = new GitHubRewardsSDK({
+      sdk = new GitHubRewardsSDK({
         githubToken: process.env.GITHUB_TOKEN,
         githubRepo: process.env.GITHUB_REPO,
         timeframe
       });
 
       // Initialize calculator with default settings
-      const calculator = new GitHubRewardsCalculator(
-        DEFAULT_WEIGHTS,
-        DEFAULT_THRESHOLDS,
+      calculator = new GitHubRewardsCalculator({
+        weights: DEFAULT_WEIGHTS,
+        thresholds: DEFAULT_THRESHOLDS,
         logger,
-        new GitHubValidator({
+        validator: new GitHubValidator({
           minCommits: 10,
           maxCommitsPerDay: 15,
           minAuthors: 1,
           minReviewPrRatio: 0.5
         })
-      );
+      });
 
       // Collect metrics
       await sdk.startTracking();
@@ -133,7 +137,7 @@ If running locally, please set these variables first.
         // Check for validation warnings
         if (metrics.validation.warnings.length > 0) {
           logger.info('\n⚠️ Validation Warnings:');
-          metrics.validation.warnings.forEach(warning => {
+          metrics.validation.warnings.forEach((warning: { message: string; context?: any }) => {
             logger.info(`- ${warning.message}${warning.context ? ` (${JSON.stringify(warning.context)})` : ''}`);
           });
           logger.info('\nThese warnings won\'t affect your rewards calculation, but addressing them may improve your score.\n');
@@ -167,7 +171,8 @@ If running locally, please set these variables first.
         logger.info(`📅 ${monthName} ${year} (${daysCompleted} days complete)`);
         logger.info(`⏳ Days Remaining: ${daysRemaining}`);
         logger.info(`💰 Month-to-Date: $${monthToDateEarnings.toLocaleString()}`);
-        logger.info(`💰 Projected Monthly Total: $${projectedMonthTotal.toLocaleString()}\n`);
+        logger.info(`💰 Projected Monthly Total: $${projectedMonthTotal.toLocaleString()}`);
+        logger.info('');
       }
 
       // Display level and reward info
@@ -177,9 +182,10 @@ If running locally, please set these variables first.
       // Show monthly projection only for week timeframe
       if (timeframe === 'week') {
         logger.info(`💰 Monthly Projection: $${(weeklyReward * 4).toLocaleString()}`);
+        logger.info(''); // Add newline after monthly projection
       }
 
-      logger.info('\nNote: Coming in v0.4.0 - NEAR transaction tracking will increase reward potential! 🚀\n');
+      logger.info('Note: Coming in v0.4.0 - NEAR transaction tracking will increase reward potential! 🚀\n');
       logger.info('\nBreakdown:');
       logger.info(`📝 Commits: ${rewards.score.breakdown.commits.toFixed(2)}`);
       logger.info(`🔄 Pull Requests: ${rewards.score.breakdown.pullRequests.toFixed(2)}`);
@@ -188,13 +194,13 @@ If running locally, please set these variables first.
 
         if (rewards.achievements.length > 0) {
           logger.info('🌟 Achievements:');
-          rewards.achievements.forEach(achievement => {
+          rewards.achievements.forEach((achievement: { name: string; description: string }) => {
             logger.info(`- ${achievement.name}: ${achievement.description}`);
           });
         }
 
       process.exit(0);
-    } catch (error) {
+    } catch (error: unknown) {
       if (error instanceof BaseError) {
         logger.error('Failed to calculate rewards:', { 
           message: error.message, 
@@ -216,4 +222,4 @@ If running locally, please set these variables first.
 // Only parse if this is the main module
 if (require.main === module) {
   program.parse();
-}                                 
+}                                                
