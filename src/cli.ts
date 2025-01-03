@@ -163,7 +163,7 @@ If running locally, please set these variables first.
         const monthProgress = calculator.getMonthProgress(timestamp);
         const { monthName, year, daysCompleted, daysRemaining } = monthProgress;
         
-        // Format exactly as expected by tests
+        // Format exactly as expected by tests with parentheses around "days complete"
         logger.info(`📅 ${monthName} ${year} (${daysCompleted} days complete)`);
         logger.info(`⏳ Days Remaining: ${daysRemaining}`);
         
@@ -176,7 +176,7 @@ If running locally, please set these variables first.
         logger.info(`💰 Projected Monthly Total: $${projectedMonthTotal.toLocaleString()}`);
         logger.info(''); // Add newline before level display
       } else {
-        // Display weekly timeframe header with exact formatting
+        // Display weekly timeframe header with exact formatting and newlines
         logger.info('\n📊 Rewards Calculation Results:\n');
       }
 
@@ -226,4 +226,4 @@ If running locally, please set these variables first.
 // Only parse if this is the main module
 if (require.main === module) {
   program.parse();
-}                                                                                                         
+}                                                                                                            

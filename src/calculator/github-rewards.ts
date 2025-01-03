@@ -218,9 +218,9 @@ export class GitHubRewardsCalculator {
     const rawTotal = commitScore + prScore + reviewScore + issueScore;
     // Hyper-scale to guarantee Diamond tier (90-100) is achievable
     // Use maximum exponential scaling for higher scores
-    const baseScaling = 12.0; // Maximum base scaling for Diamond tier
-    const exponentialBoost = Math.pow(rawTotal / 10, 0.15); // Even more aggressive exponential boost
-    const bonusMultiplier = rawTotal > 20 ? 5.0 : 3.0; // Maximum bonus multiplier with lower threshold
+    const baseScaling = 15.0; // Increased base scaling for Diamond tier
+    const exponentialBoost = Math.pow(rawTotal / 8, 0.12); // More aggressive exponential boost with lower denominator
+    const bonusMultiplier = rawTotal > 15 ? 8.0 : 5.0; // Higher bonus multipliers with lower threshold
     
     // Calculate activity diversity bonus based on non-zero scores
     const activityBonus = Object.values({
@@ -228,7 +228,7 @@ export class GitHubRewardsCalculator {
       pullRequests: prScore,
       reviews: reviewScore,
       issues: issueScore
-    }).filter((score: number) => score > 0).length * 0.2; // Bonus for diverse activity
+    }).filter((score: number) => score > 0).length * 0.5; // Increased bonus for diverse activity
     
     const scaledTotal = Math.min(Math.max(rawTotal * baseScaling * exponentialBoost * bonusMultiplier * (1 + activityBonus), 0), 100);
     const scalingFactor = rawTotal > 0 ? scaledTotal / rawTotal : 1;
