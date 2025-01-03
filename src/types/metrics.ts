@@ -18,6 +18,7 @@ export interface MetricsMetadata {
   collectionTimestamp: number;
   periodStart: number;
   periodEnd: number;
+  timeframe?: 'week' | 'calendar-month' | 'month' | 'day';
 }
 
 export interface GitHubMetrics {
@@ -91,5 +92,12 @@ export interface RewardCalculation {
     timestamp: number;
     periodStart: number;
     periodEnd: number;
+    timeframe?: string; // Optional to maintain backward compatibility
+    monthProgress?: {
+      daysCompleted: number;
+      daysRemaining: number;
+      monthName: string;
+      year: number;
+    }; // Optional, only present for calendar-month timeframe
   };
 }

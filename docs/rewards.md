@@ -250,16 +250,42 @@ To maximize your rewards while maintaining development quality:
    - Participate in discussions
    - Help onboard new developers
 
+## Timeframe Options
+
+The rewards system supports two calculation timeframes:
+
+1. **Weekly (Default)**
+   - Rolling 7-day window
+   - Weekly reward amount
+   - Traditional metrics view
+
+2. **Calendar Month**
+   - True calendar month alignment
+   - Days completed/remaining tracking
+   - Month-to-date earnings
+   - Projected monthly total
+   - Example output:
+     ```
+     📅 January 2024 (22 days complete)
+     ⏳ Days Remaining: 9
+     💰 Month-to-Date: $2,500
+     💰 Projected Monthly Total: $3,500
+     ```
+
 ## Monitoring Your Progress
 
 1. Track your metrics in real-time on the [Protocol Rewards Dashboard](https://protocol-rewards-dashboard.vercel.app/)
 2. Review weekly and monthly trends
-3. Adjust development practices based on metrics
+3. Switch between weekly and calendar month views
+4. Adjust development practices based on metrics
 
 ## FAQ
 
 **Q: How often are rewards calculated?**
-A: Metrics are collected every 5 minutes, but rewards are calculated on a weekly basis to ensure consistency.
+A: Metrics are collected every 5 minutes. Rewards can be calculated on either a weekly basis or calendar month basis, depending on your chosen timeframe.
+
+**Q: What's the difference between weekly and calendar month calculations?**
+A: Weekly calculations use a rolling 7-day window, while calendar month calculations align with actual calendar months (e.g., January 1-31, February 1-28/29, etc.). Calendar month view shows days completed, days remaining, and projected monthly totals.
 
 **Q: What happens if we have a spike in activity?**
 A: Sudden spikes trigger additional validation. Consistent, sustainable development is rewarded over burst activity.

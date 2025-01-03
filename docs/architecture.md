@@ -57,9 +57,15 @@ const rewards = calculator.calculateRewards(metrics.github, 'week');
 3. **Results Display**
 
 ```typescript
-// CLI output format
+// CLI output format (weekly)
 logger.info(`🏆 Level: ${rewards.level.name} (${rewards.score.total.toFixed(2)}/100)`);
 logger.info(`💰 Weekly Reward: $${weeklyReward.toLocaleString()}`);
+
+// CLI output format (calendar month)
+logger.info(`📅 ${monthName} ${year} (${daysCompleted} days complete)`);
+logger.info(`⏳ Days Remaining: ${daysRemaining}`);
+logger.info(`💰 Month-to-Date: $${monthToDate.toLocaleString()}`);
+logger.info(`💰 Projected Monthly Total: $${projectedTotal.toLocaleString()}`);
 ```
 
 ## Reward Tiers

@@ -81,6 +81,7 @@ jobs:
 program
   .command('calculate')
   .description('Calculate rewards based on current metrics')
+  .option('--calendar-month', 'Use calendar month for calculations instead of week')
   .action(async () => {
     try {
       // Environment variable validation
@@ -98,10 +99,13 @@ If running locally, please set these variables first.
         throw new Error('Required environment variables not found');
       }
 
+      // Get timeframe from command line or default to week
+      const timeframe = process.argv.includes('--calendar-month') ? 'calendar-month' : 'week';
+      
       const sdk = new GitHubRewardsSDK({
         githubToken: process.env.GITHUB_TOKEN,
         githubRepo: process.env.GITHUB_REPO,
-        timeframe: 'week'
+        timeframe
       });
 
       // Initialize calculator with default settings
@@ -135,8 +139,8 @@ If running locally, please set these variables first.
           logger.info('\nThese warnings won\'t affect your rewards calculation, but addressing them may improve your score.\n');
         }
 
-      // Calculate rewards
-      const rewards = calculator.calculateRewards(metrics.github, 'week');
+      // Calculate rewards using the specified timeframe
+      const rewards = calculator.calculateRewards(metrics.github, timeframe);
 
       // Calculate monetary reward (weekly basis)
       const calculateMonetaryReward = (score: number): number => {
@@ -150,9 +154,32 @@ If running locally, please set these variables first.
       // Display results
       logger.info('\n📊 Rewards Calculation Results:\n');
       const weeklyReward = calculateMonetaryReward(rewards.score.total);
+
+      // Display calendar month specific information if available
+      if (timeframe === 'calendar-month' && rewards.metadata.monthProgress) {
+        const { monthName, year, daysCompleted, daysRemaining } = rewards.metadata.monthProgress;
+        logger.info(`📅 ${monthName} ${year} (${daysCompleted} days complete)`);
+        logger.info(`⏳ Days Remaining: ${daysRemaining}`);
+        
+        // Calculate month-to-date and projected earnings
+        const daysInMonth = daysCompleted + daysRemaining;
+        // Calculate actual month-to-date earnings based on score
+        const monthToDateEarnings = Math.floor(weeklyReward * (daysCompleted / 7));
+        // Project monthly total based on current performance
+        const projectedMonthTotal = Math.floor(weeklyReward * (daysInMonth / 7));
+        
+        logger.info(`💰 Month-to-Date: $${monthToDateEarnings.toLocaleString()}`);
+        logger.info(`💰 Projected Monthly Total: $${projectedMonthTotal.toLocaleString()}`);
+      }
+
       logger.info(`🏆 Level: ${rewards.level.name} (${rewards.score.total.toFixed(2)}/100)`);
       logger.info(`💰 Weekly Reward: $${weeklyReward.toLocaleString()}`);
-      logger.info(`💰 Monthly Projection: $${(weeklyReward * 4).toLocaleString()}`);
+      
+      // Show monthly projection only for week timeframe
+      if (timeframe === 'week') {
+        logger.info(`💰 Monthly Projection: $${(weeklyReward * 4).toLocaleString()}`);
+      }
+      
       logger.info('\nNote: Coming in v0.4.0 - NEAR transaction tracking will increase reward potential! 🚀\n');
       logger.info('\nBreakdown:');
       logger.info(`📝 Commits: ${rewards.score.breakdown.commits.toFixed(2)}`);
@@ -190,4 +217,4 @@ If running locally, please set these variables first.
 // Only parse if this is the main module
 if (require.main === module) {
   program.parse();
-}   
+}         

@@ -16,7 +16,7 @@ export interface StorageConfig {
 export interface SDKConfig {
   githubToken: string;
   githubRepo: string;
-  timeframe?: "day" | "week" | "month";
+  timeframe?: "day" | "week" | "month" | "calendar-month";
   logger?: Logger;
   maxRequestsPerSecond?: number;
   storage?: StorageConfig;
