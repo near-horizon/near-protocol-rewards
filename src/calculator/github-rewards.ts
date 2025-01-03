@@ -174,10 +174,9 @@ export class GitHubRewardsCalculator {
     const periodMultiplier = (() => {
       switch (timeframe) {
         case 'calendar-month': {
-          const progress = this.getMonthProgress(new Date());
-          // Ensure we have at least one week's worth of multiplier
-          // to prevent division by zero or extremely small numbers
-          return Math.max(progress.daysCompleted / 7, 1);
+          // For calendar month, use a fixed 4-week period for scoring
+          // This ensures consistent scoring across different month lengths
+          return 4;
         }
         case 'month':
           return 4; // 4 weeks
