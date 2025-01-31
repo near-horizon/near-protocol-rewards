@@ -32,7 +32,11 @@ export class ConsoleLogger implements ILogger {
 
   info(message: string, context?: Record<string, unknown>): void {
     if (this.shouldLog("info")) {
-      console.info(message, context);
+      if (context) {
+        console.info(message, context);
+      } else {
+        console.info(message);
+      }
     }
   }
 
