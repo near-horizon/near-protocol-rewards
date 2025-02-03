@@ -1,0 +1,125 @@
+# {{ title }}
+
+{{ description }}
+
+{% if breaking_changes %}
+## ⚠️ Breaking Changes
+
+{% for change in breaking_changes %}
+- {{ change }}
+{% endfor %}
+{% endif %}
+
+## Installation
+
+```bash
+pip install {{ package_name }}
+```
+
+{% if dependencies %}
+### Dependencies
+
+{% for dep in dependencies %}
+- {{ dep }}
+{% endfor %}
+{% endif %}
+
+## API Reference
+
+{% for class in classes %}
+### {{ class.name }}
+
+{{ class.description }}
+
+{% if class.constructor %}
+#### Constructor
+
+```python
+{{ class.constructor.signature }}
+```
+
+{% if class.constructor.params %}
+**Parameters:**
+{% for param in class.constructor.params %}
+- `{{ param.name }}` ({{ param.type }}): {{ param.description }}
+{% endfor %}
+{% endif %}
+{% endif %}
+
+{% if class.methods %}
+#### Methods
+
+{% for method in class.methods %}
+##### `{{ method.name }}`
+
+```python
+{{ method.signature }}
+```
+
+{{ method.description }}
+
+{% if method.params %}
+**Parameters:**
+{% for param in method.params %}
+- `{{ param.name }}` ({{ param.type }}): {{ param.description }}
+{% endfor %}
+{% endif %}
+
+{% if method.returns %}
+**Returns:**
+{{ method.returns }}
+{% endif %}
+
+{% if method.example %}
+**Example:**
+```python
+{{ method.example }}
+```
+{% endif %}
+
+{% endfor %}
+{% endif %}
+{% endfor %}
+
+## Examples
+
+{% for example in examples %}
+### {{ example.title }}
+
+{{ example.description }}
+
+```python
+{{ example.code }}
+```
+
+{% endfor %}
+
+## Error Handling
+
+{% for error in errors %}
+### {{ error.name }}
+
+{{ error.description }}
+
+{% if error.example %}
+```python
+{{ error.example }}
+```
+{% endif %}
+
+{% endfor %}
+
+## Best Practices
+
+{% for practice in best_practices %}
+### {{ practice.title }}
+
+{{ practice.description }}
+
+{% if practice.example %}
+```python
+{{ practice.example }}
+```
+{% endif %}
+
+{% endfor %} 

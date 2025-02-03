@@ -1,0 +1,210 @@
+# UI Documentation: {{ title }}
+
+{{ description }}
+
+{% if breaking_changes %}
+## ⚠️ Breaking Changes
+
+{% for change in breaking_changes %}
+- {{ change }}
+{% endfor %}
+{% endif %}
+
+{% if screenshots %}
+## Visual Changes
+
+{% for screenshot in screenshots %}
+### {{ screenshot.title }}
+
+{{ screenshot.description }}
+
+![{{ screenshot.alt }}]({{ screenshot.url }})
+
+{% if screenshot.notes %}
+> **Note:** {{ screenshot.notes }}
+{% endif %}
+
+{% endfor %}
+{% endif %}
+
+{% if components %}
+## Components
+
+{% for component in components %}
+### {{ component.name }}
+
+{{ component.description }}
+
+{% if component.props %}
+#### Props
+
+| Prop | Type | Required | Default | Description |
+|------|------|----------|---------|-------------|
+{% for prop in component.props %}
+| `{{ prop.name }}` | `{{ prop.type }}` | {{ "Yes" if prop.required else "No" }} | {{ prop.default if prop.default else "-" }} | {{ prop.description }} |
+{% endfor %}
+{% endif %}
+
+{% if component.example %}
+#### Example
+
+```{{ component.example.language }}
+{{ component.example.code }}
+```
+
+{% if component.example.output %}
+**Output:**
+```
+{{ component.example.output }}
+```
+{% endif %}
+{% endif %}
+
+{% if component.notes %}
+> **Note:** {{ component.notes }}
+{% endif %}
+
+{% endfor %}
+{% endif %}
+
+{% if styles %}
+## Styles
+
+{% for style in styles %}
+### {{ style.name }}
+
+{{ style.description }}
+
+{% if style.variables %}
+#### Variables
+
+| Variable | Type | Default | Description |
+|----------|------|---------|-------------|
+{% for var in style.variables %}
+| `{{ var.name }}` | `{{ var.type }}` | `{{ var.default }}` | {{ var.description }} |
+{% endfor %}
+{% endif %}
+
+{% if style.example %}
+#### Example
+
+```{{ style.example.language }}
+{{ style.example.code }}
+```
+{% endif %}
+
+{% endfor %}
+{% endif %}
+
+{% if interactions %}
+## User Interactions
+
+{% for interaction in interactions %}
+### {{ interaction.name }}
+
+{{ interaction.description }}
+
+{% if interaction.steps %}
+#### Steps
+
+{% for step in interaction.steps %}
+{{ loop.index }}. {{ step }}
+{% endfor %}
+{% endif %}
+
+{% if interaction.example %}
+#### Example
+
+```{{ interaction.example.language }}
+{{ interaction.example.code }}
+```
+{% endif %}
+
+{% endfor %}
+{% endif %}
+
+{% if accessibility %}
+## Accessibility
+
+{% for feature in accessibility %}
+### {{ feature.name }}
+
+{{ feature.description }}
+
+{% if feature.implementation %}
+#### Implementation
+
+```{{ feature.implementation.language }}
+{{ feature.implementation.code }}
+```
+{% endif %}
+
+{% if feature.guidelines %}
+#### Guidelines
+
+{% for guideline in feature.guidelines %}
+- {{ guideline }}
+{% endfor %}
+{% endif %}
+
+{% endfor %}
+{% endif %}
+
+{% if responsive %}
+## Responsive Design
+
+{% for breakpoint in responsive %}
+### {{ breakpoint.name }}
+
+{{ breakpoint.description }}
+
+{% if breakpoint.styles %}
+```css
+{{ breakpoint.styles }}
+```
+{% endif %}
+
+{% endfor %}
+{% endif %}
+
+{% if best_practices %}
+## Best Practices
+
+{% for practice in best_practices %}
+### {{ practice.title }}
+
+{{ practice.description }}
+
+{% if practice.example %}
+```
+{{ practice.example }}
+```
+{% endif %}
+
+{% endfor %}
+{% endif %}
+
+{% if testing %}
+## Testing
+
+{% for test in testing %}
+### {{ test.name }}
+
+{{ test.description }}
+
+{% if test.code %}
+```{{ test.language }}
+{{ test.code }}
+```
+{% endif %}
+
+{% endfor %}
+{% endif %}
+
+{% if related %}
+## Related Documentation
+
+{% for doc in related %}
+- [{{ doc.title }}]({{ doc.url }}){% if doc.description %} - {{ doc.description }}{% endif %}
+{% endfor %}
+{% endif %} 

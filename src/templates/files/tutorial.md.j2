@@ -1,0 +1,105 @@
+# {{ title }}
+
+{{ description }}
+
+## Prerequisites
+
+{% for prereq in prerequisites %}
+- {{ prereq }}
+{% endfor %}
+
+## Installation
+
+```bash
+{{ installation }}
+```
+
+## Steps
+
+{% for step in steps %}
+### {{ loop.index }}. {{ step.title }}
+
+{{ step.description }}
+
+{% if step.code %}
+```python
+{{ step.code }}
+```
+{% endif %}
+
+{% if step.output %}
+**Output:**
+```
+{{ step.output }}
+```
+{% endif %}
+
+{% if step.notes %}
+> **Note:** {{ step.notes }}
+{% endif %}
+
+{% endfor %}
+
+## Common Use Cases
+
+{% for use_case in use_cases %}
+### {{ use_case.title }}
+
+{{ use_case.description }}
+
+```python
+{{ use_case.code }}
+```
+
+{% if use_case.output %}
+**Output:**
+```
+{{ use_case.output }}
+```
+{% endif %}
+
+{% endfor %}
+
+## Troubleshooting
+
+{% for issue in troubleshooting %}
+### {{ issue.problem }}
+
+**Problem:** {{ issue.description }}
+
+**Solution:** {{ issue.solution }}
+
+{% if issue.example %}
+```python
+{{ issue.example }}
+```
+{% endif %}
+
+{% endfor %}
+
+## Best Practices
+
+{% for practice in best_practices %}
+### {{ practice.title }}
+
+{{ practice.description }}
+
+{% if practice.example %}
+```python
+{{ practice.example }}
+```
+{% endif %}
+
+{% endfor %}
+
+## Next Steps
+
+{% for step in next_steps %}
+- {{ step }}
+{% endfor %}
+
+## Additional Resources
+
+{% for resource in resources %}
+- [{{ resource.title }}]({{ resource.url }}){% if resource.description %} - {{ resource.description }}{% endif %}
+{% endfor %} 

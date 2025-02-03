@@ -1,0 +1,200 @@
+# {{ title }}
+
+{{ description }}
+
+{% if architecture_diagram %}
+## System Architecture
+
+![System Architecture]({{ architecture_diagram }})
+
+{{ architecture_description }}
+
+{% if components %}
+### Components
+
+{% for component in components %}
+#### {{ component.name }}
+
+{{ component.description }}
+
+{% if component.responsibilities %}
+**Responsibilities:**
+{% for responsibility in component.responsibilities %}
+- {{ responsibility }}
+{% endfor %}
+{% endif %}
+
+{% if component.interfaces %}
+**Interfaces:**
+```
+{{ component.interfaces }}
+```
+{% endif %}
+
+{% endfor %}
+{% endif %}
+{% endif %}
+
+{% if data_flow %}
+## Data Flow
+
+{{ data_flow.description }}
+
+{% for flow in data_flow.sequences %}
+### {{ flow.name }}
+
+{{ flow.description }}
+
+```mermaid
+{{ flow.diagram }}
+```
+
+{% endfor %}
+{% endif %}
+
+{% if design_decisions %}
+## Design Decisions
+
+{% for decision in design_decisions %}
+### {{ decision.title }}
+
+**Context:** {{ decision.context }}
+
+**Decision:** {{ decision.decision }}
+
+**Consequences:** {{ decision.consequences }}
+
+{% if decision.alternatives %}
+**Alternatives Considered:**
+{% for alt in decision.alternatives %}
+- {{ alt }}
+{% endfor %}
+{% endif %}
+
+{% endfor %}
+{% endif %}
+
+{% if performance %}
+## Performance Considerations
+
+{% for consideration in performance %}
+### {{ consideration.title }}
+
+{{ consideration.description }}
+
+{% if consideration.metrics %}
+**Key Metrics:**
+{% for metric in consideration.metrics %}
+- {{ metric.name }}: {{ metric.target }}
+{% endfor %}
+{% endif %}
+
+{% endfor %}
+{% endif %}
+
+{% if security %}
+## Security Considerations
+
+{% for consideration in security %}
+### {{ consideration.title }}
+
+{{ consideration.description }}
+
+{% if consideration.mitigations %}
+**Mitigations:**
+{% for mitigation in consideration.mitigations %}
+- {{ mitigation }}
+{% endfor %}
+{% endif %}
+
+{% endfor %}
+{% endif %}
+
+{% if deployment %}
+## Deployment Architecture
+
+{{ deployment.description }}
+
+{% if deployment.diagram %}
+```mermaid
+{{ deployment.diagram }}
+```
+{% endif %}
+
+{% if deployment.requirements %}
+### Requirements
+
+{% for req in deployment.requirements %}
+- {{ req }}
+{% endfor %}
+{% endif %}
+
+{% if deployment.steps %}
+### Deployment Steps
+
+{% for step in deployment.steps %}
+#### {{ loop.index }}. {{ step.title }}
+
+{{ step.description }}
+
+{% if step.commands %}
+```bash
+{{ step.commands }}
+```
+{% endif %}
+
+{% endfor %}
+{% endif %}
+{% endif %}
+
+{% if monitoring %}
+## Monitoring and Observability
+
+{% for item in monitoring %}
+### {{ item.title }}
+
+{{ item.description }}
+
+{% if item.metrics %}
+**Key Metrics:**
+{% for metric in item.metrics %}
+- {{ metric.name }}: {{ metric.description }}
+{% endfor %}
+{% endif %}
+
+{% if item.alerts %}
+**Alerts:**
+{% for alert in item.alerts %}
+- {{ alert.name }}: {{ alert.condition }}
+{% endfor %}
+{% endif %}
+
+{% endfor %}
+{% endif %}
+
+{% if disaster_recovery %}
+## Disaster Recovery
+
+{% for scenario in disaster_recovery %}
+### {{ scenario.title }}
+
+**Impact:** {{ scenario.impact }}
+
+**Recovery Steps:**
+{% for step in scenario.steps %}
+{{ loop.index }}. {{ step }}
+{% endfor %}
+
+**Recovery Time Objective (RTO):** {{ scenario.rto }}
+**Recovery Point Objective (RPO):** {{ scenario.rpo }}
+
+{% endfor %}
+{% endif %}
+
+{% if references %}
+## References
+
+{% for ref in references %}
+- [{{ ref.title }}]({{ ref.url }}){% if ref.description %} - {{ ref.description }}{% endif %}
+{% endfor %}
+{% endif %} 

@@ -1,0 +1,146 @@
+# Configuration Guide: {{ title }}
+
+{{ description }}
+
+{% if breaking_changes %}
+## ⚠️ Breaking Changes
+
+{% for change in breaking_changes %}
+- {{ change }}
+{% endfor %}
+{% endif %}
+
+## Configuration Options
+
+{% for option in config_options %}
+### {{ option.name }}
+
+{{ option.description }}
+
+**Type:** `{{ option.type }}`
+{% if option.default %}**Default:** `{{ option.default }}`{% endif %}
+{% if option.required %}**Required:** Yes{% endif %}
+
+{% if option.example %}
+**Example:**
+```
+{{ option.example }}
+```
+{% endif %}
+
+{% if option.notes %}
+> **Note:** {{ option.notes }}
+{% endif %}
+
+{% endfor %}
+
+{% if env_vars %}
+## Environment Variables
+
+{% for var in env_vars %}
+### {{ var.name }}
+
+{{ var.description }}
+
+**Type:** `{{ var.type }}`
+{% if var.default %}**Default:** `{{ var.default }}`{% endif %}
+{% if var.required %}**Required:** Yes{% endif %}
+
+{% if var.example %}
+**Example:**
+```bash
+{{ var.example }}
+```
+{% endif %}
+
+{% endfor %}
+{% endif %}
+
+{% if config_files %}
+## Configuration Files
+
+{% for file in config_files %}
+### {{ file.name }}
+
+{{ file.description }}
+
+**Location:** `{{ file.location }}`
+
+{% if file.format %}
+**Format:** {{ file.format }}
+{% endif %}
+
+{% if file.example %}
+**Example:**
+```{{ file.format|lower }}
+{{ file.example }}
+```
+{% endif %}
+
+{% endfor %}
+{% endif %}
+
+{% if setup_steps %}
+## Setup Instructions
+
+{% for step in setup_steps %}
+### {{ loop.index }}. {{ step.title }}
+
+{{ step.description }}
+
+{% if step.code %}
+```bash
+{{ step.code }}
+```
+{% endif %}
+
+{% if step.notes %}
+> **Note:** {{ step.notes }}
+{% endif %}
+
+{% endfor %}
+{% endif %}
+
+{% if troubleshooting %}
+## Troubleshooting
+
+{% for issue in troubleshooting %}
+### {{ issue.problem }}
+
+**Problem:** {{ issue.description }}
+
+**Solution:** {{ issue.solution }}
+
+{% if issue.example %}
+```bash
+{{ issue.example }}
+```
+{% endif %}
+
+{% endfor %}
+{% endif %}
+
+{% if best_practices %}
+## Best Practices
+
+{% for practice in best_practices %}
+### {{ practice.title }}
+
+{{ practice.description }}
+
+{% if practice.example %}
+```
+{{ practice.example }}
+```
+{% endif %}
+
+{% endfor %}
+{% endif %}
+
+{% if related %}
+## Related Documentation
+
+{% for doc in related %}
+- [{{ doc.title }}]({{ doc.url }}){% if doc.description %} - {{ doc.description }}{% endif %}
+{% endfor %}
+{% endif %} 

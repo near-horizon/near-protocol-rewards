@@ -1,0 +1,174 @@
+# {{ title }}
+
+{{ description }}
+
+{% if toc %}
+## Table of Contents
+{% for item in toc %}
+{{ item.indent }}- [{{ item.title }}](#{{ item.anchor }})
+{% endfor %}
+{% endif %}
+
+{% if overview %}
+## Overview
+
+{{ overview }}
+
+{% if key_features %}
+### Key Features
+
+{% for feature in key_features %}
+- {{ feature }}
+{% endfor %}
+{% endif %}
+{% endif %}
+
+{% if prerequisites %}
+## Prerequisites
+
+{% for prereq in prerequisites %}
+### {{ prereq.title }}
+
+{{ prereq.description }}
+
+{% if prereq.steps %}
+{% for step in prereq.steps %}
+{{ loop.index }}. {{ step }}
+{% endfor %}
+{% endif %}
+
+{% endfor %}
+{% endif %}
+
+{% if sections %}
+{% for section in sections %}
+## {{ section.title }}
+
+{{ section.content }}
+
+{% if section.subsections %}
+{% for subsection in section.subsections %}
+### {{ subsection.title }}
+
+{{ subsection.content }}
+
+{% if subsection.code %}
+```{{ subsection.language }}
+{{ subsection.code }}
+```
+{% endif %}
+
+{% if subsection.notes %}
+> **Note:** {{ subsection.notes }}
+{% endif %}
+
+{% endfor %}
+{% endif %}
+
+{% endfor %}
+{% endif %}
+
+{% if examples %}
+## Examples
+
+{% for example in examples %}
+### {{ example.title }}
+
+{{ example.description }}
+
+{% if example.code %}
+```{{ example.language }}
+{{ example.code }}
+```
+{% endif %}
+
+{% if example.output %}
+**Output:**
+```
+{{ example.output }}
+```
+{% endif %}
+
+{% endfor %}
+{% endif %}
+
+{% if faq %}
+## Frequently Asked Questions
+
+{% for item in faq %}
+### {{ item.question }}
+
+{{ item.answer }}
+
+{% if item.example %}
+**Example:**
+```
+{{ item.example }}
+```
+{% endif %}
+
+{% endfor %}
+{% endif %}
+
+{% if troubleshooting %}
+## Troubleshooting
+
+{% for issue in troubleshooting %}
+### {{ issue.problem }}
+
+**Symptoms:**
+{% for symptom in issue.symptoms %}
+- {{ symptom }}
+{% endfor %}
+
+**Solution:**
+{{ issue.solution }}
+
+{% if issue.prevention %}
+**Prevention:**
+{{ issue.prevention }}
+{% endif %}
+
+{% endfor %}
+{% endif %}
+
+{% if best_practices %}
+## Best Practices
+
+{% for practice in best_practices %}
+### {{ practice.title }}
+
+{{ practice.description }}
+
+{% if practice.examples %}
+**Examples:**
+{% for example in practice.examples %}
+- {{ example }}
+{% endfor %}
+{% endif %}
+
+{% endfor %}
+{% endif %}
+
+{% if related %}
+## Related Resources
+
+{% for resource in related %}
+- [{{ resource.title }}]({{ resource.url }}){% if resource.description %} - {{ resource.description }}{% endif %}
+{% endfor %}
+{% endif %}
+
+{% if glossary %}
+## Glossary
+
+{% for term in glossary %}
+### {{ term.name }}
+
+{{ term.definition }}
+
+{% if term.example %}
+**Example:** {{ term.example }}
+{% endif %}
+
+{% endfor %}
+{% endif %} 

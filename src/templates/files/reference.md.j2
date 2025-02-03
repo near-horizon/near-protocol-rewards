@@ -1,0 +1,140 @@
+# {{ title }} Quick Reference
+
+{{ description }}
+
+{% if commands %}
+## Common Commands
+
+{% for category in commands %}
+### {{ category.name }}
+
+| Command | Description | Example |
+|---------|-------------|---------|
+{% for cmd in category.items %}
+| `{{ cmd.command }}` | {{ cmd.description }} | `{{ cmd.example }}` |
+{% endfor %}
+
+{% endfor %}
+{% endif %}
+
+{% if snippets %}
+## Code Snippets
+
+{% for category in snippets %}
+### {{ category.name }}
+
+{% for snippet in category.items %}
+#### {{ snippet.title }}
+
+```{{ snippet.language }}
+{{ snippet.code }}
+```
+
+{% if snippet.notes %}
+> **Note:** {{ snippet.notes }}
+{% endif %}
+
+{% endfor %}
+{% endfor %}
+{% endif %}
+
+{% if configurations %}
+## Common Configurations
+
+{% for config in configurations %}
+### {{ config.title }}
+
+```{{ config.format }}
+{{ config.content }}
+```
+
+{% if config.description %}
+{{ config.description }}
+{% endif %}
+
+{% endfor %}
+{% endif %}
+
+{% if workflows %}
+## Common Workflows
+
+{% for workflow in workflows %}
+### {{ workflow.title }}
+
+{% for step in workflow.steps %}
+{{ loop.index }}. {{ step }}
+{% endfor %}
+
+{% if workflow.diagram %}
+```mermaid
+{{ workflow.diagram }}
+```
+{% endif %}
+
+{% endfor %}
+{% endif %}
+
+{% if flags %}
+## Common Flags and Options
+
+{% for category in flags %}
+### {{ category.name }}
+
+| Flag | Description | Default |
+|------|-------------|---------|
+{% for flag in category.items %}
+| `{{ flag.name }}` | {{ flag.description }} | `{{ flag.default }}` |
+{% endfor %}
+
+{% endfor %}
+{% endif %}
+
+{% if environment %}
+## Environment Variables
+
+| Variable | Description | Default | Required |
+|----------|-------------|---------|-----------|
+{% for var in environment %}
+| `{{ var.name }}` | {{ var.description }} | `{{ var.default }}` | {{ var.required }} |
+{% endfor %}
+{% endif %}
+
+{% if shortcuts %}
+## Keyboard Shortcuts
+
+{% for category in shortcuts %}
+### {{ category.name }}
+
+| Shortcut | Description | Platform |
+|----------|-------------|----------|
+{% for shortcut in category.items %}
+| `{{ shortcut.keys }}` | {{ shortcut.description }} | {{ shortcut.platform }} |
+{% endfor %}
+
+{% endfor %}
+{% endif %}
+
+{% if troubleshooting %}
+## Quick Troubleshooting
+
+{% for issue in troubleshooting %}
+### {{ issue.symptom }}
+
+**Solution:** {{ issue.solution }}
+
+{% if issue.command %}
+```bash
+{{ issue.command }}
+```
+{% endif %}
+
+{% endfor %}
+{% endif %}
+
+{% if see_also %}
+## See Also
+
+{% for link in see_also %}
+- [{{ link.title }}]({{ link.url }}){% if link.description %} - {{ link.description }}{% endif %}
+{% endfor %}
+{% endif %} 

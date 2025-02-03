@@ -1,0 +1,129 @@
+name: CI/CD
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      redis:
+        image: redis
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.9'
+        
+    - name: Install Poetry
+      uses: snok/install-poetry@v1
+      with:
+        version: 1.7.1
+        virtualenvs-create: true
+        virtualenvs-in-project: true
+        
+    - name: Load cached venv
+      id: cached-poetry-dependencies
+      uses: actions/cache@v3
+      with:
+        path: .venv
+        key: venv-${{ runner.os }}-${{ hashFiles('**/poetry.lock') }}
+        
+    - name: Install dependencies
+      if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
+      run: poetry install --no-interaction --no-root
+      
+    - name: Run tests
+      env:
+        REDIS_HOST: localhost
+        REDIS_PORT: 6379
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      run: |
+        poetry run pytest tests/ --cov=src --cov-report=xml
+        
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v3
+      with:
+        file: ./coverage.xml
+        fail_ci_if_error: true
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.9'
+        
+    - name: Install Poetry
+      uses: snok/install-poetry@v1
+      with:
+        version: 1.7.1
+        virtualenvs-create: true
+        virtualenvs-in-project: true
+        
+    - name: Install dependencies
+      run: poetry install --no-interaction --no-root
+      
+    - name: Run linters
+      run: |
+        poetry run black . --check
+        poetry run isort . --check-only
+        poetry run flake8 .
+        poetry run mypy src tests
+
+  build:
+    needs: [test, lint]
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+      
+    - name: Login to GitHub Container Registry
+      uses: docker/login-action@v3
+      with:
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+        
+    - name: Build and push
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        push: true
+        tags: |
+          ghcr.io/${{ github.repository }}:latest
+          ghcr.io/${{ github.repository }}:${{ github.sha }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    
+    steps:
+    - name: Deploy to production
+      run: |
+        echo "Add your deployment steps here"
+      # Add actual deployment steps based on your infrastructure 

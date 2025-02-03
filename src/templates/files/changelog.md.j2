@@ -1,0 +1,92 @@
+# Changelog
+
+{% if version %}
+## [{{ version }}]{% if release_date %} - {{ release_date }}{% endif %}
+
+{% if breaking_changes %}
+### ⚠️ Breaking Changes
+
+{% for change in breaking_changes %}
+- {{ change }}
+{% endfor %}
+{% endif %}
+
+{% if added %}
+### Added
+
+{% for item in added %}
+- {{ item }}
+{% endfor %}
+{% endif %}
+
+{% if changed %}
+### Changed
+
+{% for item in changed %}
+- {{ item }}
+{% endfor %}
+{% endif %}
+
+{% if deprecated %}
+### Deprecated
+
+{% for item in deprecated %}
+- {{ item }}
+{% endfor %}
+{% endif %}
+
+{% if removed %}
+### Removed
+
+{% for item in removed %}
+- {{ item }}
+{% endfor %}
+{% endif %}
+
+{% if fixed %}
+### Fixed
+
+{% for item in fixed %}
+- {{ item }}
+{% endfor %}
+{% endif %}
+
+{% if security %}
+### Security
+
+{% for item in security %}
+- {{ item }}
+{% endfor %}
+{% endif %}
+
+{% if dependencies %}
+### Dependencies
+
+{% for dep in dependencies %}
+- {{ dep }}
+{% endfor %}
+{% endif %}
+
+{% if contributors %}
+### Contributors
+
+{% for contributor in contributors %}
+- [@{{ contributor.username }}]({{ contributor.profile }}){% if contributor.changes %} - {{ contributor.changes }}{% endif %}
+{% endfor %}
+{% endif %}
+
+{% endif %}
+
+{% if migration_guide %}
+## Migration Guide
+
+{{ migration_guide }}
+{% endif %}
+
+{% if links %}
+## Links
+
+{% for link in links %}
+- [{{ link.title }}]({{ link.url }}){% if link.description %} - {{ link.description }}{% endif %}
+{% endfor %}
+{% endif %} 
