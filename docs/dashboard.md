@@ -4,7 +4,7 @@
 
 ## Quick Connect
 
-1. Go to [Protocol Rewards Dashboard](https://protocol-rewards-dashboard.vercel.app)
+1. Go to [Protocol Rewards Dashboard](https://near-protocol-rewards.netlify.app/)
 2. Click "Sign in with GitHub"
 3. Authorize the dashboard application
 4. Select your repository from the list
