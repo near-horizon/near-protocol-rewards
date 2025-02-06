@@ -81,12 +81,18 @@ export class GitHubRewardsCalculator {
       case "day":
         periodStart = now - 24 * 60 * 60 * 1000;
         break;
-      case "week":
+      case "last-week":
         periodStart = now - 7 * 24 * 60 * 60 * 1000;
         break;
-      case "month":
+      case "last-thirty-days":
         periodStart = now - 30 * 24 * 60 * 60 * 1000;
         break;
+      case "current-month": {
+          const currentDate = new Date();
+          const startOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+          periodStart = startOfMonth.getTime();
+          break;
+        }
       default:
         periodStart = now - 7 * 24 * 60 * 60 * 1000; // Default to week
     }
