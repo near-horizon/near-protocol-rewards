@@ -105,7 +105,7 @@ describe('calculate command', () => {
     expect(logger.info).toHaveBeenCalledWith('\n📊 Rewards Calculation Results:\n');
     expect(logger.info).toHaveBeenCalledWith(expect.stringContaining('🏆 Level:'));
     expect(logger.info).toHaveBeenCalledWith(expect.stringContaining('💰 Weekly Reward: $'));
-    expect(logger.info).toHaveBeenCalledWith(expect.stringContaining('💰 Monthly Projection: $'));
+    expect(logger.info).toHaveBeenCalledWith(expect.stringContaining('💰 Monthly Total Reward: $'));
     expect(logger.info).toHaveBeenCalledWith('\nNote: Coming in v0.4.0 - NEAR transaction tracking will increase reward potential! 🚀\n');
     expect(logger.info).toHaveBeenCalledWith('\nBreakdown:');
     expect(logger.info).toHaveBeenCalledWith(expect.stringContaining('📝 Commits:'));
