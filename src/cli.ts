@@ -136,7 +136,9 @@ If running locally, please set these variables first.
         }
 
       // Calculate rewards
-      const rewards = calculator.calculateRewards(metrics.github, 'week');
+      const rewards = calculator.calculateRewards(metrics.github, 'last-week');
+      const rewardsTotalMonth = calculator.calculateRewards(metrics.github, 'current-month');
+
 
       // Calculate monetary reward (weekly basis)
       const calculateMonetaryReward = (score: number): number => {
@@ -150,9 +152,11 @@ If running locally, please set these variables first.
       // Display results
       logger.info('\n📊 Rewards Calculation Results:\n');
       const weeklyReward = calculateMonetaryReward(rewards.score.total);
+      const monthReward = calculateMonetaryReward(rewardsTotalMonth.score.total);
+
       logger.info(`🏆 Level: ${rewards.level.name} (${rewards.score.total.toFixed(2)}/100)`);
       logger.info(`💰 Weekly Reward: $${weeklyReward.toLocaleString()}`);
-      logger.info(`💰 Monthly Projection: $${(weeklyReward * 4).toLocaleString()}`);
+      logger.info(`💰 Monthly Total Reward: $${monthReward.toLocaleString()}`);
       logger.info('\nNote: Coming in v0.4.0 - NEAR transaction tracking will increase reward potential! 🚀\n');
       logger.info('\nBreakdown:');
       logger.info(`📝 Commits: ${rewards.score.breakdown.commits.toFixed(2)}`);
