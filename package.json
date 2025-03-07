@@ -37,13 +37,15 @@
     "@octokit/rest": "^19.0.0",
     "commander": "11.1.0",
     "dotenv": "^16.0.0",
+    "near-api-js": "5.1.0",
     "near-protocol-rewards": "0.3.1",
+    "pg": "8.13.3",
     "zod": "3.23.8"
   },
   "devDependencies": {
     "@types/express": "^4.17.0",
     "@types/jest": "29.5.14",
-    "@types/node": "^20.0.0",
+    "@types/node": "20.17.23",
     "@types/pg": "^8.10.0",
     "@typescript-eslint/eslint-plugin": "^6.0.0",
     "@typescript-eslint/parser": "^6.0.0",
@@ -51,8 +53,9 @@
     "jest": "29.7.0",
     "prettier": "^3.1.0",
     "ts-jest": "29.2.5",
+    "ts-node": "10.9.2",
     "typedoc": "^0.25.0",
-    "typescript": "^5.0.0"
+    "typescript": "5.8.2"
   },
   "engines": {
     "node": ">=14.0.0"
