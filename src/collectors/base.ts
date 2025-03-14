@@ -26,14 +26,3 @@ export abstract class BaseCollector {
     }
   }
 }
-
-export interface ICollector {
-  name: string;
-  collect(walletId: string): Promise<ICollectorResult>;
-}
-
-export interface ICollectorResult {
-  success: boolean;
-  data?: any;
-  error?: string;
-}

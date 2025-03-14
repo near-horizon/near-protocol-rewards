@@ -55,13 +55,44 @@ export interface GitHubMetrics {
   };
 }
 
+export interface WalletActivity {
+  timestamp: number;
+  transactionHash: string;
+  type: 'incoming' | 'outgoing';
+  details: {
+    signerId: string;
+    receiverId: string;
+    actions: any[];
+  };
+}
+
+export interface NearMetrics {
+  activities: WalletActivity[];
+  timestamp: number;
+}
+
 export interface ProcessedMetrics {
   github: GitHubMetrics;
-  score: Score;
+  near?: NearMetrics;
+  score: {
+    total: number;
+    breakdown: {
+      commits: number;
+      pullRequests: number;
+      reviews: number;
+      issues: number;
+    };
+  };
   timestamp: number;
   collectionTimestamp: number;
   validation: ValidationResult;
-  metadata: MetricsMetadata;
+  metadata: {
+    source: 'github' | 'github+near';
+    projectId: string;
+    collectionTimestamp: number;
+    periodStart: number;
+    periodEnd: number;
+  };
   periodStart: number;
   periodEnd: number;
 }
