@@ -7,16 +7,20 @@
 
 import { EventEmitter } from "events";
 import { GitHubCollector } from "./collectors/github";
-import { ProcessedMetrics } from "./types/metrics";
+import { NearWalletCollector } from "./collectors/near-wallet-collector";
+import { ProcessedMetrics, WalletActivity } from "./types/metrics";
 import { SDKConfig } from "./types/sdk";
 import { BaseError, ErrorCode } from "./types/errors";
 import { ConsoleLogger } from "./utils/logger";
 import { RateLimiter } from "./utils/rate-limiter";
 import { validateConfig } from "./utils/config-validator";
 import { GitHubValidator } from "./validators/github";
+import { existsSync, readFileSync } from "fs";
+import { join } from "path";
 
 export class GitHubRewardsSDK extends EventEmitter {
   private readonly collector: GitHubCollector;
+  private readonly walletCollector?: NearWalletCollector;
   private readonly logger: ConsoleLogger;
   private readonly validator: GitHubValidator;
   private readonly config: SDKConfig;
@@ -53,6 +57,21 @@ export class GitHubRewardsSDK extends EventEmitter {
       logger: this.logger,
       rateLimiter,
     });
+
+    const configPath = join(process.cwd(), '.near-rewards-config.json');
+    if (existsSync(configPath)) {
+      try {
+        const walletConfig = JSON.parse(readFileSync(configPath, 'utf-8'));
+        if (walletConfig.walletId) {
+          this.walletCollector = new NearWalletCollector(
+            walletConfig.walletId,
+            walletConfig.networkId || 'mainnet'
+          );
+        }
+      } catch (error) {
+        this.logger.warn('Failed to initialize wallet collector', { error });
+      }
+    }
   }
 
   async startTracking(): Promise<void> {
@@ -84,8 +103,21 @@ export class GitHubRewardsSDK extends EventEmitter {
       const metrics = await this.collector.collectMetrics();
       const validation = this.validator.validate(metrics);
 
+      let walletActivities: WalletActivity[] = [];
+      if (this.walletCollector) {
+        try {
+          walletActivities = await this.walletCollector.collectActivities();
+        } catch (error) {
+          this.logger.warn('Failed to collect wallet activities', { error });
+        }
+      }
+
       const processed: ProcessedMetrics = {
         github: metrics,
+        near: walletActivities.length > 0 ? {
+          activities: walletActivities,
+          timestamp: Date.now()
+        } : undefined,
         score: {
           total: 0,
           breakdown: {
@@ -99,7 +131,7 @@ export class GitHubRewardsSDK extends EventEmitter {
         collectionTimestamp: metrics.metadata.collectionTimestamp,
         validation,
         metadata: {
-          source: "github",
+          source: walletActivities.length > 0 ? "github+near" : "github",
           projectId: metrics.metadata.projectId,
           collectionTimestamp: metrics.metadata.collectionTimestamp,
           periodStart: Date.now() - 7 * 24 * 60 * 60 * 1000, // 1 week ago

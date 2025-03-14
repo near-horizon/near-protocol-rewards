@@ -1,8 +1,6 @@
-#!/usr/bin/env node
-
 import { Command } from 'commander';
 import { GitHubRewardsSDK } from './sdk';
-import { writeFileSync, mkdirSync } from 'fs';
+import { writeFileSync, mkdirSync, existsSync, readFileSync } from 'fs';
 import { join } from 'path';
 import { GitHubRewardsCalculator, DEFAULT_WEIGHTS, DEFAULT_THRESHOLDS } from './calculator/github-rewards';
 import { ConsoleLogger } from './utils/logger';
@@ -32,7 +30,7 @@ program
       const workflowContent = `name: NEAR Protocol Rewards Tracking
 on:
   schedule:
-    - cron: '0 */12 * * *'  # Every 12 hours
+    - cron: '0 */24 * * *'  # Every 24 hours
   workflow_dispatch:        # Manual trigger
   push:
     branches: [ main ]     # Start on main branch updates
@@ -63,12 +61,7 @@ jobs:
       logger.info('\n🎉 NEAR Protocol Rewards initialized successfully!');
       logger.info('\nMetrics collection will start automatically:');
       logger.info('1. On every push to main branch');
-      logger.info('2. Every 12 hours via scheduled run');
-      logger.info('\n📊 View your metrics at: https://protocol-rewards-dashboard.vercel.app');
-      logger.info('\nTo connect your repository to the dashboard:');
-      logger.info('1. Go to https://protocol-rewards-dashboard.vercel.app');
-      logger.info('2. Sign in with your GitHub account');
-      logger.info('3. Select this repository from the list');
+      logger.info('2. Every 24 hours via scheduled run');
       logger.info('\nNote: First metrics will appear after your next push to main');
     } catch (error) {
       logger.error('Failed to initialize:', { 
@@ -191,7 +184,40 @@ If running locally, please set these variables first.
     }
   });
 
-// Only parse if this is the main module
+program
+  .command('register-wallet')
+  .description('Register your NEAR wallet address for rewards tracking')
+  .argument('<wallet-id>', 'Your NEAR wallet address')
+  .action(async (walletId: string) => {
+    try {
+      if (!walletId.endsWith('.near') && !walletId.endsWith('.testnet')) {
+        throw new Error('Invalid wallet format. Must end with .near or .testnet');
+      }
+
+      const configPath = join(process.cwd(), '.near-rewards-config.json');
+      let config = { walletId: '', networkId: 'mainnet' };
+      
+      if (existsSync(configPath)) {
+        config = JSON.parse(readFileSync(configPath, 'utf-8'));
+      }
+
+      config.walletId = walletId;
+      config.networkId = walletId.endsWith('.testnet') ? 'testnet' : 'mainnet';
+
+      writeFileSync(configPath, JSON.stringify(config, null, 2));
+      
+      logger.info('✅ NEAR wallet registered successfully!');
+      logger.info(`Wallet ID: ${walletId}`);
+      logger.info(`Network: ${config.networkId}`);
+      logger.info('\nYour on-chain activities will now be tracked for rewards calculation.');
+    } catch (error) {
+      logger.error('Failed to register wallet:', { 
+        message: error instanceof Error ? error.message : String(error)
+      });
+      process.exit(1);
+    }
+  });
+
 if (require.main === module) {
   program.parse();
 }   
