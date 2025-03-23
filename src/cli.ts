@@ -212,40 +212,6 @@ If running locally, please set these variables first.
     }
   });
 
-program
-  .command('register-wallet')
-  .description('Register your NEAR wallet address for rewards tracking')
-  .argument('<wallet-id>', 'Your NEAR wallet address')
-  .action(async (walletId: string) => {
-    try {
-      if (!walletId.endsWith('.near') && !walletId.endsWith('.testnet')) {
-        throw new Error('Invalid wallet format. Must end with .near or .testnet');
-      }
-
-      const configPath = join(process.cwd(), '.near-rewards-config.json');
-      let config = { walletId: '', networkId: 'mainnet' };
-      
-      if (existsSync(configPath)) {
-        config = JSON.parse(readFileSync(configPath, 'utf-8'));
-      }
-
-      config.walletId = walletId;
-      config.networkId = walletId.endsWith('.testnet') ? 'testnet' : 'mainnet';
-
-      writeFileSync(configPath, JSON.stringify(config, null, 2));
-      
-      logger.info('✅ NEAR wallet registered successfully!');
-      logger.info(`Wallet ID: ${walletId}`);
-      logger.info(`Network: ${config.networkId}`);
-      logger.info('\nYour on-chain activities will now be tracked for rewards calculation.');
-    } catch (error) {
-      logger.error('Failed to register wallet:', { 
-        message: error instanceof Error ? error.message : String(error)
-      });
-      process.exit(1);
-    }
-  });
-
 if (require.main === module) {
   program.parse();
 }   
