@@ -29,11 +29,12 @@ export interface Level {
 }
 
 export const DEFAULT_WEIGHTS: ActivityWeights = {
-  commits: 0.3,
-  pullRequests: 0.3,
+  commits: 0.35,
+  pullRequests: 0.25,
   reviews: 0.2,
   issues: 0.2,
-} as const;
+  } as const;
+  
 
 export const DEFAULT_THRESHOLDS: ActivityThresholds = {
   commits: 100,

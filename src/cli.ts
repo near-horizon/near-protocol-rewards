@@ -6,6 +6,8 @@ import { GitHubRewardsCalculator, DEFAULT_WEIGHTS, DEFAULT_THRESHOLDS } from './
 import { ConsoleLogger } from './utils/logger';
 import { GitHubValidator } from './validators/github';
 import { BaseError } from './types/errors';
+import { OnChainRewardsCalculator } from './calculator/wallet-rewards';
+import { NearWalletCollector, WalletActivity } from './collectors/near-wallet-collector';
 
 // Create a logger instance for consistent logging
 const logger = new ConsoleLogger();
@@ -76,7 +78,6 @@ program
   .description('Calculate rewards based on current metrics')
   .action(async () => {
     try {
-      // Environment variable validation
       if (!process.env.GITHUB_TOKEN || !process.env.GITHUB_REPO) {
         logger.error(`
 ❌ Missing required environment variables
@@ -164,6 +165,33 @@ If running locally, please set these variables first.
           });
         }
 
+      const calculateOnChainRewards = async (walletId: string, networkId: string) => {
+        const collector = new NearWalletCollector(walletId, networkId);
+        const activities = await collector.collectActivities();
+
+        const onChainMetrics = {
+          transactionVolume: activities.length,
+          contractInteractions: activities.filter((a: WalletActivity) => a.details.actions.some((action: any) => action.kind === 'FunctionCall')).length,
+          uniqueWallets: new Set(activities.map((a: WalletActivity) => a.details.receiverId)).size
+        };
+        const onChainCalculator = new OnChainRewardsCalculator(onChainMetrics);
+        const onChainRewards = onChainCalculator.calculate();
+
+        logger.info('\n📊 On-Chain Rewards Calculation Results:\n');
+        logger.info(`🏆 On-Chain Total Score: ${onChainRewards.totalScore.toFixed(2)}/50`);
+        logger.info(`🔄 Transaction Volume Score: ${onChainRewards.breakdown.transactionVolume.toFixed(2)}`);
+        logger.info(`🔄 Contract Interactions Score: ${onChainRewards.breakdown.contractInteractions.toFixed(2)}`);
+        logger.info(`🔄 Unique Wallets Score: ${onChainRewards.breakdown.uniqueWallets.toFixed(2)}\n`);
+      };
+
+      const walletId = process.env.WALLET_ID;
+      const networkId = process.env.NETWORK_ID;
+      if (walletId && networkId) {
+        await calculateOnChainRewards(walletId, networkId);
+      } else {
+        logger.info('Skipping on-chain rewards calculation: Wallet ID and Network ID are required.');
+      }
+
       process.exit(0);
     } catch (error) {
       if (error instanceof BaseError) {
@@ -180,40 +208,6 @@ If running locally, please set these variables first.
           message: String(error) 
         });
       }
-      process.exit(1);
-    }
-  });
-
-program
-  .command('register-wallet')
-  .description('Register your NEAR wallet address for rewards tracking')
-  .argument('<wallet-id>', 'Your NEAR wallet address')
-  .action(async (walletId: string) => {
-    try {
-      if (!walletId.endsWith('.near') && !walletId.endsWith('.testnet')) {
-        throw new Error('Invalid wallet format. Must end with .near or .testnet');
-      }
-
-      const configPath = join(process.cwd(), '.near-rewards-config.json');
-      let config = { walletId: '', networkId: 'mainnet' };
-      
-      if (existsSync(configPath)) {
-        config = JSON.parse(readFileSync(configPath, 'utf-8'));
-      }
-
-      config.walletId = walletId;
-      config.networkId = walletId.endsWith('.testnet') ? 'testnet' : 'mainnet';
-
-      writeFileSync(configPath, JSON.stringify(config, null, 2));
-      
-      logger.info('✅ NEAR wallet registered successfully!');
-      logger.info(`Wallet ID: ${walletId}`);
-      logger.info(`Network: ${config.networkId}`);
-      logger.info('\nYour on-chain activities will now be tracked for rewards calculation.');
-    } catch (error) {
-      logger.error('Failed to register wallet:', { 
-        message: error instanceof Error ? error.message : String(error)
-      });
       process.exit(1);
     }
   });
