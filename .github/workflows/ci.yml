@@ -32,11 +32,6 @@ jobs:
       - name: Run unit tests
         run: npm run test:unit
         
-      - name: Run tests with coverage
-        run: npm test -- --coverage
-        env:
-          CI: true
-        
       - name: Check coverage thresholds
         run: |
           if [ "$(npx jest --coverage --coverageThresholdFail=true --json | jq '.success')" != "true" ]; then
