@@ -6,6 +6,8 @@ import { GitHubRewardsCalculator, DEFAULT_WEIGHTS, DEFAULT_THRESHOLDS } from './
 import { ConsoleLogger } from './utils/logger';
 import { GitHubValidator } from './validators/github';
 import { BaseError } from './types/errors';
+import { OnChainRewardsCalculator } from './calculator/wallet-rewards';
+import { NearWalletCollector, WalletActivity } from './collectors/near-wallet-collector';
 
 // Create a logger instance for consistent logging
 const logger = new ConsoleLogger();
@@ -76,7 +78,6 @@ program
   .description('Calculate rewards based on current metrics')
   .action(async () => {
     try {
-      // Environment variable validation
       if (!process.env.GITHUB_TOKEN || !process.env.GITHUB_REPO) {
         logger.error(`
 ❌ Missing required environment variables
@@ -163,6 +164,33 @@ If running locally, please set these variables first.
             logger.info(`- ${achievement.name}: ${achievement.description}`);
           });
         }
+
+      const calculateOnChainRewards = async (walletId: string, networkId: string) => {
+        const collector = new NearWalletCollector(walletId, networkId);
+        const activities = await collector.collectActivities();
+
+        const onChainMetrics = {
+          transactionVolume: activities.length,
+          contractInteractions: activities.filter((a: WalletActivity) => a.details.actions.some((action: any) => action.kind === 'FunctionCall')).length,
+          uniqueWallets: new Set(activities.map((a: WalletActivity) => a.details.receiverId)).size
+        };
+        const onChainCalculator = new OnChainRewardsCalculator(onChainMetrics);
+        const onChainRewards = onChainCalculator.calculate();
+
+        logger.info('\n📊 On-Chain Rewards Calculation Results:\n');
+        logger.info(`🏆 On-Chain Total Score: ${onChainRewards.totalScore.toFixed(2)}/50`);
+        logger.info(`🔄 Transaction Volume Score: ${onChainRewards.breakdown.transactionVolume.toFixed(2)}`);
+        logger.info(`🔄 Contract Interactions Score: ${onChainRewards.breakdown.contractInteractions.toFixed(2)}`);
+        logger.info(`🔄 Unique Wallets Score: ${onChainRewards.breakdown.uniqueWallets.toFixed(2)}\n`);
+      };
+
+      const walletId = process.env.WALLET_ID;
+      const networkId = process.env.NETWORK_ID;
+      if (walletId && networkId) {
+        await calculateOnChainRewards(walletId, networkId);
+      } else {
+        logger.info('Skipping on-chain rewards calculation: Wallet ID and Network ID are required.');
+      }
 
       process.exit(0);
     } catch (error) {

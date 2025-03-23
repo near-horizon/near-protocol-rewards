@@ -1,59 +1,49 @@
-import { WalletActivity } from '../types/metrics';
-
-export interface WalletRewards {
-  totalTransactions: number;
-  incomingTransactions: number;
-  outgoingTransactions: number;
-  lastActivity: Date;
-  score: number;
+export interface OnChainMetrics {
+  transactionVolume: number; 
+  contractInteractions: number;
+  uniqueWallets: number;
 }
 
-export class WalletRewardsCalculator {
-  private activities: WalletActivity[];
+export interface OnChainScoreBreakdown {
+  transactionVolume: number;
+  contractInteractions: number;
+  uniqueWallets: number;
+}
 
-  constructor(activities: WalletActivity[]) {
-    this.activities = activities;
-  }
+export interface OnChainRewards {
+  totalScore: number; // Máximo 50
+  breakdown: OnChainScoreBreakdown;
+}
 
-  calculate(): WalletRewards {
-    const rewards: WalletRewards = {
-      totalTransactions: 0,
-      incomingTransactions: 0,
-      outgoingTransactions: 0,
-      lastActivity: new Date(0),
-      score: 0,
+export class OnChainRewardsCalculator {
+  private readonly weights = {
+    transactionVolume: 0.4,             
+    contractInteractions: 0.4,          
+    uniqueWallets: 0.2,                 
+  };
+
+  private readonly thresholds = {
+    transactionVolume: 10000,           
+    contractInteractions: 500,
+    uniqueWallets: 100,
+  };
+
+  constructor(private readonly metrics: OnChainMetrics) {}
+
+  calculate(): OnChainRewards {
+    const tvScore = Math.min(this.metrics.transactionVolume / this.thresholds.transactionVolume, 1) * this.weights.transactionVolume * 50;
+    const ciScore = Math.min(this.metrics.contractInteractions / this.thresholds.contractInteractions, 1) * this.weights.contractInteractions * 50;
+    const uwScore = Math.min(this.metrics.uniqueWallets / this.thresholds.uniqueWallets, 1) * this.weights.uniqueWallets * 50;
+
+    const totalScore = Math.min(tvScore + ciScore + uwScore, 50);
+
+    return {
+      totalScore,
+      breakdown: {
+        transactionVolume: tvScore,
+        contractInteractions: ciScore,
+        uniqueWallets: uwScore,
+      },
     };
-
-    for (const activity of this.activities) {
-      rewards.totalTransactions++;
-      
-      if (activity.type === 'incoming') {
-        rewards.incomingTransactions++;
-      } else {
-        rewards.outgoingTransactions++;
-      }
-
-      const activityDate = new Date(activity.timestamp * 1000);
-      if (activityDate > rewards.lastActivity) {
-        rewards.lastActivity = activityDate;
-      }
-    }
-
-    rewards.score = rewards.totalTransactions * 10 + 
-                   rewards.incomingTransactions * 5 + 
-                   rewards.outgoingTransactions * 15;
-
-    return rewards;
   }
-
-  logRewards(): void {
-    const rewards = this.calculate();
-    console.log('\n=== Relatório de Recompensas da Wallet ===');
-    console.log(`Total de Transações: ${rewards.totalTransactions}`);
-    console.log(`Transações Recebidas: ${rewards.incomingTransactions}`);
-    console.log(`Transações Enviadas: ${rewards.outgoingTransactions}`);
-    console.log(`Última Atividade: ${rewards.lastActivity.toLocaleString()}`);
-    console.log(`Pontuação Total: ${rewards.score}`);
-    console.log('=======================================\n');
-  }
-} 
+}

@@ -33,11 +33,6 @@ export class NearWalletCollector {
     const activities: WalletActivity[] = [];
 
     try {
-      const now = new Date();
-      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-      const startTimestamp = Math.floor(startOfMonth.getTime() / 1000);
-      const endTimestamp = Math.floor(now.getTime() / 1000);
-
       const query = `
         SELECT 
           t.block_timestamp,
@@ -50,20 +45,18 @@ export class NearWalletCollector {
         LEFT JOIN transaction_actions ta ON t.transaction_hash = ta.transaction_hash
         WHERE 
           (t.signer_account_id = $1 OR t.receiver_account_id = $1)
-          AND t.block_timestamp >= $2 * 1000000000
-          AND t.block_timestamp <= $3 * 1000000000
+          AND t.block_timestamp >= EXTRACT(EPOCH FROM date_trunc('month', CURRENT_DATE)) * 1000000000
+          AND t.block_timestamp <= EXTRACT(EPOCH FROM date_trunc('month', CURRENT_DATE + INTERVAL '1 month')) * 1000000000
         ORDER BY t.block_timestamp DESC
       `;
 
       const result = await this.pool.query(query, [
-        this.walletId,
-        startTimestamp,
-        endTimestamp
+        this.walletId
       ]);
 
       for (const row of result.rows) {
         activities.push({
-          timestamp: Number(row.block_timestamp) / 1000000000, // Converter de nanosegundos para segundos
+          timestamp: Number(row.block_timestamp) / 1000000000,
           transactionHash: row.transaction_hash,
           type: row.signer_account_id === this.walletId ? 'outgoing' : 'incoming',
           details: {
@@ -87,6 +80,6 @@ export class NearWalletCollector {
   }
 
   private formatTimestamp(timestamp: string | number): number {
-    return Number(timestamp) / 1000000000; // Converter de nanosegundos para segundos
+    return Number(timestamp) / 1000000000; 
   }
 } 
