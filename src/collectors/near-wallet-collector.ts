@@ -19,8 +19,12 @@ export class NearWalletCollector {
     this.walletId = walletId;
     
     const connectionString = networkId === 'mainnet' 
-      ? 'postgres://public_readonly:nearprotocol@mainnet.db.explorer.indexer.near.dev/mainnet_explorer'
-      : 'postgres://public_readonly:nearprotocol@testnet.db.explorer.indexer.near.dev/testnet_explorer';
+      ? process.env.MAINNET_DB_CONNECTION_STRING
+      : process.env.TESTNET_DB_CONNECTION_STRING;
+
+    if (!connectionString) {
+      throw new Error(`Database connection string not found for network ${networkId}`);
+    }
 
     this.pool = new Pool({ connectionString });
   }
