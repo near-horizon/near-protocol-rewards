@@ -2,6 +2,7 @@
   "name": "near-protocol-rewards",
   "version": "0.3.3",
   "description": "A transparent, metric-based rewards system for NEAR projects",
+  "type": "module",
   "main": "dist/src/index.js",
   "types": "dist/src/index.d.ts",
   "bin": {
@@ -36,12 +37,14 @@
   "license": "MIT",
   "dependencies": {
     "@octokit/rest": "^19.0.0",
+    "@types/node-fetch": "2.6.12",
     "axios": "^1.6.7",
     "commander": "11.1.0",
     "dotenv": "^16.0.0",
     "near-api-js": "5.1.0",
     "near-lake-framework": "2.0.0",
     "near-protocol-rewards": "0.3.1",
+    "node-fetch": "3.3.2",
     "pg": "^8.11.3",
     "zod": "3.23.8"
   },
