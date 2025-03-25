@@ -1,4 +1,4 @@
-import fetch from 'node-fetch';
+import axios from 'axios';
 
 interface EventPayload {
   repo_name: string;
@@ -45,21 +45,18 @@ export async function sendEventToAWS(payload: EventPayload) {
   try {
     const processedPayload = convertFloatsToDecimalStrings(payload);
     
-    const response = await fetch(process.env.EVENT_API_URL, {
-      method: 'POST',
+    const response = await axios.post(process.env.EVENT_API_URL, processedPayload, {
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${process.env.EVENT_API_KEY}`
-      },
-      body: JSON.stringify(processedPayload)
+      }
     });
 
-    if (!response.ok) {
-      throw new Error(`Request error: ${response.status} - ${await response.text()}`);
-    }
-
-    return await response.json();
+    return response.data;
   } catch (error) {
+    if (axios.isAxiosError(error)) {
+      throw new Error(`Request error: ${error.response?.status} - ${error.response?.data}`);
+    }
     throw new Error(`Error sending event: ${error instanceof Error ? error.message : String(error)}`);
   }
 } 
