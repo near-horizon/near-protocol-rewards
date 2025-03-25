@@ -8,6 +8,7 @@ import { GitHubValidator } from './validators/github';
 import { BaseError } from './types/errors';
 import { OnChainRewardsCalculator } from './calculator/wallet-rewards';
 import { NearWalletCollector, WalletActivity } from './collectors/near-wallet-collector';
+import { sendEventToAWS } from './utils/sendEvent';
 
 // Create a logger instance for consistent logging
 const logger = new ConsoleLogger();
@@ -85,6 +86,8 @@ program
 This command requires:
 - GITHUB_TOKEN: GitHub access token
 - GITHUB_REPO: Repository in format "owner/repo"
+- EVENT_API_KEY: API key for event API
+- EVENT_API_URL: URL for event API
 
 These are automatically set in GitHub Actions environment.
 If running locally, please set these variables first.
@@ -120,19 +123,18 @@ If running locally, please set these variables first.
         throw new Error('Failed to collect metrics');
       }
 
-        // Check for validation warnings
-        if (metrics.validation.warnings.length > 0) {
-          logger.info('\n⚠️ Validation Warnings:');
-          metrics.validation.warnings.forEach(warning => {
-            logger.info(`- ${warning.message}${warning.context ? ` (${JSON.stringify(warning.context)})` : ''}`);
-          });
-          logger.info('\nThese warnings won\'t affect your rewards calculation, but addressing them may improve your score.\n');
-        }
+      // Check for validation warnings
+      if (metrics.validation.warnings.length > 0) {
+        logger.info('\n⚠️ Validation Warnings:');
+        metrics.validation.warnings.forEach(warning => {
+          logger.info(`- ${warning.message}${warning.context ? ` (${JSON.stringify(warning.context)})` : ''}`);
+        });
+        logger.info('\nThese warnings won\'t affect your rewards calculation, but addressing them may improve your score.\n');
+      }
 
       // Calculate rewards
       const rewards = calculator.calculateRewards(metrics.github, 'last-week');
       const rewardsTotalMonth = calculator.calculateRewards(metrics.github, 'current-month');
-
 
       // Calculate monetary reward (weekly basis)
       const calculateMonetaryReward = (score: number): number => {
@@ -158,12 +160,12 @@ If running locally, please set these variables first.
       logger.info(`👀 Reviews: ${rewards.score.breakdown.reviews.toFixed(2)}`);
       logger.info(`🎯 Issues: ${rewards.score.breakdown.issues.toFixed(2)}\n`);
 
-        if (rewards.achievements.length > 0) {
-          logger.info('🌟 Achievements:');
-          rewards.achievements.forEach(achievement => {
-            logger.info(`- ${achievement.name}: ${achievement.description}`);
-          });
-        }
+      if (rewards.achievements.length > 0) {
+        logger.info('🌟 Achievements:');
+        rewards.achievements.forEach(achievement => {
+          logger.info(`- ${achievement.name}: ${achievement.description}`);
+        });
+      }
 
       const calculateOnChainRewards = async (walletId: string, networkId: string) => {
         const collector = new NearWalletCollector(walletId, networkId);
@@ -182,14 +184,60 @@ If running locally, please set these variables first.
         logger.info(`🔄 Transaction Volume Score: ${onChainRewards.breakdown.transactionVolume.toFixed(2)}`);
         logger.info(`🔄 Contract Interactions Score: ${onChainRewards.breakdown.contractInteractions.toFixed(2)}`);
         logger.info(`🔄 Unique Wallets Score: ${onChainRewards.breakdown.uniqueWallets.toFixed(2)}\n`);
+
+        return { activities, onChainMetrics, onChainRewards };
       };
 
+      let onchainData = null;
       const walletId = process.env.WALLET_ID;
       const networkId = process.env.NETWORK_ID;
+
       if (walletId && networkId) {
-        await calculateOnChainRewards(walletId, networkId);
+        const { activities, onChainMetrics } = await calculateOnChainRewards(walletId, networkId);
+        onchainData = {
+          transactionVolume: activities.length,
+          contractInteractions: activities.filter((a: WalletActivity) => a.details.actions.some((action: any) => action.kind === 'FunctionCall')).length,
+          uniqueWallets: new Set(activities.map((a: WalletActivity) => a.details.receiverId)).size
+        };
       } else {
         logger.info('Skipping on-chain rewards calculation: Wallet ID and Network ID are required.');
+      }
+
+      // Prepare and send event to AWS
+      const timestamp = new Date().toISOString();
+      const repo_name = process.env.GITHUB_REPO;
+
+      const eventPayload = {
+        repo_name,
+        timestamp,
+        data: {
+          onchain_data: onchainData ? {
+            ...onchainData,
+            transactionVolume: onchainData.transactionVolume.toFixed(6)
+          } : null,
+          offchain_data: {
+            raw_metrics: metrics.github,
+            calculated_rewards: {
+              score: rewards.score,
+              level: rewards.level,
+              breakdown: rewards.score.breakdown,
+              achievements: rewards.achievements,
+              metadata: metrics.metadata,
+              validation: metrics.validation,
+              period: {
+                start: metrics.periodStart,
+                end: metrics.periodEnd
+              }
+            }
+          }
+        }
+      };
+
+      try {
+        const response = await sendEventToAWS(eventPayload);
+        logger.info(`✅ Event sent successfully: ${JSON.stringify(response)}`);
+      } catch (err) {
+        logger.error(`❌ Failed to send event: ${err instanceof Error ? err.message : String(err)}`);
       }
 
       process.exit(0);
