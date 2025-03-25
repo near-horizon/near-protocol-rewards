@@ -2,6 +2,7 @@
   "name": "near-protocol-rewards",
   "version": "0.3.3",
   "description": "A transparent, metric-based rewards system for NEAR projects",
+  "type": "module",
   "main": "dist/src/index.js",
   "types": "dist/src/index.d.ts",
   "bin": {
