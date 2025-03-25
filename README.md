@@ -50,12 +50,18 @@ That's it! 🎉 Your metrics will show up at [Protocol Rewards Dashboard](https:
 
 ![Architecture](public/assets/architecture.png)
 
-We automatically track:
+We automatically track both off-chain and on-chain metrics:
 
+### Off-Chain Metrics (GitHub)
 - **Commits**: How often you code
 - **Pull Requests**: How you integrate changes
 - **Reviews**: How you help others
 - **Issues**: How you manage tasks
+
+### On-Chain Metrics (Blockchain)
+- **Transaction Volume**: Total value of transactions
+- **Smart Contract Interactions**: Number of unique contract interactions
+- **Unique Wallet Interactions**: Number of distinct wallets interacting
 
 Everything runs through GitHub Actions:
 
@@ -63,12 +69,44 @@ Everything runs through GitHub Actions:
 - Uses GitHub's built-in security
 - Updates every 12 hours and on push
 
+## Scoring System
+
+The total score (0-100) is calculated from both off-chain (GitHub) and on-chain (Blockchain) contributions, with rewards split 50/50:
+
+### Off-Chain (GitHub) - 50 Points
+
+| Component | Weight | Description | Max Points |
+|-----------|--------|-------------|------------|
+| Commits | 35% | Code contributions | 17.5 |
+| Pull Requests | 25% | Code review and integration | 12.5 |
+| Reviews | 20% | Community participation | 10 |
+| Issues | 20% | Project management | 10 |
+
+#### Thresholds for Maximum Points (GitHub)
+- Commits: 100 meaningful commits → 17.5 points
+- Pull Requests: 20 merged PRs → 12.5 points
+- Reviews: 30 substantive reviews → 10 points
+- Issues: 30 closed issues → 10 points
+
+### On-Chain (Blockchain) - 50 Points
+
+| Component | Weight | Description | Max Points |
+|-----------|--------|-------------|------------|
+| Transaction Volume | 40% | Total value of transactions | 20 |
+| Smart Contract Interactions | 40% | Number of unique interactions | 20 |
+| Unique Wallet Interactions | 20% | Number of distinct wallets | 10 |
+
+#### Thresholds for Maximum Points (On-Chain)
+- Transaction Volume: $10,000+ in total transactions → 20 points
+- Smart Contract Interactions: 500+ interactions → 20 points
+- Unique Wallet Interactions: 100+ unique wallets → 10 points
+
 ## Common Questions
 
 ### When do metrics update?
 
 - Every push to main branch
-- Every 12 hours automatically
+- Every 24 hours automatically
 - Check Actions tab for status
 
 ### Do I need any tokens?
@@ -92,8 +130,8 @@ No! We use GitHub's built-in security.
 
 ## Need Help?
 
-- [Report Issues](https://github.com/jbarnes850/near-protocol-rewards/issues)
-- [Dashboard Support](https://github.com/jbarnes850/protocol-rewards-dashboard/issues)
+- [Report Issues](https://github.com/near-horizon/near-protocol-rewards/issues)
+- [Dashboard Support](https://github.com/near-horizon/protocol-rewards-dashboard/issues)
 
 ## License
 
