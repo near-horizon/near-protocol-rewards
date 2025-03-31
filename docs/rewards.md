@@ -1,6 +1,8 @@
-# NEAR Protocol Rewards Structure (Beta)
+# NEAR Protocol Rewards Structure
 
 > A transparent, merit-based rewards system that incentivizes sustainable development practices.
+
+![Model](public/assets/model.jpeg)
 
 ## Beta Program Context
 
@@ -31,23 +33,37 @@ Protocol Rewards uses a scoring system that evaluates development activity acros
 
 ## Scoring Components
 
-The total score (0-100) is calculated from four main components:
+The total score (0-100) is calculated from both off-chain (GitHub) and on-chain (Blockchain) contributions, with rewards split 50/50:
 
-| Component     | Weight | Description                   | Max Points |
-|--------------|--------|-------------------------------|------------|
-| Commits      | 35%    | Code contributions           | 35        |
-| Pull Requests| 25%    | Code review and integration  | 25        |
-| Reviews      | 20%    | Community participation      | 20        |
-| Issues       | 20%    | Project management          | 20        |
+### Off-Chain (GitHub) - 50 Points
+
+| Component | Weight | Description | Max Points |
+|-----------|--------|-------------|------------|
+| Commits | 35% | Code contributions | 17.5 |
+| Pull Requests | 25% | Code review and integration | 12.5 |
+| Reviews | 20% | Community participation | 10 |
+| Issues | 20% | Project management | 10 |
+
+### On-Chain (Blockchain) - 50 Points
+
+| Component | Weight | Description | Max Points |
+|-----------|--------|-------------|------------|
+| Transaction Volume | 40% | Total value of transactions | 20 |
+| Smart Contract Interactions | 40% | Number of unique interactions | 20 |
+| Unique Wallet Interactions | 20% | Number of distinct wallets | 10 |
 
 ### Thresholds for Maximum Points
 
-To achieve maximum points in each category:
+#### GitHub Metrics
+- **Commits**: 100 meaningful commits → 17.5 points
+- **Pull Requests**: 20 merged PRs → 12.5 points
+- **Reviews**: 30 substantive reviews → 10 points
+- **Issues**: 30 closed issues → 10 points
 
-- **Commits**: 100 meaningful commits
-- **Pull Requests**: 20 merged PRs
-- **Reviews**: 30 substantive reviews
-- **Issues**: 30 closed issues
+#### On-Chain Metrics
+- **Transaction Volume**: $10,000+ in total transactions → 20 points
+- **Smart Contract Interactions**: 500+ interactions → 20 points
+- **Unique Wallet Interactions**: 100+ unique wallets → 10 points
 
 ## Anti-Gaming Measures
 
@@ -86,23 +102,35 @@ The scoring system is weighted to prevent gaming through any single metric:
 
 ```typescript
 calculator = new GitHubRewardsCalculator({
-  commits: 0.35,        // Code contributions
-  pullRequests: 0.25,   // Integration work
-  reviews: 0.20,        // Community participation
-  issues: 0.20          // Project management
+  // Off-chain metrics (50%)
+  commits: 0.175,        // 35% of GitHub score
+  pullRequests: 0.125,   // 25% of GitHub score
+  reviews: 0.10,         // 20% of GitHub score
+  issues: 0.10,          // 20% of GitHub score
+  
+  // On-chain metrics (50%)
+  transactionVolume: 0.20,           // 40% of blockchain score
+  contractInteractions: 0.20,        // 40% of blockchain score
+  uniqueWallets: 0.10               // 20% of blockchain score
 });
 ```
 
 ### 3. Quality Thresholds (Implemented)
 
-Maximum points require meeting specific thresholds:
+Maximum points require meeting specific thresholds for both off-chain and on-chain metrics:
 
 ```typescript
 thresholds = {
+  // GitHub metrics
   commits: 100,      // Meaningful development pace
   pullRequests: 20,  // Substantial integration work
   reviews: 30,       // Active code review participation
-  issues: 30         // Project management engagement
+  issues: 30,        // Project management engagement
+  
+  // Blockchain metrics
+  transactionVolume: 10000,      // Minimum transaction value
+  contractInteractions: 500,     // Minimum contract interactions
+  uniqueWallets: 100            // Minimum unique wallets
 };
 ```
 
@@ -201,8 +229,9 @@ Here's how a high-performing project might achieve a Diamond tier score:
 
 ```typescript
 const metrics = {
+  // Off-chain metrics (50 points)
   commits: {
-    count: 100,          // 35 points (max)
+    count: 100,          // 17.5 points (max)
     frequency: {
       daily: balanced,   // Passes validation
       weekly: steady     // Shows consistency
@@ -210,17 +239,22 @@ const metrics = {
     authors: diverse     // Multiple contributors
   },
   pullRequests: {
-    merged: 20,          // 25 points (max)
+    merged: 20,          // 12.5 points (max)
     quality: high        // Substantive changes
   },
   reviews: {
-    count: 30,          // 20 points (max)
+    count: 30,          // 10 points (max)
     engagement: active   // Regular participation
   },
   issues: {
-    closed: 30,         // 20 points (max)
+    closed: 30,         // 10 points (max)
     impact: significant // Real project improvements
-  }
+  },
+  
+  // On-chain metrics (50 points)
+  transactionVolume: 15000,    // 20 points (max)
+  contractInteractions: 600,   // 20 points (max)
+  uniqueWallets: 120          // 10 points (max)
 }
 
 // Total Score: 100 points
@@ -250,6 +284,11 @@ To maximize your rewards while maintaining development quality:
    - Participate in discussions
    - Help onboard new developers
 
+5. **Build On-Chain Activity**
+   - Encourage user transactions
+   - Develop meaningful contract interactions
+   - Grow your user base
+
 ## Monitoring Your Progress
 
 1. Track your metrics in real-time on the [Protocol Rewards Dashboard](https://protocol-rewards-dashboard.vercel.app/)
@@ -258,8 +297,8 @@ To maximize your rewards while maintaining development quality:
 
 ## FAQ
 
-**Q: How often are rewards calculated?**
-A: Metrics are collected every 12 hours, but rewards are calculated on a weekly basis to ensure consistency.
+**Q: How often are metrics calculated?**
+A: Metrics are collected every 24 hours via GitHub Actions, and also on every push to the main branch.
 
 **Q: What happens if we have a spike in activity?**
 A: Sudden spikes trigger additional validation. Consistent, sustainable development is rewarded over burst activity.
@@ -274,6 +313,6 @@ A: Yes, but the system accounts for team size and project maturity in its valida
 
 Need help understanding your metrics or improving your score?
 
-- [View Documentation](https://github.com/jbarnes850/near-protocol-rewards#readme)
-- [Report Issues](https://github.com/jbarnes850/near-protocol-rewards/issues)
-- [Dashboard Support](https://github.com/jbarnes850/protocol-rewards-dashboard/issues)
+- [View Documentation](https://github.com/near-horizon/near-protocol-rewards#readme)
+- [Report Issues](https://github.com/near-horizon/near-protocol-rewards/issues)
+- [Dashboard Support](https://github.com/near-horizon/protocol-rewards-dashboard/issues)

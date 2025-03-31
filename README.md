@@ -48,7 +48,7 @@ That's it! 🎉 Your metrics will show up at [Protocol Rewards Dashboard](https:
 
 ## How It Works
 
-![Architecture](public/assets/architecture.png)
+![Model](public/assets/model.jpeg)
 
 We automatically track both off-chain and on-chain metrics:
 
