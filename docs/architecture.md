@@ -1,7 +1,5 @@
 # NEAR Protocol Rewards SDK Architecture
 
-![Architecture](public/assets/architecture.png)
-
 ## Component Overview
 
 ### Core SDK Components
@@ -62,18 +60,6 @@ logger.info(`🏆 Level: ${rewards.level.name} (${rewards.score.total.toFixed(2)
 logger.info(`💰 Weekly Reward: $${weeklyReward.toLocaleString()}`);
 ```
 
-## Reward Tiers
-
-Current implementation uses five tiers:
-
-- Diamond ($2,500/week): 90+ score
-- Platinum ($2,000/week): 80-89 score
-- Gold ($1,500/week): 70-79 score
-- Silver ($1,000/week): 60-69 score
-- Bronze ($500/week): Below 60
-
-See [roadmap](roadmap.md) for upcoming changes to scoring system.
-
 ## Error Handling
 
 ```typescript
@@ -106,19 +92,6 @@ try {
    - Handle missing data gracefully
    - Clear error messaging
 
-## Future Architecture
-
-See our [development roadmap](roadmap.md) for upcoming features:
-
-1. **Q1 2025**
-   - NEAR transaction integration
-   - Multi-contributor support
-   - Enhanced authorization
-
-2. **Q2 2025**
-   - Multi-platform support
-   - Organization-level metrics
-   - Enterprise features
 
 ## Integration Guide
 

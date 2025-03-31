@@ -17,10 +17,10 @@
 
 ### NEAR Transaction Integration
 
-- [ ] Track on-chain transaction volume
-- [ ] Integrate NEAR transaction metrics into scoring
-- [ ] Add transaction frequency and value thresholds
-- [ ] Implement smart contract interaction tracking
+- ✅ Track on-chain transaction volume
+- ✅ Integrate NEAR transaction metrics into scoring
+- ✅ Add transaction frequency and value thresholds
+- ✅ Implement smart contract interaction tracking
 
 ### Multi-Contributor System
 
