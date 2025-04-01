@@ -1,6 +1,6 @@
 {
   "name": "near-protocol-rewards",
-  "version": "0.3.3",
+  "version": "1.0.0",
   "description": "A transparent, metric-based rewards system for NEAR projects",
   "type": "module",
   "main": "dist/src/index.js",
@@ -19,7 +19,7 @@
     "lint": "eslint src --ext .ts",
     "format": "prettier --write \"src/**/*.ts\" \"tests/**/*.ts\"",
     "prepare": "npm run build",
-    "prepublishOnly": "npm test && npm run lint",
+    "prepublishOnly": "npm run lint && npm run test:unit",
     "collect-rewards": "ts-node scripts/collect-rewards.ts"
   },
   "files": [
