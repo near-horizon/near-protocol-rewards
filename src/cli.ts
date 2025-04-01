@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 import { Command } from 'commander';
 import { GitHubRewardsSDK } from './sdk';
 import { writeFileSync, mkdirSync, existsSync, readFileSync } from 'fs';
@@ -33,7 +34,7 @@ program
       const workflowContent = `name: NEAR Protocol Rewards Tracking
 on:
   schedule:
-    - cron: '0 */24 * * *'  # Every 24 hours
+    - cron: '0 0 * * *'     # Every 24 hours at midnight
   workflow_dispatch:        # Manual trigger
   push:
     branches: [ main ]     # Start on main branch updates
@@ -56,9 +57,9 @@ jobs:
         env:
           GITHUB_TOKEN: \${{ secrets.GITHUB_TOKEN }}
           GITHUB_REPO: \${{ github.repository }}
-          WALLET_ID: \${{ secrets.WALLET_ID }}
-          NETWORK_ID: \${{ secrets.NETWORK_ID }}
-        run: npx near-protocol-rewards calculate
+        run: |
+          npm install -g near-protocol-rewards@latest
+          near-protocol-rewards calculate
 `;
 
       writeFileSync(join(workflowDir, 'near-rewards.yml'), workflowContent);
