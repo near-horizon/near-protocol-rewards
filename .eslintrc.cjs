@@ -12,7 +12,8 @@ module.exports = {
   parserOptions: {
     ecmaVersion: 2020,
     sourceType: 'module',
-    project: './tsconfig.json'
+    project: './tsconfig.json',
+    tsconfigRootDir: __dirname
   },
   rules: {
     '@typescript-eslint/explicit-function-return-type': 'off',
