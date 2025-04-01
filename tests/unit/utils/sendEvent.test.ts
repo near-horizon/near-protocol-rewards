@@ -10,8 +10,8 @@ describe('sendEventToAWS', () => {
   beforeEach(() => {
     process.env = {
       ...originalEnv,
-      EVENT_API_KEY: 'test-key',
-      EVENT_API_URL: 'http://test-url.com'
+      ACTIONS_ID_TOKEN_REQUEST_URL: 'https://token.actions.githubusercontent.com',
+      ACTIONS_ID_TOKEN_REQUEST_TOKEN: 'test-token'
     };
     jest.clearAllMocks();
   });
@@ -22,6 +22,7 @@ describe('sendEventToAWS', () => {
 
   it('should successfully send event with integer values', async () => {
     const mockResponse = { success: true };
+    mockedAxios.get.mockResolvedValueOnce({ data: { value: 'test-jwt-token' } });
     mockedAxios.post.mockResolvedValueOnce({ data: mockResponse });
 
     const payload = {
@@ -43,12 +44,12 @@ describe('sendEventToAWS', () => {
     const result = await sendEventToAWS(payload);
     expect(result).toEqual(mockResponse);
     expect(mockedAxios.post).toHaveBeenCalledWith(
-      'http://test-url.com',
+      'https://near-protocol-rewards-tracking.com/prod/event',
       payload,
       {
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer test-key'
+          'Authorization': 'Bearer test-jwt-token'
         }
       }
     );
@@ -56,6 +57,7 @@ describe('sendEventToAWS', () => {
 
   it('should convert float values to decimal strings', async () => {
     const mockResponse = { success: true };
+    mockedAxios.get.mockResolvedValueOnce({ data: { value: 'test-jwt-token' } });
     mockedAxios.post.mockResolvedValueOnce({ data: mockResponse });
 
     const payload = {
@@ -93,7 +95,7 @@ describe('sendEventToAWS', () => {
     };
 
     expect(mockedAxios.post).toHaveBeenCalledWith(
-      'http://test-url.com',
+      'https://near-protocol-rewards-tracking.com/prod/event',
       expectedPayload,
       expect.any(Object)
     );
@@ -101,6 +103,7 @@ describe('sendEventToAWS', () => {
 
   it('should handle null and undefined values', async () => {
     const mockResponse = { success: true };
+    mockedAxios.get.mockResolvedValueOnce({ data: { value: 'test-jwt-token' } });
     mockedAxios.post.mockResolvedValueOnce({ data: mockResponse });
 
     const payload = {
@@ -118,15 +121,15 @@ describe('sendEventToAWS', () => {
     await sendEventToAWS(payload);
 
     expect(mockedAxios.post).toHaveBeenCalledWith(
-      'http://test-url.com',
+      'https://near-protocol-rewards-tracking.com/prod/event',
       payload,
       expect.any(Object)
     );
   });
 
-  it('should throw error when environment variables are missing', async () => {
-    delete process.env.EVENT_API_KEY;
-    delete process.env.EVENT_API_URL;
+  it('should throw error when GitHub Actions environment variables are missing', async () => {
+    delete process.env.ACTIONS_ID_TOKEN_REQUEST_URL;
+    delete process.env.ACTIONS_ID_TOKEN_REQUEST_TOKEN;
 
     const payload = {
       repo_name: 'test-repo',
@@ -138,7 +141,7 @@ describe('sendEventToAWS', () => {
     };
 
     await expect(sendEventToAWS(payload)).rejects.toThrow(
-      'EVENT_API_KEY and EVENT_API_URL are required to send events'
+      'Missing ACTIONS_ID_TOKEN_REQUEST_URL or TOKEN'
     );
   });
 
@@ -152,6 +155,7 @@ describe('sendEventToAWS', () => {
     };
     
     mockedAxios.isAxiosError.mockReturnValueOnce(true);
+    mockedAxios.get.mockResolvedValueOnce({ data: { value: 'test-jwt-token' } });
     mockedAxios.post.mockRejectedValueOnce(error);
 
     const payload = {
@@ -171,6 +175,7 @@ describe('sendEventToAWS', () => {
   it('should handle generic error', async () => {
     const error = new Error('Network error');
     mockedAxios.isAxiosError.mockReturnValueOnce(false);
+    mockedAxios.get.mockResolvedValueOnce({ data: { value: 'test-jwt-token' } });
     mockedAxios.post.mockRejectedValueOnce(error);
 
     const payload = {

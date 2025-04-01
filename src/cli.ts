@@ -45,6 +45,7 @@ jobs:
       contents: read
       issues: read
       pull-requests: read
+      id-token: write
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-node@v3
@@ -55,6 +56,8 @@ jobs:
         env:
           GITHUB_TOKEN: \${{ secrets.GITHUB_TOKEN }}
           GITHUB_REPO: \${{ github.repository }}
+          WALLET_ID: \${{ secrets.WALLET_ID }}
+          NETWORK_ID: \${{ secrets.NETWORK_ID }}
         run: npx near-protocol-rewards calculate
 `;
 
@@ -86,8 +89,6 @@ program
 This command requires:
 - GITHUB_TOKEN: GitHub access token
 - GITHUB_REPO: Repository in format "owner/repo"
-- EVENT_API_KEY: API key for event API
-- EVENT_API_URL: URL for event API
 
 These are automatically set in GitHub Actions environment.
 If running locally, please set these variables first.

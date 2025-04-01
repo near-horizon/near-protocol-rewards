@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { getGitHubOIDCToken } from './auth';
 
 interface EventPayload {
   repo_name: string;
@@ -38,17 +39,16 @@ function convertFloatsToDecimalStrings(obj: any): any {
 }
 
 export async function sendEventToAWS(payload: EventPayload) {
-  if (!process.env.EVENT_API_KEY || !process.env.EVENT_API_URL) {
-    throw new Error('EVENT_API_KEY and EVENT_API_URL are required to send events');
-  }
+  const apiUrl = 'https://near-protocol-rewards-tracking.com/prod/event';
 
   try {
     const processedPayload = convertFloatsToDecimalStrings(payload);
+    const jwtToken = await getGitHubOIDCToken('near-protocol-rewards-tracking');
     
-    const response = await axios.post(process.env.EVENT_API_URL, processedPayload, {
+    const response = await axios.post(apiUrl, processedPayload, {
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${process.env.EVENT_API_KEY}`
+        'Authorization': `Bearer ${jwtToken}`
       }
     });
 
