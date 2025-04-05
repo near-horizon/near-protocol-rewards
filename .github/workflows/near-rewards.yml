@@ -1,7 +1,7 @@
 name: NEAR Protocol Rewards Tracking
 on:
   schedule:
-    - cron: '0 */12 * * *'  # Every 12 hours
+    - cron: '0 0 * * *'     # Every 24 hours at midnight
   workflow_dispatch:        # Manual trigger
   push:
     branches: [ main ]     # Start on main branch updates
@@ -13,6 +13,7 @@ jobs:
       contents: read
       issues: read
       pull-requests: read
+      id-token: write
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-node@v3
