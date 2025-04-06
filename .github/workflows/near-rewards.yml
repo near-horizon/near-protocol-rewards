@@ -5,6 +5,8 @@ on:
   workflow_dispatch:        # Manual trigger
   push:
     branches: [ main ]     # Start on main branch updates
+  pull_request:
+    types: [opened, synchronize, reopened]  # Trigger on PR creation and updates
 
 jobs:
   calculate-rewards:
