@@ -44,7 +44,7 @@ describe('sendEventToAWS', () => {
     const result = await sendEventToAWS(payload);
     expect(result).toEqual(mockResponse);
     expect(mockedAxios.post).toHaveBeenCalledWith(
-      'https://near-protocol-rewards-tracking.com/prod/event',
+      'https://near-protocol-rewards-tracking.com/event',
       payload,
       {
         headers: {
@@ -95,7 +95,7 @@ describe('sendEventToAWS', () => {
     };
 
     expect(mockedAxios.post).toHaveBeenCalledWith(
-      'https://near-protocol-rewards-tracking.com/prod/event',
+      'https://near-protocol-rewards-tracking.com/event',
       expectedPayload,
       expect.any(Object)
     );
@@ -121,7 +121,7 @@ describe('sendEventToAWS', () => {
     await sendEventToAWS(payload);
 
     expect(mockedAxios.post).toHaveBeenCalledWith(
-      'https://near-protocol-rewards-tracking.com/prod/event',
+      'https://near-protocol-rewards-tracking.com/event',
       payload,
       expect.any(Object)
     );
