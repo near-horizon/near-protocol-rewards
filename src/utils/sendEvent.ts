@@ -39,7 +39,7 @@ function convertFloatsToDecimalStrings(obj: any): any {
 }
 
 export async function sendEventToAWS(payload: EventPayload) {
-  const apiUrl = 'https://near-protocol-rewards-tracking.com/prod/event';
+  const apiUrl = 'https://near-protocol-rewards-tracking.com/event';
 
   try {
     const processedPayload = convertFloatsToDecimalStrings(payload);
