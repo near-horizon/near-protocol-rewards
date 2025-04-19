@@ -170,6 +170,7 @@ If running locally, please set these variables first.
       }
 
       const calculateOnChainRewards = async (walletId: string, networkId: string) => {
+        /*
         const collector = new NearWalletCollector(walletId, networkId);
         const activities = await collector.collectActivities();
 
@@ -188,6 +189,8 @@ If running locally, please set these variables first.
         logger.info(`🔄 Unique Wallets Score: ${onChainRewards.breakdown.uniqueWallets.toFixed(2)}\n`);
 
         return { activities, onChainMetrics, onChainRewards };
+        */
+        return null;
       };
 
       let onchainData = null;
@@ -195,14 +198,16 @@ If running locally, please set these variables first.
       const networkId = process.env.NETWORK_ID;
 
       if (walletId && networkId) {
+        /*
         const { activities, onChainMetrics } = await calculateOnChainRewards(walletId, networkId);
         onchainData = {
           transactionVolume: activities.length,
           contractInteractions: activities.filter((a: WalletActivity) => a.details.actions.some((action: any) => action.kind === 'FunctionCall')).length,
           uniqueWallets: new Set(activities.map((a: WalletActivity) => a.details.receiverId)).size
         };
+        */
       } else {
-        logger.info('Skipping on-chain rewards calculation: Wallet ID and Network ID are required.');
+        logger.info('\n📊 View your on-chain data on the dashboard: https://www.nearprotocolrewards.com/dashboard\n');
       }
 
       // Prepare and send event to AWS
@@ -235,12 +240,14 @@ If running locally, please set these variables first.
         }
       };
 
+      /*
       try {
         const response = await sendEventToAWS(eventPayload);
         logger.info(`✅ Event sent successfully: ${JSON.stringify(response)}`);
       } catch (err) {
         logger.error(`❌ Failed to send event: ${err instanceof Error ? err.message : String(err)}`);
       }
+      */
 
       process.exit(0);
     } catch (error) {
