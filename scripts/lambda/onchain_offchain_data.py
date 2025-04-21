@@ -230,7 +230,10 @@ def get_all(url: str, repo: str = None, data_type: str = None) -> List[Dict[str,
         paginated_url = f"{url}&page={page}&per_page=100"
         response = requests.get(paginated_url, headers=HEADERS)
         if response.status_code != 200:
-            print(f"❌ {repo} - Error in {data_type}: {response.status_code}")
+            error_message = f"Error {response.status_code}: {response.text}"
+            print(f"❌ {repo} - Error in {data_type}: {error_message}")
+            if response.status_code == 403:
+                raise Exception(error_message)
             break
         data = response.json()
         if not data:
