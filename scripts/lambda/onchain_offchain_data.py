@@ -390,8 +390,8 @@ def lambda_handler(event, context):
     results = []
     current_date = datetime.now()
     
-    for project in PROJECTS:
-        print(f"\n🔄 Processing project: {project['project']}")
+    for index, project in enumerate(PROJECTS, 1):
+        print(f"\n🔄 Processing project: {project['project']} ({index}/{len(PROJECTS)})")
         project_result = {
             "project": project["project"],
             "wallet": project["wallet"],
@@ -437,6 +437,11 @@ def lambda_handler(event, context):
             
             results.append(project_result)
             print(f"✅ Project {project['project']} processed successfully!")
+            
+            # Add delay every 5 projects
+            if index % 5 == 0 and index < len(PROJECTS):
+                print("⏳ Waiting 1 minute to respect API rate limits...")
+                time.sleep(60)
             
         except Exception as e:
             print(f"❌ Error processing project {project['project']}: {str(e)}")
