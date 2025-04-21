@@ -347,6 +347,38 @@ def calculate_monetary_reward(score: float) -> int:
     else:
         return 500
 
+def calculate_total_rewards(rewards_onchain: Dict[str, Any], rewards_offchain: Dict[str, Any]) -> Dict[str, Any]:
+    """Calculates total rewards by combining on-chain and off-chain metrics."""
+    # If there's no onchain or offchain data, return only what's available
+    if not rewards_onchain and rewards_offchain:
+        return rewards_offchain
+    elif rewards_onchain and not rewards_offchain:
+        return rewards_onchain
+    
+    # Calculate total score (weighted average)
+    # Onchain has 50% weight and offchain has 50% weight
+    onchain_score = rewards_onchain.get("score", {}).get("normalized", 0) if rewards_onchain else 0
+    offchain_score = rewards_offchain.get("score", {}).get("total", 0) if rewards_offchain else 0
+    
+    total_score = (onchain_score * 0.5) + (offchain_score * 0.5)
+    
+    # Determine level and reward amount based on total score
+    level = determine_level(total_score)
+    total_reward = calculate_monetary_reward(total_score)
+    
+    # Create return structure
+    return {
+        "score": {
+            "total": total_score,
+            "breakdown": {
+                "onchain": onchain_score,
+                "offchain": offchain_score
+            }
+        },
+        "level": level,
+        "total_reward": total_reward
+    }
+
 # === MAIN FUNCTION ===
 
 def lambda_handler(event, context):
@@ -368,6 +400,9 @@ def lambda_handler(event, context):
         }
         
         try:
+            rewards_onchain = None
+            rewards_offchain = None
+            
             # Process on-chain data
             if project["wallet"]:
                 print("📊 Collecting on-chain data...")
@@ -392,6 +427,11 @@ def lambda_handler(event, context):
                     "rewards_offchain": rewards_offchain,
                     "rawdata_offchain": github_data
                 })
+            
+            # Calculate total rewards (combined on-chain and off-chain)
+            if rewards_onchain or rewards_offchain:
+                total_rewards = calculate_total_rewards(rewards_onchain, rewards_offchain)
+                project_result["rewards_total"] = total_rewards
             
             results.append(project_result)
             print(f"✅ Project {project['project']} processed successfully!")
