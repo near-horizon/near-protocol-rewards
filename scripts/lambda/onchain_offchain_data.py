@@ -255,20 +255,19 @@ def calculate_onchain_rewards(metrics: Dict[str, Any]) -> Dict[str, Any]:
         "uniqueWallets": 100
     }
     
+    # Calculate scores using weights and thresholds
     tv_score = min(metrics["transaction_volume"] / thresholds["transactionVolume"], 1) * weights["transactionVolume"] * 50
     ci_score = min(metrics["contract_interactions"] / thresholds["contractInteractions"], 1) * weights["contractInteractions"] * 50
     uw_score = min(metrics["unique_wallets"] / thresholds["uniqueWallets"], 1) * weights["uniqueWallets"] * 50
     
-    total_score = min(tv_score + ci_score + uw_score, 50)
-    normalized_score = total_score * 2
+    total_score = min(tv_score + ci_score + uw_score, 50)  # Total max 50 points
     
-    level = determine_level(normalized_score)
-    total_reward = calculate_monetary_reward(normalized_score)
+    level = determine_level(total_score)
+    total_reward = calculate_monetary_reward(total_score)
     
     return {
         "score": {
             "total": total_score,
-            "normalized": normalized_score,
             "breakdown": {
                 "transactionVolume": tv_score,
                 "contractInteractions": ci_score,
@@ -295,12 +294,13 @@ def calculate_offchain_rewards(metrics: Dict[str, Any]) -> Dict[str, Any]:
         "issues": 30
     }
     
-    commit_score = min(metrics["commits"]["count"] / thresholds["commits"], 1) * weights["commits"] * 100
-    pr_score = min(metrics["pull_requests"]["merged"] / thresholds["pullRequests"], 1) * weights["pullRequests"] * 100
-    review_score = min(metrics["reviews"]["count"] / thresholds["reviews"], 1) * weights["reviews"] * 100
-    issue_score = min(metrics["issues"]["closed"] / thresholds["issues"], 1) * weights["issues"] * 100
+    # Calculate scores with correct maximum points
+    commit_score = min(metrics["commits"]["count"] / thresholds["commits"], 1) * 17.5  # Max 17.5 points
+    pr_score = min(metrics["pull_requests"]["merged"] / thresholds["pullRequests"], 1) * 12.5  # Max 12.5 points
+    review_score = min(metrics["reviews"]["count"] / thresholds["reviews"], 1) * 10  # Max 10 points
+    issue_score = min(metrics["issues"]["closed"] / thresholds["issues"], 1) * 10  # Max 10 points
     
-    total_score = min(commit_score + pr_score + review_score + issue_score, 100)
+    total_score = min(commit_score + pr_score + review_score + issue_score, 50)  # Total max 50 points
     
     level = determine_level(total_score)
     total_reward = calculate_monetary_reward(total_score)
@@ -344,8 +344,10 @@ def calculate_monetary_reward(score: float) -> int:
         return 1500
     elif score >= 60:
         return 1000
-    else:
+    elif score >= 50:
         return 500
+    else:
+        return 0
 
 def calculate_total_rewards(rewards_onchain: Dict[str, Any], rewards_offchain: Dict[str, Any]) -> Dict[str, Any]:
     """Calculates total rewards by combining on-chain and off-chain metrics."""
