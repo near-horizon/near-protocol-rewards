@@ -355,21 +355,25 @@ def calculate_total_rewards(rewards_onchain: Dict[str, Any], rewards_offchain: D
     elif rewards_onchain and not rewards_offchain:
         return rewards_onchain
     
-    # Calculate total score (weighted average)
-    # Onchain has 50% weight and offchain has 50% weight
+    # Get individual scores
     onchain_score = rewards_onchain.get("score", {}).get("normalized", 0) if rewards_onchain else 0
     offchain_score = rewards_offchain.get("score", {}).get("total", 0) if rewards_offchain else 0
     
-    total_score = (onchain_score * 0.5) + (offchain_score * 0.5)
+    # Get individual rewards
+    onchain_reward = rewards_onchain.get("total_reward", 0) if rewards_onchain else 0
+    offchain_reward = rewards_offchain.get("total_reward", 0) if rewards_offchain else 0
     
-    # Determine level and reward amount based on total score
-    level = determine_level(total_score)
-    total_reward = calculate_monetary_reward(total_score)
+    # Simply sum the rewards
+    total_reward = onchain_reward + offchain_reward
+    
+    # Use the higher score for level determination
+    level_score = max(onchain_score, offchain_score)
+    level = determine_level(level_score)
     
     # Create return structure
     return {
         "score": {
-            "total": total_score,
+            "total": level_score,
             "breakdown": {
                 "onchain": onchain_score,
                 "offchain": offchain_score
