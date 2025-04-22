@@ -121,22 +121,22 @@ export class GitHubRewardsCalculator {
     const commitScore =
       Math.min(metrics.commits.count / this.thresholds.commits, 1) *
       this.weights.commits *
-      100;
+      50;
     const prScore =
       Math.min(metrics.pullRequests.merged / this.thresholds.pullRequests, 1) *
       this.weights.pullRequests *
-      100;
+      50;
     const reviewScore =
       Math.min(metrics.reviews.count / this.thresholds.reviews, 1) *
       this.weights.reviews *
-      100;
+      50;
     const issueScore =
       Math.min(metrics.issues.closed / this.thresholds.issues, 1) *
       this.weights.issues *
-      100;
+      50;
 
     return {
-      total: Math.min(commitScore + prScore + reviewScore + issueScore, 100),
+      total: Math.min(commitScore + prScore + reviewScore + issueScore, 50),
       breakdown: {
         commits: commitScore,
         pullRequests: prScore,

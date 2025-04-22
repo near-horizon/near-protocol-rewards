@@ -91,15 +91,15 @@ describe('calculate command', () => {
 
     const logger = new ConsoleLogger() as jest.Mocked<ConsoleLogger>;
 
-    expect(logger.info).toHaveBeenCalledWith('\n📊 Rewards Calculation Results:\n');
-    expect(logger.info).toHaveBeenCalledWith(expect.stringContaining('🏆 Level:'));
-    expect(logger.info).toHaveBeenCalledWith(expect.stringContaining('💰 Weekly Reward: $'));
-    expect(logger.info).toHaveBeenCalledWith('\nNote: Coming in v0.4.0 - NEAR transaction tracking will increase reward potential! 🚀\n');
-    expect(logger.info).toHaveBeenCalledWith('\nBreakdown:');
-    expect(logger.info).toHaveBeenCalledWith(expect.stringContaining('📝 Commits:'));
-    expect(logger.info).toHaveBeenCalledWith(expect.stringContaining('🔄 Pull Requests:'));
-    expect(logger.info).toHaveBeenCalledWith(expect.stringContaining('👀 Reviews:'));
-    expect(logger.info).toHaveBeenCalledWith(expect.stringContaining('🎯 Issues:'));
+    expect(logger.info.mock.calls[0][0]).toBe('\n📊 Rewards Calculation Results:\n');
+    expect(logger.info.mock.calls[1][0]).toContain('🏆 Level Offchain:');
+    expect(logger.info.mock.calls[2][0]).toContain('💰 Monthly Offchain Total Reward: $');
+    expect(logger.info.mock.calls[3][0]).toBe('\nBreakdown:');
+    expect(logger.info.mock.calls[4][0]).toContain('📝 Commits:');
+    expect(logger.info.mock.calls[5][0]).toContain('🔄 Pull Requests:');
+    expect(logger.info.mock.calls[6][0]).toContain('👀 Reviews:');
+    expect(logger.info.mock.calls[7][0]).toContain('🎯 Issues:');
+    expect(logger.info.mock.calls[8][0]).toBe('\n📊 View your performance data on the dashboard: https://www.nearprotocolrewards.com/dashboard\n');
 
     expect(mockExit).toHaveBeenCalledWith(0);
   });
@@ -126,22 +126,22 @@ describe('calculate command', () => {
 
     const previousMonthMetrics: GitHubMetrics = {
       commits: {
-        count: DEFAULT_THRESHOLDS.commits,
-        authors: [{ login: 'user1', count: DEFAULT_THRESHOLDS.commits }],
-        frequency: { daily: [DEFAULT_THRESHOLDS.commits], weekly: DEFAULT_THRESHOLDS.commits, monthly: DEFAULT_THRESHOLDS.commits },
+        count: DEFAULT_THRESHOLDS.commits * 2,
+        authors: [{ login: 'user1', count: DEFAULT_THRESHOLDS.commits * 2 }],
+        frequency: { daily: [DEFAULT_THRESHOLDS.commits * 2], weekly: DEFAULT_THRESHOLDS.commits * 2, monthly: DEFAULT_THRESHOLDS.commits * 2 },
       },
       pullRequests: {
         open: 0,
-        merged: DEFAULT_THRESHOLDS.pullRequests,
+        merged: DEFAULT_THRESHOLDS.pullRequests * 2,
         closed: 0,
         authors: ['user1'],
       },
       reviews: {
-        count: DEFAULT_THRESHOLDS.reviews,
+        count: DEFAULT_THRESHOLDS.reviews * 2,
         authors: ['user1'],
       },
       issues: {
-        closed: DEFAULT_THRESHOLDS.issues,
+        closed: DEFAULT_THRESHOLDS.issues * 2,
         open: 0,
         participants: ['user1'],
       },
@@ -184,18 +184,18 @@ describe('calculate command', () => {
     const currentMonthCalculation = calculator.calculateRewards(currentMonthMetrics, 'current-month');
 
     const calculateMonetaryReward = (score: number): number => {
-      if (score >= 90) return 2500;
-      if (score >= 80) return 2000;
-      if (score >= 70) return 1500;
-      if (score >= 60) return 1000;
+      if (score >= 45) return 2500;
+      if (score >= 40) return 2000;
+      if (score >= 35) return 1500;
+      if (score >= 30) return 1000;
       return score === 0 ? 0 : 500;
     };
 
     const previousMonthReward = calculateMonetaryReward(previousMonthCalculation.score.total);
     const currentMonthReward = calculateMonetaryReward(currentMonthCalculation.score.total);
 
-    expect(previousMonthCalculation.score.total).toBe(100);
-    expect(previousMonthCalculation.level.name).toBe('Diamond');
+    expect(previousMonthCalculation.score.total).toBe(50);
+    expect(previousMonthCalculation.level.name).toBe('Bronze');
     expect(previousMonthReward).toBe(2500);
 
     expect(currentMonthCalculation.score.total).toBe(0);
@@ -283,10 +283,10 @@ describe('calculate command', () => {
     const currentMonthCalculation = calculator.calculateRewards(currentMonthMetrics, 'current-month');
 
     const calculateMonetaryReward = (score: number): number => {
-      if (score >= 90) return 2500;
-      if (score >= 80) return 2000;
-      if (score >= 70) return 1500;
-      if (score >= 60) return 1000;
+      if (score >= 45) return 2500;
+      if (score >= 40) return 2000;
+      if (score >= 35) return 1500;
+      if (score >= 30) return 1000;
       return score === 0 ? 0 : 500;
     };
 
@@ -297,8 +297,8 @@ describe('calculate command', () => {
     expect(previousMonthCalculation.level.name).toBe('Member');
     expect(previousMonthReward).toBe(0);
 
-    expect(currentMonthCalculation.score.total).toBe(50);
-    expect(currentMonthCalculation.level.name).toBe('Bronze');
+    expect(currentMonthCalculation.score.total).toBe(25);
+    expect(currentMonthCalculation.level.name).toBe('Member');
     expect(currentMonthReward).toBe(500);
   });
 });

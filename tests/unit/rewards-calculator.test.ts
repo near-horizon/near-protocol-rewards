@@ -77,8 +77,8 @@ describe("GitHubRewardsCalculator", () => {
         metrics,
         "month",
       );
-      expect(result.score.total).toBeGreaterThanOrEqual(90);
-      expect(result.score.total).toBeLessThanOrEqual(100);
+      expect(result.score.total).toBeGreaterThanOrEqual(45);
+      expect(result.score.total).toBeLessThanOrEqual(50);
     });
   });
 });

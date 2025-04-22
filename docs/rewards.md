@@ -291,7 +291,7 @@ To maximize your rewards while maintaining development quality:
 
 ## Monitoring Your Progress
 
-1. Track your metrics in real-time on the [Protocol Rewards Dashboard](https://protocol-rewards-dashboard.vercel.app/)
+1. Track your metrics in real-time on the [Protocol Rewards Dashboard](https://www.nearprotocolrewards.com/dashboard)
 2. Review weekly and monthly trends
 3. Adjust development practices based on metrics
 
