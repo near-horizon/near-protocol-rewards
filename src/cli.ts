@@ -136,12 +136,12 @@ If running locally, please set these variables first.
 
       // Calculate monetary reward
       const calculateMonetaryReward = (score: number): number => {
-        if (score >= 90) return 2500;      // Diamond:  $2,500
-        if (score >= 80) return 2000;      // Platinum: $2,000
-        if (score >= 70) return 1500;      // Gold:     $1,500
-        if (score >= 60) return 1000;      // Silver:   $1,000
-        if (score >= 50) return 500;       // Bronze:   $500
-        return 0;                          // Memeber:   $0
+        if (score >= 90) return 10000;     // Diamond:  $10,000
+        if (score >= 80) return 8000;      // Platinum: $8,000
+        if (score >= 70) return 6000;      // Gold:     $6,000
+        if (score >= 60) return 4000;      // Silver:   $4,000
+        if (score >= 50) return 2000;      // Bronze:   $2,000
+        return 0;                          // Member:   $0
       };
 
       // Display results

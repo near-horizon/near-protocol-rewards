@@ -184,11 +184,12 @@ describe('calculate command', () => {
     const currentMonthCalculation = calculator.calculateRewards(currentMonthMetrics, 'current-month');
 
     const calculateMonetaryReward = (score: number): number => {
-      if (score >= 45) return 2500;
-      if (score >= 40) return 2000;
-      if (score >= 35) return 1500;
-      if (score >= 30) return 1000;
-      return score === 0 ? 0 : 500;
+      if (score >= 90) return 10000;
+      if (score >= 80) return 8000;
+      if (score >= 70) return 6000;
+      if (score >= 60) return 4000;
+      if (score >= 50) return 2000;
+      return score === 0 ? 0 : 2000;
     };
 
     const previousMonthReward = calculateMonetaryReward(previousMonthCalculation.score.total);
@@ -196,7 +197,7 @@ describe('calculate command', () => {
 
     expect(previousMonthCalculation.score.total).toBe(50);
     expect(previousMonthCalculation.level.name).toBe('Bronze');
-    expect(previousMonthReward).toBe(2500);
+    expect(previousMonthReward).toBe(2000);
 
     expect(currentMonthCalculation.score.total).toBe(0);
     expect(currentMonthCalculation.level.name).toBe('Member');
@@ -283,11 +284,12 @@ describe('calculate command', () => {
     const currentMonthCalculation = calculator.calculateRewards(currentMonthMetrics, 'current-month');
 
     const calculateMonetaryReward = (score: number): number => {
-      if (score >= 45) return 2500;
-      if (score >= 40) return 2000;
-      if (score >= 35) return 1500;
-      if (score >= 30) return 1000;
-      return score === 0 ? 0 : 500;
+      if (score >= 90) return 10000;
+      if (score >= 80) return 8000;
+      if (score >= 70) return 6000;
+      if (score >= 60) return 4000;
+      if (score >= 50) return 2000;
+      return score === 0 ? 0 : 2000;
     };
 
     const previousMonthReward = calculateMonetaryReward(previousMonthCalculation.score.total);
@@ -299,6 +301,6 @@ describe('calculate command', () => {
 
     expect(currentMonthCalculation.score.total).toBe(25);
     expect(currentMonthCalculation.level.name).toBe('Member');
-    expect(currentMonthReward).toBe(500);
+    expect(currentMonthReward).toBe(2000);
   });
 });
