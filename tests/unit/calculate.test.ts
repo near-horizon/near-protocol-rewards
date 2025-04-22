@@ -72,12 +72,12 @@ describe('calculate command', () => {
         }
       },
       score: {
-        total: 85,
+        total: 42.5,
         breakdown: {
-          commits: 25,
-          pullRequests: 25,
-          reviews: 20,
-          issues: 15
+          commits: 12.5,
+          pullRequests: 12.5,
+          reviews: 10,
+          issues: 7.5
         }
       },
       timestamp: now,
@@ -101,17 +101,16 @@ describe('calculate command', () => {
     // Execute calculate command
     await program.parseAsync(['node', 'test', 'calculate']);
 
-    // Verify logger calls match cli.ts exactly
-    expect(logger.info).toHaveBeenCalledWith('\n📊 Rewards Calculation Results:\n');
-    expect(logger.info).toHaveBeenCalledWith(expect.stringContaining('🏆 Level:'));
-    expect(logger.info).toHaveBeenCalledWith(expect.stringContaining('💰 Weekly Reward: $'));
-    expect(logger.info).toHaveBeenCalledWith(expect.stringContaining('💰 Monthly Total Reward: $'));
-    expect(logger.info).toHaveBeenCalledWith('\nNote: Coming in v0.4.0 - NEAR transaction tracking will increase reward potential! 🚀\n');
-    expect(logger.info).toHaveBeenCalledWith('\nBreakdown:');
-    expect(logger.info).toHaveBeenCalledWith(expect.stringContaining('📝 Commits:'));
-    expect(logger.info).toHaveBeenCalledWith(expect.stringContaining('🔄 Pull Requests:'));
-    expect(logger.info).toHaveBeenCalledWith(expect.stringContaining('👀 Reviews:'));
-    expect(logger.info).toHaveBeenCalledWith(expect.stringContaining('🎯 Issues:'));
+    // Verificar a ordem exata das chamadas
+    expect(logger.info.mock.calls[0][0]).toBe('\n📊 Rewards Calculation Results:\n');
+    expect(logger.info.mock.calls[1][0]).toContain('🏆 Level Offchain:');
+    expect(logger.info.mock.calls[2][0]).toContain('💰 Monthly Offchain Total Reward: $');
+    expect(logger.info.mock.calls[3][0]).toBe('\nBreakdown:');
+    expect(logger.info.mock.calls[4][0]).toContain('📝 Commits:');
+    expect(logger.info.mock.calls[5][0]).toContain('🔄 Pull Requests:');
+    expect(logger.info.mock.calls[6][0]).toContain('👀 Reviews:');
+    expect(logger.info.mock.calls[7][0]).toContain('🎯 Issues:');
+    expect(logger.info.mock.calls[8][0]).toBe('\n📊 View your performance data on the dashboard: https://www.nearprotocolrewards.com/dashboard\n');
     
     expect(mockExit).toHaveBeenCalledWith(0);
   });

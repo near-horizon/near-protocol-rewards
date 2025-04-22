@@ -7,9 +7,6 @@ import { GitHubRewardsCalculator, DEFAULT_WEIGHTS, DEFAULT_THRESHOLDS } from './
 import { ConsoleLogger } from './utils/logger';
 import { GitHubValidator } from './validators/github';
 import { BaseError } from './types/errors';
-import { OnChainRewardsCalculator } from './calculator/wallet-rewards';
-import { NearWalletCollector, WalletActivity } from './collectors/near-wallet-collector';
-import { sendEventToAWS } from './utils/sendEvent';
 
 // Create a logger instance for consistent logging
 const logger = new ConsoleLogger();
@@ -135,35 +132,34 @@ If running locally, please set these variables first.
       }
 
       // Calculate rewards
-      const rewards = calculator.calculateRewards(metrics.github, 'last-week');
       const rewardsTotalMonth = calculator.calculateRewards(metrics.github, 'current-month');
 
-      // Calculate monetary reward (weekly basis)
+      // Calculate monetary reward
       const calculateMonetaryReward = (score: number): number => {
-        if (score >= 90) return 2500;      // Diamond:  $2,500/week
-        if (score >= 80) return 2000;      // Platinum: $2,000/week
-        if (score >= 70) return 1500;      // Gold:     $1,500/week
-        if (score >= 60) return 1000;      // Silver:   $1,000/week
-        return 500;                        // Bronze:   $500/week
+        if (score >= 90) return 2500;      // Diamond:  $2,500
+        if (score >= 80) return 2000;      // Platinum: $2,000
+        if (score >= 70) return 1500;      // Gold:     $1,500
+        if (score >= 60) return 1000;      // Silver:   $1,000
+        if (score >= 50) return 500;       // Bronze:   $500
+        return 0;                          // Memeber:   $0
       };
 
       // Display results
       logger.info('\n📊 Rewards Calculation Results:\n');
-      const weeklyReward = calculateMonetaryReward(rewards.score.total);
       const monthReward = calculateMonetaryReward(rewardsTotalMonth.score.total);
 
-      logger.info(`🏆 Level: ${rewards.level.name} (${rewards.score.total.toFixed(2)}/100)`);
-      logger.info(`💰 Monthly Total Reward: $${monthReward.toLocaleString()}`);
+      logger.info(`🏆 Level Offchain: ${rewardsTotalMonth.level.name} (${rewardsTotalMonth.score.total.toFixed(2)}/100)`);
+      logger.info(`💰 Monthly Offchain Total Reward: $${monthReward.toLocaleString()}`);
       logger.info('\nBreakdown:');
-      logger.info(`📝 Commits: ${rewards.score.breakdown.commits.toFixed(2)}`);
-      logger.info(`🔄 Pull Requests: ${rewards.score.breakdown.pullRequests.toFixed(2)}`);
-      logger.info(`👀 Reviews: ${rewards.score.breakdown.reviews.toFixed(2)}`);
-      logger.info(`🎯 Issues: ${rewards.score.breakdown.issues.toFixed(2)}\n`);
-      logger.info('\n📊 View your on-chain data on the dashboard: https://www.nearprotocolrewards.com/dashboard\n');
+      logger.info(`📝 Commits: ${rewardsTotalMonth.score.breakdown.commits.toFixed(2)}`);
+      logger.info(`🔄 Pull Requests: ${rewardsTotalMonth.score.breakdown.pullRequests.toFixed(2)}`);
+      logger.info(`👀 Reviews: ${rewardsTotalMonth.score.breakdown.reviews.toFixed(2)}`);
+      logger.info(`🎯 Issues: ${rewardsTotalMonth.score.breakdown.issues.toFixed(2)}\n`);
+      logger.info('\n📊 View your performance data on the dashboard: https://www.nearprotocolrewards.com/dashboard\n');
 
-      if (rewards.achievements.length > 0) {
+      if (rewardsTotalMonth.achievements.length > 0) {
         logger.info('🌟 Achievements:');
-        rewards.achievements.forEach(achievement => {
+        rewardsTotalMonth.achievements.forEach(achievement => {
           logger.info(`- ${achievement.name}: ${achievement.description}`);
         });
       }
