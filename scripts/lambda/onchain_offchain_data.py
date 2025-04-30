@@ -3,6 +3,7 @@ import json
 import time
 import requests
 import boto3
+import sys
 from datetime import datetime
 from calendar import monthrange
 from collections import Counter
@@ -232,6 +233,9 @@ def get_all(url: str, repo: str = None, data_type: str = None) -> List[Dict[str,
         if response.status_code != 200:
             error_message = f"Error {response.status_code}: {response.text}"
             print(f"❌ {repo} - Error in {data_type}: {error_message}")
+            if response.status_code == 403 and "API rate limit exceeded" in response.text:
+                print("❌ GitHub API rate limit exceeded. Process will be stopped.")
+                sys.exit(1)
             if response.status_code == 403:
                 raise Exception(error_message)
             break
@@ -450,6 +454,9 @@ def lambda_handler(event, context):
             print(f"❌ Error processing project {project['project']}: {str(e)}")
             project_result["error"] = str(e)
             results.append(project_result)
+            if "API rate limit exceeded" in str(e):
+                print("❌ GitHub API rate limit exceeded. Process will be stopped.")
+                sys.exit(1)
     
     # Save results to S3
     s3 = boto3.client("s3")
