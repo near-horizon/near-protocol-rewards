@@ -362,6 +362,8 @@ def calculate_monetary_reward(score: float) -> int:
         return 4000   # Silver: $4,000
     elif score >= 50:
         return 2000   # Bronze: $2,000
+    elif score >= 25:
+        return 1000   # Bronze: $1,000
     else:
         return 0      # Member: $0
 
