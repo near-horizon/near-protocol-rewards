@@ -3,6 +3,7 @@ import json
 import time
 import requests
 import boto3
+import sys
 from datetime import datetime
 from calendar import monthrange
 from collections import Counter
@@ -74,7 +75,13 @@ def fetch_transaction_data(account_id: str, api_key: str) -> Dict[str, Any]:
         response = requests.get(paginated_url, headers=headers, params=params)
         
         if response.status_code != 200:
-            print(f"Error {response.status_code}: {response.text}")
+            error_message = f"Error {response.status_code}: {response.text}"
+            print(f"❌ Error fetching transactions for {account_id}: {error_message}")
+            if response.status_code == 429:  # Rate limit exceeded
+                print("❌ NearBlocks API rate limit exceeded. Process will be stopped.")
+                sys.exit(1)
+            if response.status_code == 403:
+                raise Exception(error_message)
             break
         
         data = response.json()
@@ -89,6 +96,9 @@ def fetch_transaction_data(account_id: str, api_key: str) -> Dict[str, Any]:
             break
             
         page += 1
+        
+        # Add a small delay between requests to avoid rate limit
+        time.sleep(0.5)  # 500ms delay between calls
     
     return {
         "metadata": {
@@ -232,6 +242,9 @@ def get_all(url: str, repo: str = None, data_type: str = None) -> List[Dict[str,
         if response.status_code != 200:
             error_message = f"Error {response.status_code}: {response.text}"
             print(f"❌ {repo} - Error in {data_type}: {error_message}")
+            if response.status_code == 403 and "API rate limit exceeded" in response.text:
+                print("❌ GitHub API rate limit exceeded. Process will be stopped.")
+                sys.exit(1)
             if response.status_code == 403:
                 raise Exception(error_message)
             break
@@ -441,15 +454,18 @@ def lambda_handler(event, context):
             results.append(project_result)
             print(f"✅ Project {project['project']} processed successfully!")
             
-            # Add delay every 5 projects
-            if index % 5 == 0 and index < len(PROJECTS):
-                print("⏳ Waiting 1 minute to respect API rate limits...")
-                time.sleep(60)
+            # Add delay every 3 projects to respect both GitHub and NearBlocks API rate limits
+            if index % 3 == 0 and index < len(PROJECTS):
+                print("⏳ Waiting 2 minutes to respect API rate limits...")
+                time.sleep(120)  # 2 minutes wait
             
         except Exception as e:
             print(f"❌ Error processing project {project['project']}: {str(e)}")
             project_result["error"] = str(e)
             results.append(project_result)
+            if "API rate limit exceeded" in str(e):
+                print("❌ GitHub API rate limit exceeded. Process will be stopped.")
+                sys.exit(1)
     
     # Save results to S3
     s3 = boto3.client("s3")
