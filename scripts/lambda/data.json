@@ -1,0 +1,87 @@
+ [
+    {
+      "project": "YieldGuard",
+      "wallet": "haidarjbeily.near",
+      "website": "https://github.com/HaidarJbeily7/YieldGuard",
+      "repository": ["HaidarJbeily7/YieldGuard"]
+    },
+    {
+      "project": "SudoStake",
+      "wallet": "palingram.near",
+      "website": "https://github.com/sudostake",
+      "repository": ["sudostake/sudostake_contracts_near"]
+    },
+    {
+      "project": "HowToTrainYourModel",
+      "wallet": "ilovetofu.near",
+      "website": "https://github.com/JingYuan0926/HowToTrainYourModel",
+      "repository": ["JingYuan0926/HowToTrainYourModel"]
+    },
+    {
+      "project": "benevio labs",
+      "wallet": "benevio-labs.near",
+      "website": "www.benevio.dev",
+      "repository": ["beneviolabs/ft-allowance-agent", "beneviolabs/ft-core", "beneviolabs/core-functions"]
+    },
+    {
+      "project": "Ava",
+      "wallet": "avatheaiagent.near",
+      "website": "https://github.com/kamalbuilds/ava-the-ai-agent",
+      "repository": ["kamalbuilds/ava-the-ai-agent"]
+    },
+    {
+      "project": "AI Gambling Club",
+      "wallet": "aigamingclub.near",
+      "website": "https://github.com/aigamblingclub/monorepo",
+      "repository": ["aigamblingclub/monorepo"]
+    },
+    {
+      "project": "Unreal",
+      "wallet": "lemniscite.near",
+      "website": "https://github.com/DeCenterAI-1/Unreal",
+      "repository": ["DeCenterAI-1/Unreal"]
+    },
+    {
+      "project": "Aigency",
+      "wallet": "mutable.near",
+      "website": "https://github.com/dapplets/aigency",
+      "repository": ["dapplets/mutable-web-monorepo"]
+    },
+    {
+      "project": "Finowl AI",
+      "wallet": "unholy38.near",
+      "website": "https://github.com/finowl-near/finowl-app",
+      "repository": ["finowl-near/finowl-app"]
+    },
+    {
+      "project": "Decentralized File Storage Manager Agent",
+      "wallet": "partage.near",
+      "website": "https://github.com/jcarbonnell/DFS_manager",
+      "repository": ["jcarbonnell/DFS_manager"]
+    },
+    {
+      "project": "Bitcoin Agent",
+      "wallet": "0xmht.near",
+      "website": "https://github.com/0xAlphaDevs/Near-Bitcoin-Agent",
+      "repository": ["0xAlphaDevs/Near-Bitcoin-Agent"]
+    },
+    {
+      "project": "Wootzapp",
+      "wallet": "8aed835ca3809c5574d14cfe06616dc0a43d8392edfa6506803867c3d000eb22",
+      "website": "https://github.com/wootzapp/wootz-browser",
+      "repository": ["wootzapp/wootz-browser"]
+    },
+    {
+      "project": "Normie Tech",
+      "wallet": "cf91ae766415dcaa7b15029000c7b8a1bdf859a65dd50a06929b85839870eca4",
+      "website": "https://github.com/normiedottech/Normie-tech-docs",
+      "repository": ["normiedottech/Normie-tech-docs"]
+    },
+    {
+      "project": "Pingpay",
+      "wallet": "pingpayio.near",
+      "website": "https://github.com/Pingpayio",
+      "repository": ["Pingpayio/ping-subscription-service"]
+    }
+  ]
+  
