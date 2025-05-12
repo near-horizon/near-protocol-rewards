@@ -101,6 +101,41 @@ The total score (0-100) is calculated from both off-chain (GitHub) and on-chain 
 - Smart Contract Interactions: 500+ interactions → 20 points
 - Unique Wallet Interactions: 100+ unique wallets → 10 points
 
+#### Reward Calculation
+
+ Monetary rewards are calculated based on the score, following the table below:
+
+ | Score Range        | Tier     | Monetary Reward |
+|--------------------|----------|------------------|
+| 90 to 100          | Diamond  | $10,000          |
+| 80 to 89           | Platinum | $8,000           |
+| 70 to 79           | Gold     | $6,000           |
+| 60 to 69           | Silver   | $4,000           |
+| 50 to 59           | Bronze   | $2,000           |
+| 25 to 49           | Bronze   | $1,000           |
+| Below 25           | Member   | $0               |
+
+
+
+In the code we have this:
+````
+Calculates monetary reward based on score."""
+    if score >= 90:
+        return 10000  # Diamond: $10,000
+    elif score >= 80:
+        return 8000   # Platinum: $8,000
+    elif score >= 70:
+        return 6000   # Gold: $6,000
+    elif score >= 60:
+        return 4000   # Silver: $4,000
+    elif score >= 50:
+        return 2000   # Bronze: $2,000
+    elif score >= 25:
+        return 1000   # Bronze: $1,000
+    else:
+        return 0      # Member: $0
+````
+
 ## Common Questions
 
 ### When do metrics update?
