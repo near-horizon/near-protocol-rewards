@@ -107,7 +107,7 @@ def lambda_handler(event, context):
         project_result = {
             "project": project["project"],
             "wallet": project["wallet"],
-            "github": project.get("github", ""),
+            "website": project.get("website", ""),
             "repository": project.get("repository", []),
             "period": f"{YEAR}-{MONTH:02}",
             "timestamp": current_date.isoformat()
