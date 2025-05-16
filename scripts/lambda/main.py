@@ -43,32 +43,14 @@ def load_json_data() -> list:
         for file in os.listdir(current_dir):
             print(f"   - {file}")
         
-        # Tentativa 4: dados manualmente incorporados no código
-        print("📑 Usando dados de exemplo incorporados no código")
-        return [
-            {
-                "project": "benevio labs",
-                "wallet": "benevio-labs.near",
-                "website": "www.benevio.dev",
-                "repository": ["beneviolabs/ft-allowance-agent", "beneviolabs/ft-core", "beneviolabs/core-functions"]
-            },
-            {
-                "project": "example project",
-                "wallet": "example.near",
-                "website": "www.example.com",
-                "repository": "example/repository"
-            }
-        ]
     except Exception as e:
         print(f"❌ Erro ao carregar data.json: {str(e)}")
-        # Retorna dado de exemplo como último recurso
-        return [
-            {
-                "project": "benevio labs (fallback)",
-                "wallet": "benevio-labs.near",
-                "repository": ["beneviolabs/ft-allowance-agent"]
+        return {
+            "statusCode": 500,
+            "body": {
+                "message": f"Error loading projects: {str(e)}"
             }
-        ]
+        }        
 
 # === MAIN FUNCTION ===
 
