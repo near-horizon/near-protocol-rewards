@@ -12,6 +12,8 @@ def determine_level(score: float) -> Dict[str, Any]:
         return {"name": "Silver", "minScore": 60, "maxScore": 69, "color": "#C0C0C0"}
     elif score >= 50:
         return {"name": "Bronze", "minScore": 50, "maxScore": 59, "color": "#CD7F32"}
+    elif score >= 25:
+        return {"name": "Bronze", "minScore": 25, "maxScore": 50, "color": "#CD7F32"}
     else:
         return {"name": "Member", "minScore": 0, "maxScore": 49, "color": "#A4A4A4"}
 
