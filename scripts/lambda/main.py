@@ -43,22 +43,6 @@ def load_json_data() -> list:
         for file in os.listdir(current_dir):
             print(f"   - {file}")
         
-        # Tentativa 4: dados manualmente incorporados no código
-        print("📑 Usando dados de exemplo incorporados no código")
-        return [
-            {
-                "project": "benevio labs",
-                "wallet": "benevio-labs.near",
-                "website": "www.benevio.dev",
-                "repository": ["beneviolabs/ft-allowance-agent", "beneviolabs/ft-core", "beneviolabs/core-functions"]
-            },
-            {
-                "project": "example project",
-                "wallet": "example.near",
-                "website": "www.example.com",
-                "repository": "example/repository"
-            }
-        ]
     except Exception as e:
         print(f"❌ Erro ao carregar data.json: {str(e)}")
         # Retorna dado de exemplo como último recurso
@@ -123,7 +107,7 @@ def lambda_handler(event, context):
         project_result = {
             "project": project["project"],
             "wallet": project["wallet"],
-            "github": project.get("github", ""),
+            "website": project.get("website", ""),
             "repository": project.get("repository", []),
             "period": f"{YEAR}-{MONTH:02}",
             "timestamp": current_date.isoformat()
