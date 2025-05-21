@@ -8,8 +8,8 @@
     {
       "project": "SudoStake",
       "wallet": "palingram.near",
-      "website": "https://github.com/sudostake",
-      "repository": ["sudostake/sudostake_contracts_near"]
+      "website": "sudostake.com",
+      "repository": ["sudostake/sudostake_contracts_near", "sudostake/sudostake_web"]
     },
     {
       "project": "HowToTrainYourModel",
