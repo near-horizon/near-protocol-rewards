@@ -31,8 +31,8 @@
     },
     {
       "project": "AI Gambling Club",
-      "wallet": "aigamingclub.near",
-      "website": "https://github.com/aigamblingclub/monorepo",
+      "wallet": "aigamblingclub.near",
+      "website": "aigambling.club",
       "repository": ["aigamblingclub/monorepo"]
     },
     {
