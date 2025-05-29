@@ -36,12 +36,6 @@
       "repository": ["aigamblingclub/monorepo"]
     },
     {
-      "project": "AI Gambling Club",
-      "wallet": "aigamblingclub.near",
-      "website": "aigambling.club",
-      "repositorie": "aigamblingclub/monorepo"
-    },
-    {
       "project": "Unreal",
       "wallet": "lemniscite.near",
       "website": "https://github.com/DeCenterAI-1/Unreal",
