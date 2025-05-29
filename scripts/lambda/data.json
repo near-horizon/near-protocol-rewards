@@ -81,7 +81,7 @@
       "project": "Pingpay",
       "wallet": "pingpayio.near",
       "website": "https://github.com/Pingpayio",
-      "repository": ["Pingpayio/ping-subscription-service"]
+      "repository": ["Pingpayio/ping-subscription-service", "Pingpayio/ping-onramp-frontend", "Pingpay/pingpay-landing-page"]
     }
   ]
   
