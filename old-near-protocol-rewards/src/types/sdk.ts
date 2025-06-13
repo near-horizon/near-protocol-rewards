@@ -1,5 +1,5 @@
 import { Logger } from "../utils/logger";
-import { BaseError } from "../types/errors";
+import { BaseError } from "./errors";
 import { ProcessedMetrics, Score } from "./metrics";
 
 export interface StorageConfig {
