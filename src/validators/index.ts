@@ -1,0 +1,1 @@
+// Lógica para validação de dados on-chain e off-chain 
