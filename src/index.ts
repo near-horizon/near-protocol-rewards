@@ -4,6 +4,7 @@
 
 import dotenv from 'dotenv';
 import { OffchainCollector } from './collectors/offchain';
+import { OnchainCollector } from './collectors/onchain';
 import { Logger, LogLevel } from './utils/logger';
 import { RateLimiter } from './utils/rate-limiter';
 
@@ -11,9 +12,15 @@ import { RateLimiter } from './utils/rate-limiter';
 dotenv.config();
 
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
+const NEARBLOCKS_API_KEY = process.env.NEARBLOCKS_API_KEY;
 
 if (!GITHUB_TOKEN) {
   console.error('❌ GITHUB_TOKEN environment variable is required');
+  process.exit(1);
+}
+
+if (!NEARBLOCKS_API_KEY) {
+  console.error('❌ NEARBLOCKS_API_KEY environment variable is required');
   process.exit(1);
 }
 
@@ -29,12 +36,19 @@ async function main() {
       'aigamblingclub/monorepo'
     ];
     
-    // March 2025
+    // Example NEAR wallets
+    const wallets = [
+      'benevio-labs.near',
+      'aigamblingclub.near'
+    ];
+    
+    // May 2025
     const year = 2025;
-    const month = 5; // March
+    const month = 5; // May
     
     logger.info(`🚀 Starting data collection for ${month}/${year}`);
     
+    // Process off-chain data (GitHub repositories)
     for (const repo of repositories) {
       logger.info(`📊 Processing repository: ${repo}`);
       
@@ -82,6 +96,33 @@ async function main() {
         prAuthors: metrics.pullRequests.authors,
         reviewAuthors: metrics.reviews.authors,
         issueParticipants: metrics.issues.participants
+      });
+    }
+    
+    // Process on-chain data (NEAR wallets)
+    for (const wallet of wallets) {
+      logger.info(`🔗 Processing NEAR wallet: ${wallet}`);
+      
+      const onchainCollector = new OnchainCollector({
+        apiKey: NEARBLOCKS_API_KEY!,
+        accountId: wallet,
+        logger,
+        rateLimiter
+      });
+      
+      // Test connection
+      await onchainCollector.testConnection();
+      
+      // Collect metrics only
+      const metrics = await onchainCollector.collectMetrics(year, month);
+      
+      // Output results for validation
+      logger.info(`✅ On-chain metrics collected for ${wallet}:`, {
+        transactionVolume: metrics.transactionVolume,
+        contractInteractions: metrics.contractInteractions,
+        uniqueWallets: metrics.uniqueWallets,
+        transactionCount: metrics.transactionCount,
+        metadata: metrics.metadata
       });
     }
     

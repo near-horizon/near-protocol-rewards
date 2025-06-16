@@ -71,4 +71,59 @@ export interface OffchainRewards {
   score: OffchainRewardScore;
   level: RewardLevel;
   totalReward: number;
+}
+
+// On-chain metrics types
+
+export interface NearTransaction {
+  transaction_hash: string;
+  predecessor_account_id: string;
+  receiver_account_id: string;
+  actions: NearAction[];
+  actions_agg?: {
+    deposit?: string;
+  };
+  block_timestamp: string;
+}
+
+export interface NearAction {
+  action: string;
+  deposit?: string;
+  method_name?: string;
+  args?: any;
+}
+
+export interface NearTransactionData {
+  metadata: {
+    period: {
+      start_date: string;
+      end_date: string;
+    };
+    account_id: string;
+    timestamp: string;
+  };
+  transactions: NearTransaction[];
+}
+
+export interface OnchainMetrics {
+  transactionVolume: number; // in NEAR tokens
+  contractInteractions: number;
+  uniqueWallets: number;
+  transactionCount: number;
+  metadata: MetricsMetadata;
+}
+
+export interface OnchainRewardScore {
+  total: number;
+  breakdown: {
+    transactionVolume: number;
+    contractInteractions: number;
+    uniqueWallets: number;
+  };
+}
+
+export interface OnchainRewards {
+  score: OnchainRewardScore;
+  level: RewardLevel;
+  totalReward: number;
 } 
