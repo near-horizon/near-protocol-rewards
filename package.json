@@ -1,7 +1,7 @@
 {
   "name": "near-protocol-rewards",
   "version": "1.0.0",
-  "description": "API para cálculo de recompensas do protocolo NEAR",
+  "description": "API for calculating rewards for the NEAR protocol",
   "main": "dist/api/index.js",
   "scripts": {
     "start": "ts-node src/index.ts",
