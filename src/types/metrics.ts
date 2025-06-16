@@ -1,8 +1,57 @@
-import { ValidationResult } from "./validation";
+/**
+ * Types for GitHub metrics
+ */
 
-export type MetricsSource = "github";
+export interface GitHubAuthor {
+  login: string;
+  count: number;
+}
 
-export interface Score {
+export interface CommitFrequency {
+  daily: number[];  // Array of 7 elements representing days of the week (0 = Sunday)
+  weekly: number;
+  monthly: number;
+}
+
+export interface GitHubCommitMetrics {
+  count: number;
+  frequency: CommitFrequency;
+  authors: GitHubAuthor[];
+}
+
+export interface GitHubPullRequestMetrics {
+  open: number;
+  merged: number;
+  closed: number;
+  authors: string[];
+}
+
+export interface GitHubReviewMetrics {
+  count: number;
+  authors: string[];
+}
+
+export interface GitHubIssueMetrics {
+  open: number;
+  closed: number;
+  participants: string[];
+}
+
+export interface MetricsMetadata {
+  collectionTimestamp: number;
+  source: string;
+  projectId: string;
+}
+
+export interface GitHubMetrics {
+  commits: GitHubCommitMetrics;
+  pullRequests: GitHubPullRequestMetrics;
+  reviews: GitHubReviewMetrics;
+  issues: GitHubIssueMetrics;
+  metadata: MetricsMetadata;
+}
+
+export interface OffchainRewardScore {
   total: number;
   breakdown: {
     commits: number;
@@ -12,115 +61,80 @@ export interface Score {
   };
 }
 
-export interface MetricsMetadata {
-  source: MetricsSource;
-  projectId: string;
-  collectionTimestamp: number;
-  periodStart: number;
-  periodEnd: number;
+export interface RewardLevel {
+  name: string;
+  threshold: number;
+  multiplier: number;
 }
 
-export interface GitHubMetrics {
-  commits: {
-    count: number;
-    frequency: {
-      daily: number[];
-      weekly: number;
-      monthly: number;
-    };
-    authors: Array<{
-      login: string;
-      count: number;
-    }>;
+export interface OffchainRewards {
+  score: OffchainRewardScore;
+  level: RewardLevel;
+  totalReward: number;
+}
+
+// On-chain metrics types
+
+export interface NearTransaction {
+  id: string;
+  transaction_hash: string;
+  signer_account_id: string;
+  receiver_account_id: string;
+  block_timestamp: string;
+  actions: NearAction[];
+  actions_agg: {
+    deposit: number;
   };
-  pullRequests: {
-    open: number;
-    merged: number;
-    closed: number;
-    authors: string[];
+  outcomes?: {
+    status: boolean;
   };
-  reviews: {
-    count: number;
-    authors: string[];
+  outcomes_agg?: {
+    transaction_fee: number;
   };
-  issues: {
-    open: number;
-    closed: number;
-    participants: string[];
+  block: {
+    block_height: number;
   };
+}
+
+export interface NearAction {
+  action: string;
+  method: string | null;
+  deposit: number;
+  fee: number;
+  args: string | null;
+}
+
+export interface NearTransactionData {
   metadata: {
-    collectionTimestamp: number;
-    source: MetricsSource;
-    projectId: string;
-  };
-}
-
-export interface WalletActivity {
-  timestamp: number;
-  transactionHash: string;
-  type: 'incoming' | 'outgoing';
-  details: {
-    signerId: string;
-    receiverId: string;
-    actions: any[];
-  };
-}
-
-export interface NearMetrics {
-  activities: WalletActivity[];
-  timestamp: number;
-}
-
-export interface ProcessedMetrics {
-  github: GitHubMetrics;
-  near?: NearMetrics;
-  score: {
-    total: number;
-    breakdown: {
-      commits: number;
-      pullRequests: number;
-      reviews: number;
-      issues: number;
+    period: {
+      start_date: string;
+      end_date: string;
     };
+    account_id: string;
+    timestamp: string;
   };
-  timestamp: number;
-  collectionTimestamp: number;
-  validation: ValidationResult;
-  metadata: {
-    source: 'github' | 'github+near';
-    projectId: string;
-    collectionTimestamp: number;
-    periodStart: number;
-    periodEnd: number;
-  };
-  periodStart: number;
-  periodEnd: number;
+  transactions: NearTransaction[];
 }
 
-export interface RewardCalculation {
-  score: Score;
+export interface OnchainMetrics {
+  transactionVolume: number; // in NEAR tokens
+  contractInteractions: number;
+  uniqueWallets: number;
+  transactionCount: number;
+  metadata: MetricsMetadata;
+}
+
+export interface OnchainRewardScore {
+  total: number;
   breakdown: {
-    commits: number;
-    pullRequests: number;
-    reviews: number;
-    issues: number;
-  };
-  level: {
-    name: string;
-    minScore: number;
-    maxScore: number;
-    color: string;
-  };
-  achievements: Array<{
-    id: string;
-    name: string;
-    description: string;
-    earnedAt: string;
-    category: "commit" | "pr" | "review" | "issue";
-  }>;
-  metadata: {
-    timestamp: number;
-    periodStart: number;
-    periodEnd: number;
+    transactionVolume: number;
+    contractInteractions: number;
+    uniqueWallets: number;
   };
 }
+
+export interface OnchainRewards {
+  score: OnchainRewardScore;
+  level: RewardLevel;
+  totalReward: number;
+} 

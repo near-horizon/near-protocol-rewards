@@ -1,3 +1,9 @@
+/**
+ * Base collector class
+ * 
+ * Provides common functionality for all collectors
+ */
+
 import { Logger } from "../utils/logger";
 import { RateLimiter } from "../utils/rate-limiter";
 
@@ -10,6 +16,10 @@ export abstract class BaseCollector {
     this.rateLimiter = rateLimiter;
   }
 
+  protected log(message: string, context?: Record<string, unknown>): void {
+    this.logger?.info(message, context);
+  }
+
   protected error(message: string, context?: Record<string, unknown>): void {
     this.logger?.error(message, context);
   }
@@ -18,11 +28,15 @@ export abstract class BaseCollector {
     try {
       await this.rateLimiter?.acquire();
       const result = await fn();
-      await this.rateLimiter?.release();
       return result;
     } catch (error) {
       await this.rateLimiter?.release();
       throw error;
+    } finally {
+      // We don't release in the success case because we want to respect the rate limit
+      // The token bucket will refill naturally over time
     }
   }
-}
+
+  abstract collectData(...args: any[]): Promise<unknown>;
+} 

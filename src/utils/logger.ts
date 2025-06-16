@@ -1,58 +1,76 @@
-import { LogLevel, LogContext, ErrorLogContext } from "../types/logger";
-import { toJSONErrorContext } from "./format-error";
+/**
+ * Logger Utility
+ * 
+ * Provides standardized logging functionality with different log levels.
+ */
 
-// Define the interface
-export interface ILogger {
-  level: string;
-  shouldLog: (level: string) => boolean;
-  debug: (message: string, context?: Record<string, unknown>) => void;
-  info: (message: string, context?: Record<string, unknown>) => void;
-  warn: (message: string, context?: Record<string, unknown>) => void;
-  error: (message: string, context?: Record<string, unknown>) => void;
+export enum LogLevel {
+  DEBUG = 0,
+  INFO = 1,
+  WARN = 2,
+  ERROR = 3,
 }
 
-// Implement the interface
-export class ConsoleLogger implements ILogger {
-  readonly level: string;
+export class Logger {
+  private readonly level: LogLevel;
+  private readonly prefix: string;
 
-  constructor(level: string = "info") {
+  /**
+   * Creates a new logger
+   * 
+   * @param level Minimum log level to display
+   * @param prefix Prefix to add to all log messages
+   */
+  constructor(level: LogLevel = LogLevel.INFO, prefix: string = '') {
     this.level = level;
+    this.prefix = prefix ? `[${prefix}] ` : '';
   }
 
-  shouldLog(level: string): boolean {
-    const levels = ["error", "warn", "info", "debug"];
-    return levels.indexOf(level) <= levels.indexOf(this.level);
-  }
-
+  /**
+   * Logs a debug message
+   * 
+   * @param message Message to log
+   * @param context Optional context object
+   */
   debug(message: string, context?: Record<string, unknown>): void {
-    if (this.shouldLog("debug")) {
-      console.debug(message, context);
+    if (this.level <= LogLevel.DEBUG) {
+      console.debug(`${this.prefix}${message}`, context || '');
     }
   }
 
+  /**
+   * Logs an info message
+   * 
+   * @param message Message to log
+   * @param context Optional context object
+   */
   info(message: string, context?: Record<string, unknown>): void {
-    if (this.shouldLog("info")) {
-      if (context) {
-        console.info(message, context);
-      } else {
-        console.info(message);
-      }
+    if (this.level <= LogLevel.INFO) {
+      console.info(`${this.prefix}${message}`, context || '');
     }
   }
 
+  /**
+   * Logs a warning message
+   * 
+   * @param message Message to log
+   * @param context Optional context object
+   */
   warn(message: string, context?: Record<string, unknown>): void {
-    if (this.shouldLog("warn")) {
-      console.warn(message, context);
+    if (this.level <= LogLevel.WARN) {
+      console.warn(`${this.prefix}${message}`, context || '');
     }
   }
 
+  /**
+   * Logs an error message
+   * 
+   * @param message Message to log
+   * @param context Optional context object
+   */
   error(message: string, context?: Record<string, unknown>): void {
-    if (this.shouldLog("error")) {
-      console.error(message, context);
+    if (this.level <= LogLevel.ERROR) {
+      console.error(`${this.prefix}${message}`, context || '');
     }
   }
-}
-
-// Export a default logger instance
-export const defaultLogger = new ConsoleLogger();
-export type Logger = ConsoleLogger;
+} 

@@ -1,4 +1,4 @@
-# NEAR Protocol Rewards SDK
+# NEAR Protocol Rewards Backend
 
 > A transparent, metric-based rewards system for NEAR projects that directly ties incentives to development activity.
 
@@ -33,19 +33,6 @@ Protocol Rewards provides:
 
 By automating the entire process from tracking to distribution, we enable developers to focus on what they do best - building innovative solutions on NEAR.
 
-## Get Started in 30 Seconds
-
-1. Open terminal in your repository
-2. Run this command:
-
-```bash
-npx near-protocol-rewards init
-```
-
-3. Push to main branch
-
-That's it! 🎉 Your metrics will show up at [Protocol Rewards Dashboard](https://near-protocol-rewards.netlify.app/)
-
 ## How It Works
 
 ![Model](public/assets/model.jpeg)
@@ -59,101 +46,149 @@ We automatically track both off-chain and on-chain metrics:
 - **Issues**: How you manage tasks
 
 ### On-Chain Metrics (Blockchain)
-- **Transaction Volume**: Total value of transactions
+- **Transaction Volume**: Total value of transactions on NEAR's Blockchain
 - **Smart Contract Interactions**: Number of unique contract interactions
 - **Unique Wallet Interactions**: Number of distinct wallets interacting
 
-Everything runs through GitHub Actions:
-
-- No setup needed
-- Uses GitHub's built-in security
-- Updates every 12 hours and on push
-
 ## Scoring System
 
-The total score (0-100) is calculated from both off-chain (GitHub) and on-chain (Blockchain) contributions, with rewards split 50/50:
+The total score (0-100) is calculated from both off-chain (GitHub) and on-chain (Blockchain) contributions, with an 80/20 weight distribution:
 
-### Off-Chain (GitHub) - 50 Points
+### Off-Chain (GitHub) - 80 Points
 
-| Component | Weight | Description | Max Points |
+| Component | Max Points | Description | Threshold for Max Points |
 |-----------|--------|-------------|------------|
-| Commits | 35% | Code contributions | 17.5 |
-| Pull Requests | 25% | Code review and integration | 12.5 |
-| Reviews | 20% | Community participation | 10 |
-| Issues | 20% | Project management | 10 |
+| Commits | 28 | Code contributions | 100 meaningful commits |
+| Pull Requests | 22 | Code review and integration | 25 merged PRs |
+| Reviews | 16 | Community participation | 30 substantive reviews |
+| Issues | 14 | Project management | 30 closed issues |
 
-#### Thresholds for Maximum Points (GitHub)
-- Commits: 100 meaningful commits → 17.5 points
-- Pull Requests: 20 merged PRs → 12.5 points
-- Reviews: 30 substantive reviews → 10 points
-- Issues: 30 closed issues → 10 points
+### On-Chain (Blockchain) - 20 Points
 
-### On-Chain (Blockchain) - 50 Points
-
-| Component | Weight | Description | Max Points |
+| Component | Max Points | Description | Threshold for Max Points |
 |-----------|--------|-------------|------------|
-| Transaction Volume | 40% | Total value of transactions | 20 |
-| Smart Contract Interactions | 40% | Number of unique interactions | 20 |
-| Unique Wallet Interactions | 20% | Number of distinct wallets | 10 |
-
-#### Thresholds for Maximum Points (On-Chain)
-- Transaction Volume: $10,000+ in total transactions → 20 points
-- Smart Contract Interactions: 500+ interactions → 20 points
-- Unique Wallet Interactions: 100+ unique wallets → 10 points
+| Transaction Volume | 8 | Total value of transactions | $10,000+ |
+| Smart Contract Calls | 8 | Number of unique calls | 500+ calls |
+| Unique Wallets | 4 | Number of distinct wallets | 100+ unique wallets |
 
 #### Reward Calculation
 
- Monetary rewards are calculated based on the score, following the table below:
+Monetary rewards are calculated based on the score, following the table below:
 
- | Score Range        | Tier     | Monetary Reward |
-|--------------------|----------|------------------|
-| 90 to 100          | Diamond  | $10,000          |
-| 80 to 89           | Platinum | $8,000           |
-| 70 to 79           | Gold     | $6,000           |
-| 60 to 69           | Silver   | $4,000           |
-| 50 to 59           | Bronze   | $2,000           |
-| 25 to 49           | Bronze   | $1,000           |
-| Below 25           | Member   | $0               |
-
-
+| Score Range | Tier | Monetary Reward |
+|-------------|------|-----------------|
+| 85–100 |  Diamond | $10,000 |
+| 70–84 | Gold | $6,000 |
+| 55–69 |  Silver | $3,000 |
+| 40–54 |  Bronze | $1,000 |
+| 20–39 |  Contributor | $500 |
+| 1–19 |  Explorer | $100 |
+| 0 | No Tier | $0 |
 
 In the code we have this:
-````
+```
 Calculates monetary reward based on score."""
-    if score >= 90:
+    if score >= 85:
         return 10000  # Diamond: $10,000
-    elif score >= 80:
-        return 8000   # Platinum: $8,000
     elif score >= 70:
         return 6000   # Gold: $6,000
-    elif score >= 60:
-        return 4000   # Silver: $4,000
-    elif score >= 50:
-        return 2000   # Bronze: $2,000
-    elif score >= 25:
+    elif score >= 55:
+        return 3000   # Silver: $3,000
+    elif score >= 40:
         return 1000   # Bronze: $1,000
+    elif score >= 20:
+        return 500    # Contributor: $500
+    elif score >= 1:
+        return 100    # Explorer: $100
     else:
-        return 0      # Member: $0
-````
+        return 0      # No tier: $0
+```
+## Validators
+
+All collected data passes through a robust quality validation system before being processed. Both off-chain metrics (GitHub) and on-chain metrics (blockchain) undergo rigorous validations that ensure data integrity, accuracy, and authenticity. These validators verify everything from blockchain transaction validity to the quality of GitHub contributions, ensuring that only reliable data is used in reward calculations.
+
+## Dashboard
+
+You can view all your metrics on our [dashboard](https://www.nearprotocolrewards.com/dashboard). If you want to update your data, there's a "refresh" button that automatically triggers our backend to update your specific data in real-time.
+
+## Offchain Data Collection
+
+The offchain data collection module retrieves GitHub metrics for repositories, including:
+
+- Commits
+- Pull requests
+- Reviews
+- Issues
+
+### Setup
+
+1. Create a `.env` file in the root directory with your GitHub token:
+
+```
+GITHUB_TOKEN=your_github_token_here
+```
+
+2. Install dependencies:
+
+```bash
+npm install
+```
+
+### Usage
+
+To collect GitHub metrics for repositories:
+
+```bash
+npm start
+```
+
+This will collect data for the current month. You can modify `src/index.ts` to specify different repositories or time periods.
+
+### API
+
+```typescript
+// Create a collector
+const collector = new OffchainCollector({
+  token: 'your_github_token',
+  repo: 'owner/repo',
+  logger,      // Optional
+  rateLimiter  // Optional
+});
+
+// Test connection
+await collector.testConnection();
+
+// Collect metrics for specific year and month
+const year = 2025;
+const month = 6; // June
+const metrics = await collector.collectMetrics(year, month);
+
+// Calculate rewards
+const rewards = collector.calculateRewards(metrics);
+```
 
 ## Common Questions
 
 ### When do metrics update?
 
-- Every push to main branch
-- Every 24 hours automatically
-- Check Actions tab for status
-
-### Do I need any tokens?
-
-No! We use GitHub's built-in security.
+- Every 12 hours automatically
+- You can update your project on demand on the [dashboard](https://www.nearprotocolrewards.com/dashboard)
 
 ### Not seeing your metrics?
 
-1. Push something to main branch
-2. Wait ~2 minutes for Action to run
-3. Check Actions tab for status
-4. See our [Troubleshooting Guide](docs/troubleshooting.md)
+See our [Troubleshooting Guide](docs/troubleshooting.md)
+
+### How can I change my data? (like repository link)
+
+- You can open an Issue asking for changing the data. All the data is in src/data.json
+
+### There is a limit on wallets and repositories?
+
+- Yes! You can only register a maximum of 3 repositories and 1 wallets.
+
+### How can I view my onchain data?
+
+- You can use the NearBlocks Api following this example of link: https://nearblocks.io/token/exportdata?address=your-wallet-here
 
 ## Documentation
 

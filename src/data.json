@@ -1,0 +1,39 @@
+ [
+    {
+      "project": "YieldGuard",
+      "wallet": "haidarjbeily.near",
+      "website": "https://github.com/HaidarJbeily7/YieldGuard",
+      "repository": ["HaidarJbeily7/YieldGuard"]
+    },
+    {
+      "project": "SudoStake",
+      "wallet": "palingram.near",
+      "website": "sudostake.com",
+      "repository": ["sudostake/sudostake_contracts_near", "sudostake/sudostake_web"]
+    },
+    {
+      "project": "HowToTrainYourModel",
+      "wallet": "ilovetofu.near",
+      "website": "https://github.com/JingYuan0926/HowToTrainYourModel",
+      "repository": ["JingYuan0926/HowToTrainYourModel"]
+    },
+    {
+      "project": "benevio labs",
+      "wallet": "benevio-labs.near",
+      "website": "www.benevio.dev",
+      "repository": ["beneviolabs/ft-allowance-agent", "beneviolabs/ft-core", "beneviolabs/core-functions"]
+    },
+    {
+      "project": "Ava",
+      "wallet": "avatheaiagent.near",
+      "website": "https://github.com/kamalbuilds/ava-the-ai-agent",
+      "repository": ["kamalbuilds/ava-the-ai-agent"]
+    },
+    {
+      "project": "AI Gambling Club",
+      "wallet": "aigamblingclub.near",
+      "website": "aigambling.club",
+      "repository": ["aigamblingclub/monorepo"]
+    }
+  ]
+  
