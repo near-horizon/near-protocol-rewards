@@ -1,17 +1,43 @@
-import { components } from "@octokit/openapi-types";
+/**
+ * GitHub API response types
+ */
 
-export type GitHubRepository = components["schemas"]["repository"];
-export type GitHubCommit = components["schemas"]["commit"];
-export type GitHubPullRequest = components["schemas"]["pull-request"];
-export type GitHubIssue = components["schemas"]["issue"];
-export type GitHubUser = components["schemas"]["simple-user"];
-export type GitHubReview = components["schemas"]["pull-request-review"];
-
-export interface GitHubMetrics {
-  repository: GitHubRepository;
-  commits: GitHubCommit[];
-  pullRequests: GitHubPullRequest[];
-  issues: GitHubIssue[];
-  contributors: GitHubUser[];
-  reviews: GitHubReview[];
+export interface GitHubPullRequest {
+  number: number;
+  user: {
+    login: string;
+  } | null;
+  state: string;
+  created_at: string;
+  merged_at: string | null;
 }
+
+export interface GitHubIssue {
+  number: number;
+  user: {
+    login: string;
+  } | null;
+  state: string;
+  created_at: string;
+  pull_request?: any; // If this exists, it's a PR not an issue
+}
+
+export interface GitHubCommit {
+  author: {
+    login: string;
+  } | null;
+  commit: {
+    author: {
+      date: string;
+      name: string;
+      email: string;
+    } | null;
+  };
+}
+
+export interface GitHubReview {
+  user: {
+    login: string;
+  } | null;
+  submitted_at: string;
+} 

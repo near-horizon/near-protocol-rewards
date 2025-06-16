@@ -1,0 +1,69 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+---
+description: Basic Code Clean Rules
+globs: 
+alwaysApply: true
+---
+
+### 1. Function Naming Convention
+- ALWAYS use camelCase for all function names
+- Examples: `calculateRewards()`, `getUserData()`, `processTransaction()`
+- NEVER use snake_case or kebab-case for functions
+- Apply this to all JavaScript/TypeScript functions, methods, and arrow functions
+
+### 2. Language Requirements
+- ALL comments must be written in English
+- ALL JSDoc documentation must be in English
+- ALL interface/type definitions must use English property names
+- ALL error messages and console logs must be in English
+- ALL variable names and function names must be in English
+
+### 3. Clean Code Principles
+- Follow DRY (Don't Repeat Yourself) principle
+- Apply Single Responsibility Principle - each function should do one thing
+- Use meaningful, descriptive names for variables and functions
+- Implement proper error handling with try-catch blocks
+- Avoid magic numbers - use named constants instead
+- Keep functions small and focused
+- Remove dead code and unused imports
+
+## Code Generation Guidelines
+
+When generating code, ALWAYS:
+1. Use TypeScript with proper type definitions
+2. Write comprehensive JSDoc comments in English
+3. Include error handling
+4. Use meaningful variable names
+5. Follow the established patterns in the codebase
+6. Apply camelCase to all function names
+7. Avoid code duplication
+8. Include input validation where appropriate
+
+## TypeScript Best Practices
+- Use strict typing - avoid `any` type when possible
+- Define interfaces for complex objects
+- Use enums for string literals
+- Implement proper return types for all functions
+- Use optional properties (`?`) when appropriate
+
+## Error Handling Pattern
+```typescript
+interface Result<T> {
+    success: boolean;
+    data: T | null;
+    error: string | null;
+}
+```
+
+## Testing Requirements
+- Write testable functions (pure functions when possible)
+- Use descriptive test names in English
+- Follow AAA pattern (Arrange, Act, Assert)
+
+## Constants Naming
+- Use SCREAMING_SNAKE_CASE for constants
+- Group related constants in configuration objects
