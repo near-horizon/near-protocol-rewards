@@ -135,7 +135,7 @@ export class RewardsCalculator {
     reviews: number,
     issues: number
   ): OffchainCalculationResult {
-    this.log("🧮 Calculando pontuação off-chain (GitHub)");
+    this.log("🧮 Calculating off-chain score (GitHub)");
 
     // Thresholds for maximum points
     const thresholds = {
@@ -160,7 +160,7 @@ export class RewardsCalculator {
       issues: issuesScore
     };
 
-    this.log("📊 Pontuações off-chain calculadas:", {
+    this.log("📊 Off-chain scores calculated:", {
       commits: `${commitsScore.toFixed(2)}/${this.offchainMaxPoints.commits}`,
       pullRequests: `${pullRequestsScore.toFixed(2)}/${this.offchainMaxPoints.pullRequests}`,
       reviews: `${reviewsScore.toFixed(2)}/${this.offchainMaxPoints.reviews}`,
@@ -185,7 +185,7 @@ export class RewardsCalculator {
     onchainResult?: OnchainCalculationResult,
     offchainResult?: OffchainCalculationResult
   ): TotalRewardsResult {
-    this.log("\n🧮 Calculando recompensas totais (onchain + offchain)");
+    this.log("\n🧮 Calculating total rewards (onchain + offchain)");
 
     // Handle cases where data might be missing
     const onchainScore = onchainResult?.totalScore || 0;
@@ -194,7 +194,7 @@ export class RewardsCalculator {
     // Calculate weighted total score
     const totalScore = onchainScore + offchainScore;
 
-    this.log(`📊 Pontuações combinadas:`, {
+    this.log(`📊 Combined scores:`, {
       onchain: `${onchainScore.toFixed(2)}/20`,
       offchain: `${offchainScore.toFixed(2)}/80`,
       total: `${totalScore.toFixed(2)}/100`
@@ -203,8 +203,8 @@ export class RewardsCalculator {
     // Determine tier and reward
     const tier = this.determineTier(totalScore);
     
-    this.log(`🏆 Tier atingido: ${tier.emoji} ${tier.name}`);
-    this.log(`💰 Recompensa: $${tier.reward.toLocaleString()}`);
+    this.log(`🏆 Tier achieved: ${tier.emoji} ${tier.name}`);
+    this.log(`💰 Reward: $${tier.reward.toLocaleString()}`);
 
     // Build breakdown
     const breakdown = {
@@ -238,7 +238,7 @@ export class RewardsCalculator {
    * Calculates rewards with only on-chain data
    */
   calculateOnchainOnlyRewards(onchainResult: OnchainCalculationResult): TotalRewardsResult {
-    this.log("🔗 Calculando recompensas apenas com dados on-chain");
+    this.log("🔗 Calculating rewards with on-chain data only");
     return this.calculateTotalRewards(onchainResult, undefined);
   }
 
@@ -246,7 +246,7 @@ export class RewardsCalculator {
    * Calculates rewards with only off-chain data
    */
   calculateOffchainOnlyRewards(offchainResult: OffchainCalculationResult): TotalRewardsResult {
-    this.log("📋 Calculando recompensas apenas com dados off-chain");
+    this.log("📋 Calculating rewards with off-chain data only");
     return this.calculateTotalRewards(undefined, offchainResult);
   }
 
