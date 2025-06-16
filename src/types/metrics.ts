@@ -76,21 +76,32 @@ export interface OffchainRewards {
 // On-chain metrics types
 
 export interface NearTransaction {
+  id: string;
   transaction_hash: string;
-  predecessor_account_id: string;
+  signer_account_id: string;
   receiver_account_id: string;
-  actions: NearAction[];
-  actions_agg?: {
-    deposit?: string;
-  };
   block_timestamp: string;
+  actions: NearAction[];
+  actions_agg: {
+    deposit: number;
+  };
+  outcomes?: {
+    status: boolean;
+  };
+  outcomes_agg?: {
+    transaction_fee: number;
+  };
+  block: {
+    block_height: number;
+  };
 }
 
 export interface NearAction {
   action: string;
-  deposit?: string;
-  method_name?: string;
-  args?: any;
+  method: string | null;
+  deposit: number;
+  fee: number;
+  args: string | null;
 }
 
 export interface NearTransactionData {

@@ -88,34 +88,29 @@ export class OnchainCollector extends BaseCollector {
   }
 
   /**
-   * Converts date to nanosecond timestamp for NEAR API
-   */
-  private dateToNanoseconds(date: Date): number {
-    return Math.floor(date.getTime() * 1e6);
-  }
-
-  /**
-   * Fetches transaction data for the account from NearBlocks API
+   * Fetches transaction data for the account from NearBlocks API using txns-only endpoint
    */
   async fetchTransactionData(year: number, month: number): Promise<NearTransactionData> {
     const { startDate, endDate } = this.getDateRange(year, month);
     
     this.log(`🔍 Fetching transactions for account: ${this.accountId}`);
     this.log(`📅 Period: ${startDate.toISOString().split('T')[0]} to ${endDate.toISOString().split('T')[0]}`);
-
-    const startTimestamp = this.dateToNanoseconds(startDate);
-    const endTimestamp = this.dateToNanoseconds(endDate);
     
     const allTransactions: NearTransaction[] = [];
-    let page = 1;
+    let cursor: string | null = null;
     const limit = 100;
+    let requestCount = 0;
 
     while (true) {
-      this.log(`🌐 Requesting page ${page}`);
+      this.log(`🌐 Requesting data (request ${++requestCount})`);
       
       try {
         const response = await this.withRateLimit(async () => {
-          const url = `${this.baseUrl}/account/${this.accountId}/txns?page=${page}&per_page=${limit}&from_timestamp=${startTimestamp}&to_timestamp=${endTimestamp}`;
+          // Build URL with cursor-based pagination
+          let url = `${this.baseUrl}/account/${this.accountId}/txns-only?per_page=${limit}`;
+          if (cursor) {
+            url += `&cursor=${cursor}`;
+          }
           
           const response = await fetch(url, {
             headers: {
@@ -160,20 +155,37 @@ export class OnchainCollector extends BaseCollector {
 
         const data = await response.json();
         const transactions = data.txns || [];
+        cursor = data.cursor || null;
         
-        this.log(`📄 Found ${transactions.length} transactions on page ${page}`);
+        // Filter transactions by timestamp since API doesn't support timestamp filtering
+        const filteredTransactions = transactions.filter((tx: NearTransaction) => {
+          const txTimestamp = parseInt(tx.block_timestamp) / 1e6; // Convert nanoseconds to milliseconds
+          const txDate = new Date(txTimestamp);
+          return txDate >= startDate && txDate <= endDate;
+        });
         
-        if (transactions.length === 0) {
-          break;
+        this.log(`📄 Found ${transactions.length} transactions, ${filteredTransactions.length} in date range`);
+        
+        if (filteredTransactions.length === 0 && transactions.length > 0) {
+          // If we have transactions but none in our date range, and they're newer than our end date, we can stop
+          for (const tx of transactions) {
+            const txTimestamp = parseInt(tx.block_timestamp) / 1e6;
+            const txDate = new Date(txTimestamp);
+            if (txDate < startDate) {
+              // We've gone too far back, stop here
+              this.log("📅 Reached transactions older than target period, stopping");
+              cursor = null;
+              break;
+            }
+          }
         }
         
-        allTransactions.push(...transactions);
+        allTransactions.push(...filteredTransactions);
         
-        if (transactions.length < limit) {
+        // Break if no more cursor or no transactions
+        if (!cursor || transactions.length === 0) {
           break;
         }
-        
-        page++;
         
         // Add delay between requests to avoid rate limiting
         await new Promise(resolve => setTimeout(resolve, 500));
@@ -184,7 +196,7 @@ export class OnchainCollector extends BaseCollector {
       }
     }
 
-    this.log(`✅ Total transactions found: ${allTransactions.length}`);
+    this.log(`✅ Total transactions found in period: ${allTransactions.length}`);
 
     return {
       metadata: {
@@ -208,16 +220,8 @@ export class OnchainCollector extends BaseCollector {
     const uniqueWallets = new Set<string>();
     
     for (const tx of transactionData.transactions) {
-      // Volume calculation
-      if (tx.actions_agg?.deposit) {
-        totalVolume += parseFloat(tx.actions_agg.deposit);
-      } else if (tx.actions) {
-        for (const action of tx.actions) {
-          if (action.deposit) {
-            totalVolume += parseFloat(action.deposit);
-          }
-        }
-      }
+      // Volume calculation - simplified with actions_agg
+      totalVolume += tx.actions_agg.deposit;
       
       // Contract interactions count
       if (tx.actions) {
@@ -228,10 +232,10 @@ export class OnchainCollector extends BaseCollector {
         }
       }
       
-      // Unique wallets
+      // Unique wallets - using signer and receiver
       const accountId = transactionData.metadata.account_id;
-      if (tx.predecessor_account_id && tx.predecessor_account_id !== accountId) {
-        uniqueWallets.add(tx.predecessor_account_id);
+      if (tx.signer_account_id && tx.signer_account_id !== accountId) {
+        uniqueWallets.add(tx.signer_account_id);
       }
       if (tx.receiver_account_id && tx.receiver_account_id !== accountId) {
         uniqueWallets.add(tx.receiver_account_id);
