@@ -86,7 +86,7 @@ Monetary rewards are calculated based on the score, following the table below:
 | 0 | No Tier | $0 |
 
 In the code we have this:
-````
+```
 Calculates monetary reward based on score."""
     if score >= 85:
         return 10000  # Diamond: $10,000
@@ -102,7 +102,7 @@ Calculates monetary reward based on score."""
         return 100    # Explorer: $100
     else:
         return 0      # No tier: $0
-````
+```
 ## Validators
 
 All collected data passes through a robust quality validation system before being processed. Both off-chain metrics (GitHub) and on-chain metrics (blockchain) undergo rigorous validations that ensure data integrity, accuracy, and authenticity. These validators verify everything from blockchain transaction validity to the quality of GitHub contributions, ensuring that only reliable data is used in reward calculations.
@@ -111,7 +111,61 @@ All collected data passes through a robust quality validation system before bein
 
 You can view all your metrics on our [dashboard](https://www.nearprotocolrewards.com/dashboard). If you want to update your data, there's a "refresh" button that automatically triggers our backend to update your specific data in real-time.
 
+## Offchain Data Collection
 
+The offchain data collection module retrieves GitHub metrics for repositories, including:
+
+- Commits
+- Pull requests
+- Reviews
+- Issues
+
+### Setup
+
+1. Create a `.env` file in the root directory with your GitHub token:
+
+```
+GITHUB_TOKEN=your_github_token_here
+```
+
+2. Install dependencies:
+
+```bash
+npm install
+```
+
+### Usage
+
+To collect GitHub metrics for repositories:
+
+```bash
+npm start
+```
+
+This will collect data for the current month. You can modify `src/index.ts` to specify different repositories or time periods.
+
+### API
+
+```typescript
+// Create a collector
+const collector = new OffchainCollector({
+  token: 'your_github_token',
+  repo: 'owner/repo',
+  logger,      // Optional
+  rateLimiter  // Optional
+});
+
+// Test connection
+await collector.testConnection();
+
+// Collect metrics for specific year and month
+const year = 2025;
+const month = 6; // June
+const metrics = await collector.collectMetrics(year, month);
+
+// Calculate rewards
+const rewards = collector.calculateRewards(metrics);
+```
 
 ## Common Questions
 
@@ -119,7 +173,6 @@ You can view all your metrics on our [dashboard](https://www.nearprotocolrewards
 
 - Every 12 hours automatically
 - You can update your project on demand on the [dashboard](https://www.nearprotocolrewards.com/dashboard)
-
 
 ### Not seeing your metrics?
 
@@ -136,7 +189,6 @@ See our [Troubleshooting Guide](docs/troubleshooting.md)
 ### How can I view my onchain data?
 
 - You can use the NearBlocks Api following this example of link: https://nearblocks.io/token/exportdata?address=your-wallet-here
-
 
 ## Documentation
 
