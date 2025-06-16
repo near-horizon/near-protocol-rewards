@@ -180,7 +180,7 @@ See our [Troubleshooting Guide](docs/troubleshooting.md)
 
 ### How can I change my data? (like repository link)
 
-- You can open an Issue asking for changing the data. All the data is in data.json
+- You can open an Issue asking for changing the data. All the data is in src/data.json
 
 ### There is a limit on wallets and repositories?
 
