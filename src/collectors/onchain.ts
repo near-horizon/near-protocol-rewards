@@ -13,7 +13,8 @@
 import { BaseCollector } from "./base";
 import { Logger } from "../utils/logger";
 import { RateLimiter } from "../utils/rate-limiter";
-import { OnchainMetrics, NearTransactionData, NearTransaction } from "../types/metrics";
+import { getDateRangeForMonth } from "../utils/date-utils";
+import { NearTransactionData, NearTransaction } from "../types/metrics";
 import { BaseError, ErrorCode } from "../types/errors";
 
 interface OnchainCollectorConfig {
@@ -78,20 +79,10 @@ export class OnchainCollector extends BaseCollector {
   }
 
   /**
-   * Gets the date range for the specified year and month
-   */
-  private getDateRange(year: number, month: number): { startDate: Date; endDate: Date } {
-    const startDate = new Date(year, month - 1, 1);
-    const endDate = new Date(year, month, 0, 23, 59, 59);
-    
-    return { startDate, endDate };
-  }
-
-  /**
    * Fetches transaction data for the account from NearBlocks API using txns-only endpoint
    */
   async fetchTransactionData(year: number, month: number): Promise<NearTransactionData> {
-    const { startDate, endDate } = this.getDateRange(year, month);
+    const { startDate, endDate } = getDateRangeForMonth(year, month);
     
     this.log(`🔍 Fetching transactions for account: ${this.accountId}`);
     this.log(`📅 Period: ${startDate.toISOString().split('T')[0]} to ${endDate.toISOString().split('T')[0]}`);
@@ -212,73 +203,19 @@ export class OnchainCollector extends BaseCollector {
   }
 
   /**
-   * Calculates on-chain metrics from transaction data
+   * Collects raw transaction data for the specified period
+   * Returns raw data without processing - metrics calculation is handled by the calculator
    */
-  calculateOnchainMetrics(transactionData: NearTransactionData): OnchainMetrics {
-    let totalVolume = 0;
-    let contractInteractions = 0;
-    const uniqueWallets = new Set<string>();
-    
-    for (const tx of transactionData.transactions) {
-      // Volume calculation - simplified with actions_agg
-      totalVolume += tx.actions_agg.deposit;
-      
-      // Contract interactions count
-      if (tx.actions) {
-        for (const action of tx.actions) {
-          if (action.action === "FUNCTION_CALL") {
-            contractInteractions++;
-          }
-        }
-      }
-      
-      // Unique wallets - using signer and receiver
-      const accountId = transactionData.metadata.account_id;
-      if (tx.signer_account_id && tx.signer_account_id !== accountId) {
-        uniqueWallets.add(tx.signer_account_id);
-      }
-      if (tx.receiver_account_id && tx.receiver_account_id !== accountId) {
-        uniqueWallets.add(tx.receiver_account_id);
-      }
-    }
-
-    const metrics: OnchainMetrics = {
-      transactionVolume: totalVolume / (10**24), // Convert from yoctoNEAR to NEAR
-      contractInteractions,
-      uniqueWallets: uniqueWallets.size,
-      transactionCount: transactionData.transactions.length,
-      metadata: {
-        collectionTimestamp: Date.now(),
-        source: 'nearblocks',
-        projectId: this.accountId
-      }
-    };
-
-    this.log("📊 On-chain metrics calculated:");
-    this.log(`   - Transaction volume: ${metrics.transactionVolume} NEAR`);
-    this.log(`   - Contract interactions: ${metrics.contractInteractions}`);
-    this.log(`   - Unique wallets: ${metrics.uniqueWallets}`);
-    this.log(`   - Total transactions: ${metrics.transactionCount}`);
-
-    return metrics;
-  }
-
-    /**
-   * Collects all on-chain metrics for the specified period
-   */
-  async collectMetrics(year: number, month: number): Promise<OnchainMetrics> {
+  async collectData(year: number, month: number): Promise<NearTransactionData> {
     try {
       this.log(`🚀 Starting on-chain data collection for ${month}/${year}`);
       
-      // Fetch transaction data
+      // Fetch transaction data only - no processing
       const transactionData = await this.fetchTransactionData(year, month);
-      
-      // Calculate metrics
-      const metrics = this.calculateOnchainMetrics(transactionData);
       
       this.log("✅ On-chain data collection completed successfully");
       
-      return metrics;
+      return transactionData;
     } catch (error) {
       this.error("❌ Error in on-chain data collection", { error });
       throw error;

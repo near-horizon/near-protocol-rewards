@@ -4,4 +4,5 @@
 
 export * from './errors';
 export * from './metrics';
-export * from './github'; 
+export * from './github';
+export * from './rewards'; 

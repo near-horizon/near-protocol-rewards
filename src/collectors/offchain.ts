@@ -14,6 +14,7 @@ import { Octokit } from "@octokit/rest";
 import { BaseCollector } from "./base";
 import { Logger } from "../utils/logger";
 import { RateLimiter } from "../utils/rate-limiter";
+import { getDateRangeForMonthIso } from "../utils/date-utils";
 import { GitHubMetrics } from "../types/metrics";
 import { BaseError, ErrorCode } from "../types/errors";
 import { GitHubPullRequest, GitHubIssue, GitHubCommit, GitHubReview } from "../types/github";
@@ -83,23 +84,10 @@ export class OffchainCollector extends BaseCollector {
   }
 
   /**
-   * Gets the date range for the specified year and month
-   */
-  private getDateRange(year: number, month: number): { since: string; until: string } {
-    const startDate = new Date(year, month - 1, 1);
-    const endDate = new Date(year, month, 0, 23, 59, 59);
-    
-    return {
-      since: startDate.toISOString(),
-      until: endDate.toISOString(),
-    };
-  }
-
-  /**
    * Collects commit metrics for the repository
    */
   async collectCommitMetrics(year: number, month: number): Promise<GitHubMetrics["commits"]> {
-    const { since, until } = this.getDateRange(year, month);
+    const { since, until } = getDateRangeForMonthIso(year, month);
     
     this.log(`Collecting commits from ${since} to ${until}`);
     
@@ -168,7 +156,7 @@ export class OffchainCollector extends BaseCollector {
    * Collects pull request metrics for the repository
    */
   async collectPullRequestMetrics(year: number, month: number): Promise<GitHubMetrics["pullRequests"]> {
-    const { since, until } = this.getDateRange(year, month);
+    const { since, until } = getDateRangeForMonthIso(year, month);
     
     this.log(`Collecting pull requests from ${since} to ${until}`);
     
@@ -226,7 +214,7 @@ export class OffchainCollector extends BaseCollector {
    * Collects review metrics for the repository
    */
   async collectReviewMetrics(year: number, month: number): Promise<GitHubMetrics["reviews"]> {
-    const { since, until } = this.getDateRange(year, month);
+    const { since, until } = getDateRangeForMonthIso(year, month);
     
     this.log(`Collecting reviews from ${since} to ${until}`);
     
@@ -291,7 +279,7 @@ export class OffchainCollector extends BaseCollector {
    * Collects issue metrics for the repository
    */
   async collectIssueMetrics(year: number, month: number): Promise<GitHubMetrics["issues"]> {
-    const { since, until } = this.getDateRange(year, month);
+    const { since, until } = getDateRangeForMonthIso(year, month);
     
     this.log(`Collecting issues from ${since} to ${until}`);
     
@@ -338,9 +326,9 @@ export class OffchainCollector extends BaseCollector {
   }
 
   /**
-   * Collects all metrics for the repository
+   * Collects all raw data for the repository
    */
-  async collectMetrics(year: number, month: number): Promise<GitHubMetrics> {
+  async collectData(year: number, month: number): Promise<GitHubMetrics> {
     try {
       this.log(`Collecting metrics for ${this.owner}/${this.repo}`);
       

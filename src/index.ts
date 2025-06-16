@@ -5,8 +5,12 @@
 import dotenv from 'dotenv';
 import { OffchainCollector } from './collectors/offchain';
 import { OnchainCollector } from './collectors/onchain';
+import { OnchainCalculator } from './calculator/onchain';
+import { OffchainCalculator } from './calculator/offchain';
+import { RewardsCalculator } from './calculator/rewards';
 import { Logger, LogLevel } from './utils/logger';
 import { RateLimiter } from './utils/rate-limiter';
+import { GitHubMetrics } from './types/metrics';
 
 // Load environment variables
 dotenv.config();
@@ -32,13 +36,11 @@ async function main() {
   try {
     // Example repositories
     const repositories = [
-      'beneviolabs/ft-allowance-agent',
       'aigamblingclub/monorepo'
     ];
     
     // Example NEAR wallets
     const wallets = [
-      'benevio-labs.near',
       'aigamblingclub.near'
     ];
     
@@ -47,6 +49,14 @@ async function main() {
     const month = 5; // May
     
     logger.info(`🚀 Starting data collection for ${month}/${year}`);
+    
+    // Create calculators
+    const offchainCalculator = new OffchainCalculator(logger);
+    const onchainCalculator = new OnchainCalculator(logger);
+    const rewardsCalculator = new RewardsCalculator(logger);
+    
+    // Collect all repository metrics
+    const repositoryMetrics: GitHubMetrics[] = [];
     
     // Process off-chain data (GitHub repositories)
     for (const repo of repositories) {
@@ -62,8 +72,9 @@ async function main() {
       // Test connection
       await collector.testConnection();
       
-      // Collect metrics
-      const metrics = await collector.collectMetrics(year, month);
+      // Collect data
+      const metrics = await collector.collectData(year, month);
+      repositoryMetrics.push(metrics);
       
       // Output results for validation
       logger.info(`✅ Metrics collected for ${repo}:`, {
@@ -89,19 +100,33 @@ async function main() {
         },
         metadata: metrics.metadata
       });
+    }
+    
+    // Combine all repository metrics and calculate off-chain scores
+    if (repositoryMetrics.length > 0) {
+      logger.info('\n🧮 Calculating combined off-chain scores...');
       
-      // Log detailed author information for validation
-      logger.info(`📋 Detailed data for ${repo}:`, {
-        commitAuthors: metrics.commits.authors,
-        prAuthors: metrics.pullRequests.authors,
-        reviewAuthors: metrics.reviews.authors,
-        issueParticipants: metrics.issues.participants
+      // Combine metrics from all repositories
+      const combinedMetrics = offchainCalculator.combineRepositoryMetrics(repositoryMetrics);
+      
+      // Calculate off-chain scores
+      const offchainResult = offchainCalculator.calculateOffchainScores(combinedMetrics);
+      
+      logger.info('✅ Off-chain calculation completed:', {
+        totalScore: `${offchainResult.totalScore.toFixed(2)}/80`,
+        breakdown: {
+          commits: `${offchainResult.scoreBreakdown.commits.toFixed(2)}/28`,
+          pullRequests: `${offchainResult.scoreBreakdown.pullRequests.toFixed(2)}/22`,
+          reviews: `${offchainResult.scoreBreakdown.reviews.toFixed(2)}/16`,
+          issues: `${offchainResult.scoreBreakdown.issues.toFixed(2)}/14`
+        }
       });
     }
     
-    // Process on-chain data (NEAR wallets)
-    for (const wallet of wallets) {
-      logger.info(`🔗 Processing NEAR wallet: ${wallet}`);
+    // Process on-chain data (NEAR wallets) - Demo with first wallet
+    if (wallets.length > 0) {
+      const wallet = wallets[0]; // Use first wallet for demo
+      logger.info(`\n🔗 Processing NEAR wallet: ${wallet}`);
       
       const onchainCollector = new OnchainCollector({
         apiKey: NEARBLOCKS_API_KEY!,
@@ -113,20 +138,53 @@ async function main() {
       // Test connection
       await onchainCollector.testConnection();
       
-      // Collect metrics only
-      const metrics = await onchainCollector.collectMetrics(year, month);
+      // Collect on-chain data
+      const transactionData = await onchainCollector.collectData(year, month);
       
-      // Output results for validation
-      logger.info(`✅ On-chain metrics collected for ${wallet}:`, {
-        transactionVolume: metrics.transactionVolume,
-        contractInteractions: metrics.contractInteractions,
-        uniqueWallets: metrics.uniqueWallets,
-        transactionCount: metrics.transactionCount,
-        metadata: metrics.metadata
+      // Calculate metrics from raw data
+      const metrics = onchainCalculator.calculateOnchainMetricsFromTransactionData(transactionData);
+      
+      // Calculate on-chain scores
+      const onchainResult = onchainCalculator.calculateOnchainScores(metrics);
+      
+      logger.info('✅ On-chain calculation completed:', {
+        totalScore: `${onchainResult.totalScore.toFixed(2)}/20`,
+        breakdown: {
+          transactionVolume: `${onchainResult.scoreBreakdown.transactionVolume.toFixed(2)}/8`,
+          smartContractCalls: `${onchainResult.scoreBreakdown.smartContractCalls.toFixed(2)}/8`,
+          uniqueWallets: `${onchainResult.scoreBreakdown.uniqueWallets.toFixed(2)}/4`
+        },
+        rawMetrics: {
+          transactionVolume: `${metrics.transactionVolume.toFixed(4)} NEAR`,
+          contractInteractions: metrics.contractInteractions,
+          uniqueWallets: metrics.uniqueWallets,
+          transactionCount: metrics.transactionCount
+        }
       });
+      
+      // Calculate final rewards combining both on-chain and off-chain (if available)
+      if (repositoryMetrics.length > 0) {
+        logger.info('\n🏆 Calculating final rewards...');
+        
+        const combinedMetrics = offchainCalculator.combineRepositoryMetrics(repositoryMetrics);
+        const offchainResult = offchainCalculator.calculateOffchainScores(combinedMetrics);
+        
+        const finalRewards = rewardsCalculator.calculateTotalRewards(onchainResult, offchainResult);
+        
+        logger.info('🎉 Final rewards calculation completed!', {
+          totalScore: `${finalRewards.totalScore.toFixed(2)}/100`,
+          tier: `${finalRewards.tier.emoji} ${finalRewards.tier.name}`,
+          reward: `$${finalRewards.tier.reward.toLocaleString()}`,
+          breakdown: {
+            onchain: `${finalRewards.onchainScore.toFixed(2)}/20 (20%)`,
+            offchain: `${finalRewards.offchainScore.toFixed(2)}/80 (80%)`
+          },
+          weights: finalRewards.metadata.weights
+        });
+      }
     }
     
-    logger.info('✅ Data collection completed successfully');
+    logger.info('\n✅ Data collection and rewards calculation completed successfully!');
   } catch (error) {
     logger.error('❌ Error in main process', { error });
     process.exit(1);

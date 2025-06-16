@@ -38,5 +38,5 @@ export abstract class BaseCollector {
     }
   }
 
-  abstract collectMetrics(...args: any[]): Promise<unknown>;
+  abstract collectData(...args: any[]): Promise<unknown>;
 } 
