@@ -4,4 +4,5 @@
 
 export * from './onchain';
 export * from './offchain';
-export * from './rewards'; 
+export * from './rewards';
+export * from './consolidated'; 

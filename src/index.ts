@@ -11,6 +11,7 @@ import { OnchainCollector } from './collectors/onchain';
 import { OnchainCalculator } from './calculator/onchain';
 import { OffchainCalculator } from './calculator/offchain';
 import { RewardsCalculator } from './calculator/rewards';
+import { ConsolidatedCalculator } from './calculator/consolidated';
 import { Logger, LogLevel } from './utils/logger';
 import { RateLimiter } from './utils/rate-limiter';
 import { GitHubMetrics } from './types/metrics';
@@ -66,6 +67,13 @@ interface ProjectResult {
 interface S3SaveResult {
   monthly: string;
   daily: string;
+  dashboard?: string;
+}
+
+interface LocalSaveResult {
+  monthly: string;
+  daily: string;
+  dashboard: string;
 }
 
 function loadProjectsData(): ProjectData[] {
@@ -81,7 +89,63 @@ function loadProjectsData(): ProjectData[] {
   }
 }
 
-async function saveResultsToS3(results: ProjectResult[], year: number, month: number, currentDate: Date): Promise<S3SaveResult> {
+/**
+ * Saves all results locally (simulating S3 structure for testing)
+ */
+function saveResultsLocally(results: ProjectResult[], year: number, month: number, currentDate: Date, consolidatedData: any): LocalSaveResult {
+  try {
+    logger.info('💾 Saving all data locally...');
+    
+    const outputDir = path.join(__dirname, '..', 'output');
+    if (!fs.existsSync(outputDir)) {
+      fs.mkdirSync(outputDir, { recursive: true });
+    }
+
+    // Create subdirectories to simulate S3 structure
+    const rewardsDir = path.join(outputDir, 'rewards');
+    const historicalDir = path.join(outputDir, 'historical');
+    const dashboardDir = path.join(outputDir, 'dashboard');
+    
+    [rewardsDir, historicalDir, dashboardDir].forEach(dir => {
+      if (!fs.existsSync(dir)) {
+        fs.mkdirSync(dir, { recursive: true });
+      }
+    });
+
+    // Save monthly file (simulating S3 rewards folder)
+    const monthlyFilePath = path.join(rewardsDir, `onchain_offchain_metrics_${year}_${month.toString().padStart(2, '0')}.json`);
+    fs.writeFileSync(monthlyFilePath, JSON.stringify(results, null, 2));
+    logger.info(`✅ Monthly data saved locally: ${monthlyFilePath}`);
+
+    // Save daily file (simulating S3 historical folder)
+    const dailyFilePath = path.join(historicalDir, `onchain_offchain_metrics_${year}_${month.toString().padStart(2, '0')}_${currentDate.getDate().toString().padStart(2, '0')}.json`);
+    fs.writeFileSync(dailyFilePath, JSON.stringify(results, null, 2));
+    logger.info(`✅ Daily data saved locally: ${dailyFilePath}`);
+
+    // Save consolidated dashboard file (simulating S3 dashboard folder)
+    const consolidatedFilePath = path.join(dashboardDir, `consolidated_metrics_${year}_${month.toString().padStart(2, '0')}.json`);
+    fs.writeFileSync(consolidatedFilePath, JSON.stringify(consolidatedData, null, 2));
+    logger.info(`✅ Dashboard data saved locally: ${consolidatedFilePath}`);
+
+    // Summary of all files created
+    logger.info('\n📁 All files saved locally (S3 simulation):');
+    logger.info(`  📊 Monthly: ${monthlyFilePath}`);
+    logger.info(`  📅 Daily: ${dailyFilePath}`);
+    logger.info(`  🎯 Dashboard: ${consolidatedFilePath}`);
+    
+    return {
+      monthly: monthlyFilePath,
+      daily: dailyFilePath,
+      dashboard: consolidatedFilePath
+    };
+    
+  } catch (error) {
+    logger.error('❌ Failed to save data locally', { error });
+    throw new Error(`Failed to save results locally: ${error}`);
+  }
+}
+
+async function saveResultsToS3(results: ProjectResult[], year: number, month: number, currentDate: Date, dashboardData?: any): Promise<S3SaveResult> {
   try {
     const bucketName = "near-protocol-rewards-data-dashboard";
     
@@ -90,6 +154,9 @@ async function saveResultsToS3(results: ProjectResult[], year: number, month: nu
     
     // Daily file
     const dailyFileKey = `historical/onchain_offchain_metrics_${year}_${month.toString().padStart(2, '0')}_${currentDate.getDate().toString().padStart(2, '0')}.json`;
+    
+    // Dashboard consolidated data file
+    const dashboardFileKey = `dashboard/consolidated_metrics_${year}_${month.toString().padStart(2, '0')}.json`;
     
     const resultsJson = JSON.stringify(results, null, 2);
     
@@ -113,16 +180,37 @@ async function saveResultsToS3(results: ProjectResult[], year: number, month: nu
     
     await s3Client.send(dailyCommand);
     
+    let dashboardPath;
+    
+    // Save dashboard consolidated data if provided
+    if (dashboardData) {
+      const dashboardJson = JSON.stringify(dashboardData, null, 2);
+      
+      const dashboardCommand = new PutObjectCommand({
+        Bucket: bucketName,
+        Key: dashboardFileKey,
+        Body: dashboardJson,
+        ContentType: "application/json"
+      });
+      
+      await s3Client.send(dashboardCommand);
+      dashboardPath = `s3://${bucketName}/${dashboardFileKey}`;
+    }
+    
     const monthlyPath = `s3://${bucketName}/${monthlyFileKey}`;
     const dailyPath = `s3://${bucketName}/${dailyFileKey}`;
     
     logger.info('✅ Files saved successfully to S3:');
     logger.info(`  - Monthly: ${monthlyPath}`);
     logger.info(`  - Daily: ${dailyPath}`);
+    if (dashboardPath) {
+      logger.info(`  - Dashboard: ${dashboardPath}`);
+    }
     
     return {
       monthly: monthlyPath,
-      daily: dailyPath
+      daily: dailyPath,
+      dashboard: dashboardPath
     };
     
   } catch (error) {
@@ -268,6 +356,7 @@ async function main() {
     const offchainCalculator = new OffchainCalculator(logger);
     const onchainCalculator = new OnchainCalculator(logger);
     const rewardsCalculator = new RewardsCalculator(logger);
+    const consolidatedCalculator = new ConsolidatedCalculator(logger);
     
     const results: ProjectResult[] = [];
     
@@ -315,31 +404,36 @@ async function main() {
     logger.info(`📊 Projects processed: ${results.length}`);
     logger.info(`✅ Successful projects: ${results.filter(p => !p.error).length}`);
     logger.info(`❌ Failed projects: ${results.filter(p => p.error).length}`);
+
+    // Calculate consolidated dashboard data
+    logger.info('\n📊 Calculating consolidated dashboard data...');
+    const consolidatedData = consolidatedCalculator.calculateConsolidatedData(results);
     
-    // Save results to JSON file for inspection
-    const outputPath = path.join(__dirname, '..', 'output', `rewards_${year}_${month.toString().padStart(2, '0')}.json`);
-    
-    // Create output directory if it doesn't exist
-    const outputDir = path.dirname(outputPath);
-    if (!fs.existsSync(outputDir)) {
-      fs.mkdirSync(outputDir, { recursive: true });
+    // Display consolidated summary
+    const summaryString = consolidatedCalculator.getSummaryString(consolidatedData);
+    logger.info(summaryString);
+
+    // Save all data locally
+    try {
+      const localPaths = saveResultsLocally(results, year, month, currentDate, consolidatedData);
+      logger.info('✅ All data saved locally successfully!');
+    } catch (error) {
+      logger.error('❌ Failed to save data locally', { error });
+      // Continue execution even if local save fails
     }
-    
-    fs.writeFileSync(outputPath, JSON.stringify(results, null, 2));
-    logger.info(`💾 Results saved to: ${outputPath}`);
-    
+       
     // Save results to S3 if enabled
     if (SAVE_ON_S3) {
       try {
         logger.info('📤 Saving results to S3...');
-        const s3Paths = await saveResultsToS3(results, year, month, currentDate);
+        const s3Paths = await saveResultsToS3(results, year, month, currentDate, consolidatedData);
         logger.info('✅ Results successfully saved to S3!');
       } catch (error) {
         logger.error('❌ Failed to save results to S3', { error });
         // Continue execution even if S3 save fails
       }
     }
-    
+  
     // Log summary for each project
     results.forEach((result, index) => {
       logger.info(`\n📋 Project ${index + 1}: ${result.project}`);
