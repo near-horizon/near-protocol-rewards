@@ -63,6 +63,41 @@ export interface ConsolidatedDashboardData {
       percentage: number;
     }>;
   };
+  projectsList: Array<{
+    project: string;
+    wallet: string;
+    github: string;
+    website: string;
+    repository: string[];
+    period: string;
+    timestamp: string;
+    totalScore: number;
+    rewardLevel: string;
+    rewards_total: {
+      total_reward: number;
+    };
+    metrics_offchain: {
+      commits: {
+        count: number;
+      };
+      pull_requests: {
+        open: number;
+        merged: number;
+      };
+      reviews: {
+        count: number;
+      };
+      issues: {
+        open: number;
+        closed: number;
+      };
+    };
+    metrics_onchain: {
+      transaction_volume: number;
+      contract_interactions: number;
+      unique_wallets: number;
+    };
+  }>;
   metadata: {
     period: string;
     generatedAt: string;
@@ -109,12 +144,16 @@ export class ConsolidatedCalculator {
     // Calculate chart data
     const charts = this.calculateChartsData(successfulProjects);
 
+    // Calculate projects list for dashboard
+    const projectsList = this.calculateProjectsList(projectResults);
+
     // Get period from first project (they should all have the same period)
     const period = projectResults.length > 0 ? projectResults[0].period : '';
 
     const consolidatedData: ConsolidatedDashboardData = {
       summary,
       charts,
+      projectsList,
       metadata: {
         period,
         generatedAt: new Date().toISOString(),
@@ -128,7 +167,8 @@ export class ConsolidatedCalculator {
       totalRewards: summary.totalRewards,
       activeProjects: summary.activeProjects,
       topPerformers: charts.topPerformerBreakdown.length,
-      tierDistribution: charts.distributionByLevel.length
+      tierDistribution: charts.distributionByLevel.length,
+      projectsListCount: projectsList.length
     });
 
     return consolidatedData;
@@ -153,6 +193,73 @@ export class ConsolidatedCalculator {
     
     // If it's an object or other type, return 0
     return 0;
+  }
+
+  /**
+   * Extracts GitHub URL from repository array
+   */
+  private extractGitHubUrl(repository: string[]): string {
+    if (!repository || repository.length === 0) {
+      return '';
+    }
+    
+    // Take the first repository and create GitHub URL
+    const firstRepo = repository[0];
+    return `https://github.com/${firstRepo}`;
+  }
+
+  /**
+   * Calculates the projects list for dashboard
+   */
+  private calculateProjectsList(projectResults: ProjectResult[]): ConsolidatedDashboardData['projectsList'] {
+    this.log("📋 Calculating projects list...");
+
+    const projectsList = projectResults.map(project => {
+      // Extract basic project information
+      const projectData = {
+        project: project.project,
+        wallet: project.wallet,
+        github: this.extractGitHubUrl(project.repository),
+        website: project.website || "",
+        repository: project.repository || [],
+        period: project.period,
+        timestamp: project.timestamp,
+        totalScore: Math.round((project.rewards_total?.totalScore || 0) * 10) / 10,
+        rewardLevel: project.rewards_total?.tier?.name || "N/A",
+        rewards_total: {
+          total_reward: project.rewards_total?.tier?.reward || 0
+        },
+        metrics_offchain: {
+          commits: {
+            count: Math.round((project.rewards_total?.breakdown?.offchain?.commits || 0) * 10) / 10
+          },
+          pull_requests: {
+            open: project.metrics_offchain?.pullRequests?.open || 0,
+            merged: Math.round((project.rewards_total?.breakdown?.offchain?.pullRequests || 0) * 10) / 10
+          },
+          reviews: {
+            count: Math.round((project.rewards_total?.breakdown?.offchain?.reviews || 0) * 10) / 10
+          },
+          issues: {
+            open: project.metrics_offchain?.issues?.open || 0,
+            closed: Math.round((project.rewards_total?.breakdown?.offchain?.issues || 0) * 10) / 10
+          }
+        },
+        metrics_onchain: {
+          transaction_volume: Math.round((project.rewards_total?.breakdown?.onchain?.transactionVolume || 0) * 10) / 10,
+          contract_interactions: Math.round((project.rewards_total?.breakdown?.onchain?.smartContractCalls || 0) * 10) / 10,
+          unique_wallets: Math.round((project.rewards_total?.breakdown?.onchain?.uniqueWallets || 0) * 10) / 10
+        }
+      };
+
+      return projectData;
+    });
+
+    this.log("✅ Projects list calculated", {
+      projectsCount: projectsList.length
+    });
+
+    return projectsList;
   }
 
   /**
