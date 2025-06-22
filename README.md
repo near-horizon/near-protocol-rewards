@@ -35,7 +35,7 @@ By automating the entire process from tracking to distribution, we enable develo
 
 ## How It Works
 
-![Model](public/assets/model.jpeg)
+![Model](public/assets/arch.svg)
 
 We automatically track both off-chain and on-chain metrics:
 
@@ -109,7 +109,7 @@ All collected data passes through a robust quality validation system before bein
 
 ## Dashboard
 
-You can view all your metrics on our [dashboard](https://www.nearprotocolrewards.com/dashboard). If you want to update your data, there's a "refresh" button that automatically triggers our backend to update your specific data in real-time.
+You can view all your metrics on our [dashboard](https://www.nearprotocolrewards.com/dashboard).
 
 ## Offchain Data Collection
 
@@ -171,12 +171,7 @@ const rewards = collector.calculateRewards(metrics);
 
 ### When do metrics update?
 
-- Every 12 hours automatically
-- You can update your project on demand on the [dashboard](https://www.nearprotocolrewards.com/dashboard)
-
-### Not seeing your metrics?
-
-See our [Troubleshooting Guide](docs/troubleshooting.md)
+- Every 15 minutes automatically
 
 ### How can I change my data? (like repository link)
 
@@ -189,14 +184,6 @@ See our [Troubleshooting Guide](docs/troubleshooting.md)
 ### How can I view my onchain data?
 
 - You can use the NearBlocks Api following this example of link: https://nearblocks.io/token/exportdata?address=your-wallet-here
-
-## Documentation
-
-- [Quick Start Guide](docs/quick-start.md)
-- [Troubleshooting Guide](docs/troubleshooting.md)
-- [Dashboard Guide](docs/dashboard.md)
-- [Rewards Structure](docs/rewards.md)
-- [Development Roadmap](docs/roadmap.md)
 
 ## Need Help?
 
