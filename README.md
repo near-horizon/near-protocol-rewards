@@ -33,6 +33,14 @@ Protocol Rewards provides:
 
 By automating the entire process from tracking to distribution, we enable developers to focus on what they do best - building innovative solutions on NEAR.
 
+### Calendar for Cohort's
+
+| Cohort 2 | Date |
+|----------|------|
+| **Application Deadline** | July 7th |
+| **Results** | July 21st |
+| **Kick off** | July 28th |
+
 ## How It Works
 
 ![Model](public/assets/arch.svg)
