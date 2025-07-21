@@ -196,7 +196,7 @@ const rewards = collector.calculateRewards(metrics);
 ## Need Help?
 
 - [Report Issues](https://github.com/near-horizon/near-protocol-rewards/issues)
-- [Dashboard Support](https://github.com/near-horizon/protocol-rewards-dashboard/issues)
+- [Dashboard Support](https://github.com/near-horizon/NEAR-Protocol-Rewards-Dashboard/issues)
 
 ## License
 
