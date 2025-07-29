@@ -1,39 +1,128 @@
- [
-    {
-      "project": "YieldGuard",
-      "wallet": "haidarjbeily.near",
-      "website": "https://github.com/HaidarJbeily7/YieldGuard",
-      "repository": ["HaidarJbeily7/YieldGuard"]
-    },
-    {
-      "project": "SudoStake",
-      "wallet": "palingram.near",
-      "website": "sudostake.com",
-      "repository": ["sudostake/sudostake_contracts_near", "sudostake/sudostake_web"]
-    },
-    {
-      "project": "HowToTrainYourModel",
-      "wallet": "ilovetofu.near",
-      "website": "https://github.com/JingYuan0926/HowToTrainYourModel",
-      "repository": ["JingYuan0926/HowToTrainYourModel"]
-    },
-    {
-      "project": "benevio labs",
-      "wallet": "benevio-labs.near",
-      "website": "www.benevio.dev",
-      "repository": ["beneviolabs/ft-allowance-agent", "beneviolabs/ft-core", "beneviolabs/core-functions"]
-    },
-    {
-      "project": "Ava",
-      "wallet": "avatheaiagent.near",
-      "website": "https://github.com/kamalbuilds/ava-the-ai-agent",
-      "repository": ["kamalbuilds/ava-the-ai-agent"]
-    },
-    {
-      "project": "AI Gambling Club",
-      "wallet": "aigamblingclub.near",
-      "website": "aigambling.club",
-      "repository": ["aigamblingclub/monorepo"]
-    }
-  ]
-  
+[
+  {
+    "project": "Solvium",
+    "wallet": "igboze.near",
+    "website": "https://github.com/Solvium/SolviumGame/",
+    "repository": ["Solvium/SolviumGame"]
+  },
+  {
+    "project": "Wars Of Cards",
+    "wallet": "warsofcards.near",
+    "website": "https://github.com/RebelsBlocks/Wars-Of-Cards",
+    "repository": ["RebelsBlocks/Wars-Of-Cards"]
+  },
+  {
+    "project": "SudoStake",
+    "wallet": "palingram.near",
+    "website": "https://github.com/sudostake",
+    "repository": ["sudostake"]
+  },
+  {
+    "project": "NearPredict",
+    "wallet": "blockcraft3r.near",
+    "website": "https://github.com/LevanIlashvili/agents-without-masters",
+    "repository": ["LevanIlashvili/agents-without-masters"]
+  },
+  {
+    "project": "NeXchange",
+    "wallet": "nearayush.near",
+    "website": "https://github.com/ayushsingh82/Nexchange",
+    "repository": ["ayushsingh82/Nexchange"]
+  },
+  {
+    "project": "Nearacles",
+    "wallet": "dejones.tg",
+    "website": "https://github.com/JonesH/gbcw-protocol-rebels",
+    "repository": ["JonesH/gbcw-protocol-rebels"]
+  },
+  {
+    "project": "Bitcoin Agent",
+    "wallet": "0xmht.near",
+    "website": "https://github.com/0xAlphaDevs/Near-Bitcoin-Agent",
+    "repository": ["0xAlphaDevs/Near-Bitcoin-Agent"]
+  },
+  {
+    "project": "Smol Bet",
+    "wallet": "kinooo.near",
+    "website": "https://github.com/prakhar728/Smol_bet",
+    "repository": ["prakhar728/Smol_bet"]
+  },
+  {
+    "project": "ALLY",
+    "wallet": "opentheta.near",
+    "website": "https://github.com/ALLY-HUB-IO/ally",
+    "repository": ["ALLY-HUB-IO/ally"]
+  },
+  {
+    "project": "OpenEdu",
+    "wallet": "eldahalas.near",
+    "website": "https://github.com/orgs/Openedu-project/",
+    "repository": ["Openedu-project"]
+  },
+  {
+    "project": "MYTH.OS",
+    "wallet": "meomeo.near",
+    "website": "https://github.com/Drehalas/ao-agents",
+    "repository": ["Drehalas/ao-agents"]
+  },
+  {
+    "project": "Verity",
+    "wallet": "eldahalas.near",
+    "website": "https://github.com/AdrienneYoungman/Verityv0",
+    "repository": ["AdrienneYoungman/Verityv0"]
+  },
+  {
+    "project": "VibesFlow AI",
+    "wallet": "84c6d382170c649541ab73c2a20867fdc5ba0211c96e6a841bd0bbbe86f1ae39",
+    "website": "https://github.com/vibesflow",
+    "repository": ["vibesflow"]
+  },
+  {
+    "project": "Torus GroupWeave",
+    "wallet": "groupweave.near",
+    "website": "https://github.com/torus-automations/groupweave",
+    "repository": ["torus-automations/groupweave"]
+  },
+  {
+    "project": "MintroAI - NEAR Agents Without Masters Hackathon WINNER",
+    "wallet": "truthdeal.near",
+    "website": "https://github.com/truthdeal-org/mintro-ai-dapp-near-hackathon",
+    "repository": ["truthdeal-org/mintro-ai-dapp-near-hackathon"]
+  },
+  {
+    "project": "think2earn",
+    "wallet": "think2earn.near",
+    "website": "https://github.com/rainbowpuffpuff/ez_think2earn",
+    "repository": ["rainbowpuffpuff/ez_think2earn", "rainbowpuffpuff/cyphershare"]
+  },
+  {
+    "project": "Bitte.ai Discord Bot",
+    "wallet": "hotidenis.near",
+    "website": "https://github.com/denishotii/bitte-ai-discord-bot",
+    "repository": ["denishotii/bitte-ai-discord-bot"]
+  },
+  {
+    "project": "bond.credit",
+    "wallet": "1cc6aa89f81fab952a567f8b62be30e0380719d7e47fd23cf64a16522a969d33",
+    "website": "https://github.com/heyheyitsnma/bond.credit",
+    "repository": ["heyheyitsnma/bond.credit"]
+  },
+  {
+    "project": "Antoine",
+    "wallet": "jabyl.near",
+    "website": "https://github.com/satojandro/ultimate-mentor",
+    "repository": ["satojandro/ultimate-mentor"]
+  },
+  {
+    "project": "Yetify",
+    "wallet": "unknown",
+    "website": "https://github.com/med-amiine/near-ai-vault-system",
+    "repository": ["med-amiine/near-ai-vault-system"]
+  },
+  {
+    "project": "Convertica",
+    "wallet": "unknown",
+    "website": "https://github.com/ConverticaAI",
+    "repository": ["ConverticaAI"]
+  }
+]
