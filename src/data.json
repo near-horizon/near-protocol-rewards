@@ -6,10 +6,14 @@
     "repository": ["Solvium/SolviumGame"]
   },
   {
-    "project": "Wars Of Cards",
-    "wallet": "warsofcards.near",
-    "website": "https://github.com/RebelsBlocks/Wars-Of-Cards",
-    "repository": ["RebelsBlocks/Wars-Of-Cards"]
+    "project": "Business Simulator",
+    "wallet": "simulator.rebelsblocks.near",
+    "website": "https://x.com/rebelsblocks",
+    "repository": [
+        "RebelsBlocks/business-simulator-frontend",
+        "RebelsBlocks/business-simulator-backend",
+        "RebelsBlocks/business-simulator-contract"
+    ]
   },
   {
     "project": "SudoStake",
