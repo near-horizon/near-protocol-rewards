@@ -14,8 +14,11 @@
   {
     "project": "SudoStake",
     "wallet": "palingram.near",
-    "website": "https://github.com/sudostake",
-    "repository": ["sudostake"]
+    "website": "sudostake.com",
+    "repository": [
+        "sudostake/sudostake_web_near",
+        "sudostake/sudostake_agent_near"
+    ]
   },
   {
     "project": "NearPredict",
