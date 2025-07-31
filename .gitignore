@@ -17,6 +17,7 @@ build/
 .env.development
 .env.test
 .env.production
+deploy-local.txt
 
 # Logs
 logs/
