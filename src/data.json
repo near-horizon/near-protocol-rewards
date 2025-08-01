@@ -62,9 +62,9 @@
   },
   {
     "project": "OpenEdu",
-    "wallet": "eldahalas.near",
-    "website": "https://github.com/orgs/Openedu-project/",
-    "repository": ["Openedu-project"]
+    "wallet": "openeduvn.near",
+    "website": "https://github.com/Openedu-project/OE-NRP/",
+    "repository": ["Openedu-project/OE-NRP"]
   },
   {
     "project": "MYTH.OS",
