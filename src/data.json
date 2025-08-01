@@ -1,9 +1,9 @@
 [
   {
     "project": "Solvium",
-    "wallet": "igboze.near",
-    "website": "https://github.com/Solvium/SolviumGame/",
-    "repository": ["Solvium/SolviumGame"]
+    "wallet": "solviumpuzzle.near",
+    "website": "https://github.com/Solvium/SolviumAI",
+    "repository": ["Solvium/SolviumAI"]
   },
   {
     "project": "Business Simulator",
