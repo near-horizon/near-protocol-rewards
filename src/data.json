@@ -91,10 +91,14 @@
     "repository": ["torus-automations/groupweave"]
   },
   {
-    "project": "MintroAI - NEAR Agents Without Masters Hackathon WINNER",
+    "project": "MintroAI",
     "wallet": "truthdeal.near",
-    "website": "https://github.com/truthdeal-org/mintro-ai-dapp-near-hackathon",
-    "repository": ["truthdeal-org/mintro-ai-dapp-near-hackathon"]
+    "website": "https://mintro.ai",
+    "repository": [
+      "truthdeal/mintroai-landing-page",
+      "truthdeal/mintroai-dapp",
+      "truthdeal/mintroai-backend"
+    ]
   },
   {
     "project": "think2earn",
