@@ -38,7 +38,7 @@ const logger = new Logger(LogLevel.INFO, 'NEAR Rewards');
 const rateLimiter = new RateLimiter(60, 60); // 60 requests per minute
 
 // Create S3 client
-const s3Client = new S3Client({ region: process.env.AWS_REGION || 'us-east-1' });
+const s3Client = new S3Client({ region: process.env.AWS_REGION || 'us-east-2' });
 
 interface ProjectData {
   project: string;

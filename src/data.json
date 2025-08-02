@@ -38,9 +38,9 @@
   },
   {
     "project": "Nearacles",
-    "wallet": "dejones.tg",
-    "website": "https://github.com/JonesH/gbcw-protocol-rebels",
-    "repository": ["JonesH/gbcw-protocol-rebels"]
+    "wallet": "dejones.near",
+    "website": "https://github.com/Drehalas/nearacles-protocol",
+    "repository": ["Drehalas/nearacles-protocol"]
   },
   {
     "project": "Bitcoin Agent",
