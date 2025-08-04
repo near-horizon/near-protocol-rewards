@@ -80,9 +80,9 @@
   },
   {
     "project": "VibesFlow AI",
-    "wallet": "84c6d382170c649541ab73c2a20867fdc5ba0211c96e6a841bd0bbbe86f1ae39",
-    "website": "https://github.com/vibesflow",
-    "repository": ["vibesflow"]
+    "wallet": "vibesflow.testnet",
+    "website": "https://github.com/VibesFlow",
+    "repository": ["VibesFlow/app", "VibesFlow/backend", "VibesFlow/near"]
   },
   {
     "project": "Torus GroupWeave",
