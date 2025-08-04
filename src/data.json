@@ -88,7 +88,11 @@
     "project": "Torus GroupWeave",
     "wallet": "groupweave.near",
     "website": "https://github.com/torus-automations/groupweave",
-    "repository": ["torus-automations/groupweave"]
+    "repository": [
+      "torus-automations/groupweave",
+      "torus-automations/dreamweave",
+      "torus-automations/talos"
+    ]
   },
   {
     "project": "MintroAI",
