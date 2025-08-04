@@ -67,10 +67,10 @@
     "repository": ["Openedu-project/OE-NRP"]
   },
   {
-    "project": "MYTH.OS",
-    "wallet": "meomeo.near",
-    "website": "https://github.com/Drehalas/ao-agents",
-    "repository": ["Drehalas/ao-agents"]
+    "project": "Myth.OS",
+    "wallet": "eldahalas.near",
+    "website": "https://ao-agents.vercel.app/",
+    "repository": ["DogukanGun/t2v_near_ai_agent"]
   },
   {
     "project": "Verity",
