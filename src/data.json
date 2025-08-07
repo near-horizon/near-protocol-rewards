@@ -135,9 +135,9 @@
     "repository": ["med-amiine/near-ai-vault-system"]
   },
   {
-    "project": "Convertica",
-    "wallet": "unknown",
-    "website": "https://github.com/ConverticaAI",
-    "repository": ["ConverticaAI"]
+    "project": "Drae",
+    "wallet": "drae-protocol.near",
+    "website": "https://drae.ai",
+    "repository": ["drae-ai/drae-near"]
   }
 ]
