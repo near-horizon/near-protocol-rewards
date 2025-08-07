@@ -6,13 +6,13 @@
     "repository": ["Solvium/SolviumAI"]
   },
   {
-    "project": "Business Simulator",
-    "wallet": "simulator.rebelsblocks.near",
-    "website": "https://x.com/rebelsblocks",
+    "project": "Wars Of Cards",
+    "wallet": "house.warsofcards.near",
+    "website": "https://www.warsofcards.online/",
     "repository": [
-        "RebelsBlocks/business-simulator-frontend",
-        "RebelsBlocks/business-simulator-backend",
-        "RebelsBlocks/business-simulator-contract"
+    "RebelsBlocks/wars-of-cards-frontend",
+    "RebelsBlocks/wars-of-cards-backend",
+    "RebelsBlocks/wars-of-cards-contract"
     ]
   },
   {
