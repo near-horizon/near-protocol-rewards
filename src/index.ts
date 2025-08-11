@@ -13,6 +13,7 @@ import { OffchainCalculator } from './calculator/offchain';
 import { RewardsCalculator } from './calculator/rewards';
 import { ConsolidatedCalculator } from './calculator/consolidated';
 import { Logger, LogLevel } from './utils/logger';
+import { ErrorCode } from './types/errors';
 import { RateLimiter } from './utils/rate-limiter';
 import { GitHubMetrics } from './types/metrics';
 
@@ -74,6 +75,19 @@ interface LocalSaveResult {
   monthly: string;
   daily: string;
   dashboard: string;
+}
+
+interface LogsSaveResult {
+  logs: string;
+}
+
+/**
+ * Helper to determine if an error is a rate limit error
+ */
+function isRateLimitError(error: unknown): boolean {
+  if (!error || typeof error !== 'object') return false;
+  const anyErr = error as { code?: string };
+  return anyErr.code === ErrorCode.RATE_LIMITED || anyErr.code === ErrorCode.RATE_LIMIT_EXCEEDED;
 }
 
 function loadProjectsData(): ProjectData[] {
@@ -219,6 +233,30 @@ async function saveResultsToS3(results: ProjectResult[], year: number, month: nu
   }
 }
 
+async function saveLogsToS3(year: number, month: number, currentDate: Date, logsJson: string): Promise<LogsSaveResult> {
+  try {
+    const bucketName = "near-protocol-rewards-data-dashboard";
+    const logsKey = `logs/run_${year}_${month.toString().padStart(2, '0')}_${currentDate.getDate().toString().padStart(2, '0')}_${currentDate.toISOString().split('T')[1].replace(/[:.Z]/g, '-')}.json`;
+
+    const command = new PutObjectCommand({
+      Bucket: bucketName,
+      Key: logsKey,
+      Body: logsJson,
+      ContentType: "application/json"
+    });
+
+    await s3Client.send(command);
+
+    const logsPath = `s3://${bucketName}/${logsKey}`;
+    logger.info(`✅ Logs saved to S3: ${logsPath}`);
+
+    return { logs: logsPath };
+  } catch (error) {
+    logger.error('❌ Error saving logs to S3', { error });
+    throw new Error(`Failed to save logs to S3: ${error}`);
+  }
+}
+
 async function processProject(
   project: ProjectData,
   year: number,
@@ -255,22 +293,29 @@ async function processProject(
 
         // Collect transaction data
         const transactionData = await onchainCollector.collectData(year, month);
-        
-        // Calculate metrics from raw data
-        const metricsOnchain = onchainCalculator.calculateOnchainMetricsFromTransactionData(transactionData);
-        
-        // Calculate on-chain rewards
-        const onchainResult = onchainCalculator.calculateOnchainScores(metricsOnchain);
-        rewardsOnchain = onchainResult;
+        if (!transactionData) {
+          logger.warn(`⚠️ On-chain account not found or no data for ${project.wallet}. Skipping on-chain metrics.`);
+        } else {
+          // Calculate metrics from raw data
+          const metricsOnchain = onchainCalculator.calculateOnchainMetricsFromTransactionData(transactionData);
+          
+          // Calculate on-chain rewards
+          const onchainResult = onchainCalculator.calculateOnchainScores(metricsOnchain);
+          rewardsOnchain = onchainResult;
 
-        projectResult.metrics_onchain = metricsOnchain;
-        projectResult.rewards_onchain = rewardsOnchain;
-        projectResult.rawdata_onchain = transactionData;
+          projectResult.metrics_onchain = metricsOnchain;
+          projectResult.rewards_onchain = rewardsOnchain;
+          projectResult.rawdata_onchain = transactionData;
 
-        logger.info(`✅ On-chain data processed for ${project.wallet}`);
+          logger.info(`✅ On-chain data processed for ${project.wallet}`);
+        }
       } catch (error) {
         logger.error(`❌ Error processing on-chain data for ${project.wallet}`, { error });
-        projectResult.error = `On-chain error: ${error}`;
+        if (isRateLimitError(error)) {
+          // Propagate to stop the whole pipeline
+          throw error;
+        }
+        projectResult.error = `On-chain error: ${String((error as Error)?.message || error)}`;
       }
     }
 
@@ -284,17 +329,24 @@ async function processProject(
         // Process each repository
         for (const repo of project.repository) {
           logger.info(`🔍 Analyzing repository: ${repo}`);
-          
-          const collector = new OffchainCollector({
-            token: GITHUB_TOKEN!,
-            repo,
-            logger,
-            rateLimiter
-          });
-          
-          const metrics = await collector.collectData(year, month);
-          repositoryMetrics.push(metrics);
-          
+
+          try {
+            const collector = new OffchainCollector({
+              token: GITHUB_TOKEN!,
+              repo,
+              logger,
+              rateLimiter
+            });
+            const metrics = await collector.collectData(year, month);
+            repositoryMetrics.push(metrics);
+          } catch (error) {
+            logger.error(`❌ Error collecting metrics for repo ${repo}`, { error });
+            if (isRateLimitError(error)) {
+              throw error; // stop everything on rate limit
+            }
+            // For NOT_FOUND or other non-critical errors, continue to next repo
+          }
+
           // Add small delay between repositories to respect rate limits
           await new Promise(resolve => setTimeout(resolve, 1000));
         }
@@ -315,7 +367,10 @@ async function processProject(
         }
       } catch (error) {
         logger.error(`❌ Error processing off-chain data for ${project.project}`, { error });
-        projectResult.error = `Off-chain error: ${error}`;
+        if (isRateLimitError(error)) {
+          throw error;
+        }
+        projectResult.error = `Off-chain error: ${String((error as Error)?.message || error)}`;
       }
     }
 
@@ -327,14 +382,20 @@ async function processProject(
         logger.info(`✅ Total rewards calculated for ${project.project}`);
       } catch (error) {
         logger.error(`❌ Error calculating total rewards for ${project.project}`, { error });
-        projectResult.error = `Total rewards error: ${error}`;
+        if (isRateLimitError(error)) {
+          throw error;
+        }
+        projectResult.error = `Total rewards error: ${String((error as Error)?.message || error)}`;
       }
     }
 
     return projectResult;
   } catch (error) {
     logger.error(`❌ Error processing project ${project.project}`, { error });
-    projectResult.error = `General error: ${error}`;
+    if (isRateLimitError(error)) {
+      throw error;
+    }
+    projectResult.error = `General error: ${String((error as Error)?.message || error)}`;
     return projectResult;
   }
 }
@@ -360,11 +421,11 @@ async function main() {
     
     const results: ProjectResult[] = [];
     
-    // Process each project
+    // Process each project (only fail fast on rate limit)
     for (let index = 0; index < projects.length; index++) {
       const project = projects[index];
       logger.info(`\n🔄 Processing project: ${project.project} (${index + 1}/${projects.length})`);
-      
+
       try {
         const projectResult = await processProject(
           project,
@@ -374,18 +435,14 @@ async function main() {
           onchainCalculator,
           rewardsCalculator
         );
-        
+
         results.push(projectResult);
         logger.info(`✅ Project ${project.project} processed successfully!`);
-        
-        // Add delay every 3 projects to respect API rate limits
-        if ((index + 1) % 3 === 0 && index < projects.length - 1) {
-          logger.info('⏳ Waiting 1 minutee to respect API rate limits...');
-          await new Promise(resolve => setTimeout(resolve, 60000)); // 1 minute
-        }
-        
       } catch (error) {
         logger.error(`❌ Error processing project ${project.project}`, { error });
+        if (isRateLimitError(error)) {
+          throw error; // stop entire run
+        }
         const errorResult: ProjectResult = {
           project: project.project,
           wallet: project.wallet,
@@ -393,9 +450,15 @@ async function main() {
           repository: project.repository || [],
           period: `${year}-${month.toString().padStart(2, '0')}`,
           timestamp: currentDate.toISOString(),
-          error: `${error}`
+          error: `${String((error as Error)?.message || error)}`
         };
         results.push(errorResult);
+      }
+
+      // Add delay every 5 projects to respect API rate limits
+      if ((index + 1) % 5 === 0 && index < projects.length - 1) {
+        logger.info('⏳ Waiting 1 minute to respect API rate limits...');
+        await new Promise(resolve => setTimeout(resolve, 60000)); // 1 minute
       }
     }
     
@@ -413,25 +476,23 @@ async function main() {
     const summaryString = consolidatedCalculator.getSummaryString(consolidatedData);
     logger.info(summaryString);
 
-    // Save all data locally
-    try {
-      const localPaths = saveResultsLocally(results, year, month, currentDate, consolidatedData);
-      logger.info('✅ All data saved locally successfully!');
-    } catch (error) {
-      logger.error('❌ Failed to save data locally', { error });
-      // Continue execution even if local save fails
-    }
+    // Save all data locally (fail fast on error)
+    const localPaths = saveResultsLocally(results, year, month, currentDate, consolidatedData);
+    logger.info('✅ All data saved locally successfully!');
        
     // Save results to S3 if enabled
     if (SAVE_ON_S3) {
-      try {
-        logger.info('📤 Saving results to S3...');
-        const s3Paths = await saveResultsToS3(results, year, month, currentDate, consolidatedData);
-        logger.info('✅ Results successfully saved to S3!');
-      } catch (error) {
-        logger.error('❌ Failed to save results to S3', { error });
-        // Continue execution even if S3 save fails
-      }
+      logger.info('📤 Saving results to S3...');
+      const s3Paths = await saveResultsToS3(results, year, month, currentDate, consolidatedData);
+      logger.info('✅ Results successfully saved to S3!');
+
+      // Save logs to S3 as well
+      const logsJson = JSON.stringify({
+        period: `${year}-${month.toString().padStart(2, '0')}`,
+        timestamp: currentDate.toISOString(),
+        logs: logger.getEntries(),
+      }, null, 2);
+      await saveLogsToS3(year, month, currentDate, logsJson);
     }
   
     // Log summary for each project
@@ -458,6 +519,21 @@ async function main() {
     
   } catch (error) {
     logger.error('❌ Error in main process', { error });
+    // Attempt to save logs to S3 on failure (best-effort)
+    try {
+      if (SAVE_ON_S3) {
+        const now = new Date();
+        const logsJson = JSON.stringify({
+          period: `${now.getFullYear()}-${(now.getMonth()+1).toString().padStart(2, '0')}`,
+          timestamp: now.toISOString(),
+          error: String(error),
+          logs: logger.getEntries(),
+        }, null, 2);
+        await saveLogsToS3(now.getFullYear(), now.getMonth()+1, now, logsJson);
+      }
+    } catch (e) {
+      // Ignore secondary failure while saving logs
+    }
     process.exit(1);
   }
 }
