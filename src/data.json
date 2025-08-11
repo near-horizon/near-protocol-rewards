@@ -64,7 +64,11 @@
     "project": "OpenEdu",
     "wallet": "openeduvn.near",
     "website": "https://github.com/Openedu-project/OE-NRP/",
-    "repository": ["Openedu-project/OE-NRP"]
+    "repository": [
+      "Openedu-project/OE-NRP",
+      "Openedu-project/OE-BE",
+      "openedu-project/OE-FE"
+    ]
   },
   {
     "project": "Myth.OS",
