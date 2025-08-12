@@ -3,7 +3,10 @@
     "project": "Solvium",
     "wallet": "solviumpuzzle.near",
     "website": "https://github.com/Solvium/SolviumAI",
-    "repository": ["Solvium/SolviumAI"]
+    "repository": [
+      "Solvium/SolviumAI",
+      "Solvium/website"
+    ]
   },
   {
     "project": "Wars Of Cards",
