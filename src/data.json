@@ -137,9 +137,13 @@
   },
   {
     "project": "Yetify",
-    "wallet": "unknown",
-    "website": "https://github.com/med-amiine/near-ai-vault-system",
-    "repository": ["med-amiine/near-ai-vault-system"]
+    "wallet": "yetifyai.near",
+    "website": "https://github.com/Yetifi/Yetify-agent",
+    "repository": [
+      "Yetifi/Yetify-agent",
+      "Yetifi/official-website",
+      "Yetifi/Strategy-ETL"
+    ]
   },
   {
     "project": "Drae",
