@@ -116,13 +116,16 @@ export class RewardsCalculator {
    * Determines reward tier based on total score
    */
   private determineTier(totalScore: number): RewardTier {
-    for (const tier of this.rewardTiers) {
-      if (totalScore >= tier.minScore && totalScore <= tier.maxScore) {
+    // Sort tiers by minScore descending to check highest tiers first
+    const sortedTiers = [...this.rewardTiers].sort((a, b) => b.minScore - a.minScore);
+    
+    for (const tier of sortedTiers) {
+      if (totalScore >= tier.minScore) {
         return tier;
       }
     }
     
-    // Default to Member tier if no match found
+    // Default to Member tier if no match found (score is 0)
     return this.rewardTiers[this.rewardTiers.length - 1];
   }
 
