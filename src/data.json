@@ -154,5 +154,13 @@
     "wallet": "drae-protocol.near",
     "website": "https://drae.ai",
     "repository": ["drae-ai/drae-near"]
-  }
+  },
+  {
+    "project": "Knight's Legacy",
+    "wallet": "knight-legacy.near",
+    "website": "https://github.com/nguyenvien161002/knight-legacy",
+    "repository": [
+    "nguyenvien161002/knight-legacy"
+    ]
+    }
 ]
