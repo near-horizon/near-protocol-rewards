@@ -41,8 +41,8 @@
   },
   {
     "project": "Nearacles",
-    "wallet": "dejones.near",
-    "website": "https://github.com/Drehalas/nearacles-protocol",
+    "wallet": "nearacles.near",
+    "website": "nearacles.com",
     "repository": ["Drehalas/nearacles-protocol"]
   },
   {
