@@ -116,10 +116,9 @@
     "wallet": "think2earn.near", 
     "website": "https://www.think2earn.com/", 
     "repository": [
-      "rainbowpuffpuff/ez_think2earn", 
-      "rainbowpuffpuff/cyphershare", 
-      "rainbowpuffpuff/agentic_health",
-      "rainbowpuffpuff/agentic_health_backend"
+      "rainbowpuffpuff/ez_think2earn",
+      "rainbowpuffpuff/cyphershare",
+      "rainbowpuffpuff/agentic_health"
     ]
   },
   {
