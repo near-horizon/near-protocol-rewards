@@ -111,11 +111,15 @@
       "truthdeal/mintroai-backend"
     ]
   },
-  {
-    "project": "think2earn",
-    "wallet": "think2earn.near",
-    "website": "https://github.com/rainbowpuffpuff/ez_think2earn",
-    "repository": ["rainbowpuffpuff/ez_think2earn", "rainbowpuffpuff/cyphershare"]
+  { 
+    "project": "think2earn", 
+    "wallet": "think2earn.near", 
+    "website": "https://www.think2earn.com/", 
+    "repository": [
+      "rainbowpuffpuff/ez_think2earn",
+      "rainbowpuffpuff/cyphershare",
+      "rainbowpuffpuff/agentic_health"
+    ]
   },
   {
     "project": "Bitte.ai Discord Bot",
