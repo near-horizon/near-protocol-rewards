@@ -129,9 +129,13 @@
   },
   {
     "project": "bond.credit",
-    "wallet": "1cc6aa89f81fab952a567f8b62be30e0380719d7e47fd23cf64a16522a969d33",
-    "website": "https://github.com/heyheyitsnma/bond.credit",
-    "repository": ["heyheyitsnma/bond.credit"]
+    "wallet": "bctemp.near",
+    "website": "https://github.com/bond-dot-credit",
+    "repository":[
+      "bond-dot-credit/agent-scoring",
+      "bond-dot-credit/risk-monitor-engine",
+      "bond-dot-credit/iexec-integration"
+    ]
   },
   {
     "project": "Antoine",
