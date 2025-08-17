@@ -158,9 +158,10 @@
   {
     "project": "Knight's Legacy",
     "wallet": "knight-legacy.near",
-    "website": "https://github.com/nguyenvien161002/knight-legacy",
+    "website": "https://knight-legacy.onrender.com",
     "repository": [
-    "nguyenvien161002/knight-legacy"
+      "nguyenvien161002/knight-legacy",
+      "nguyenvien161002/knight-legacy-contract.git"
     ]
     }
 ]
