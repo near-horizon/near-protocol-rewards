@@ -30,7 +30,7 @@
   {
     "project": "NearPredict",
     "wallet": "blockcraft3r.near",
-    "website": "https://github.com/LevanIlashvili/agents-without-masters",
+    "website": "https://nearpredict.com",
     "repository": ["near-predict/near-predict-webapp"]
   },
   {
