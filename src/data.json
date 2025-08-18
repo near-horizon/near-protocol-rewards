@@ -31,7 +31,7 @@
     "project": "NearPredict",
     "wallet": "blockcraft3r.near",
     "website": "https://github.com/LevanIlashvili/agents-without-masters",
-    "repository": ["LevanIlashvili/agents-without-masters"]
+    "repository": ["near-predict/near-predict-webapp"]
   },
   {
     "project": "NeXchange",
