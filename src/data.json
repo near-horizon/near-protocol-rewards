@@ -10,8 +10,8 @@
   },
   {
     "project": "Wars Of Cards",
-    "wallet": "house.warsofcards.near",
-    "website": "https://www.warsofcards.online/",
+    "wallet": "warsofcards-chat.near",
+    "website": "https://wars-of-cards-frontend.vercel.app/",
     "repository": [
     "RebelsBlocks/wars-of-cards-frontend",
     "RebelsBlocks/wars-of-cards-backend",
