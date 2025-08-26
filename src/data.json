@@ -122,12 +122,6 @@
     ]
   },
   {
-    "project": "Bitte.ai Discord Bot",
-    "wallet": "hotidenis.near",
-    "website": "https://github.com/denishotii/bitte-ai-discord-bot",
-    "repository": ["denishotii/bitte-ai-discord-bot"]
-  },
-  {
     "project": "bond.credit",
     "wallet": "bctemp.near",
     "website": "https://github.com/bond-dot-credit",
