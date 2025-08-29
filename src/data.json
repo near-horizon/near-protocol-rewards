@@ -31,7 +31,11 @@
     "project": "NearPredict",
     "wallet": "blockcraft3r.near",
     "website": "https://nearpredict.com",
-    "repository": ["near-predict/near-predict-webapp"]
+    "repository": [
+          "near-predict/near-predict-webapp",
+          "near-predict/near-predict-background-workers",
+          "near-predict/near-predict-contracts"
+    ]
   },
   {
     "project": "NeXchange",
