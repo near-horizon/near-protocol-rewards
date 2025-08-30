@@ -59,8 +59,8 @@
   },
   {
     "project": "ALLY",
-    "wallet": "opentheta.near",
-    "website": "https://github.com/ALLY-HUB-IO/ally",
+    "wallet": "ally-hub.near",
+    "website": "https://ally-hub.io",
     "repository": ["ALLY-HUB-IO/ally"]
   },
   {
