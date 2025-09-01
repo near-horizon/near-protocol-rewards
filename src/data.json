@@ -31,7 +31,11 @@
     "project": "NearPredict",
     "wallet": "blockcraft3r.near",
     "website": "https://nearpredict.com",
-    "repository": ["near-predict/near-predict-webapp"]
+    "repository": [
+          "near-predict/near-predict-webapp",
+          "near-predict/near-predict-background-workers",
+          "near-predict/near-predict-contracts"
+    ]
   },
   {
     "project": "NeXchange",
@@ -53,14 +57,14 @@
   },
   {
     "project": "Smol Bet",
-    "wallet": "prakharojha.near",
+    "wallet": "test-campaign.near",
     "website": "https://github.com/prakhar728/Smol_bet",
     "repository": ["prakhar728/Smol_bet"]
   },
   {
     "project": "ALLY",
-    "wallet": "opentheta.near",
-    "website": "https://github.com/ALLY-HUB-IO/ally",
+    "wallet": "ally-hub.near",
+    "website": "https://ally-hub.io",
     "repository": ["ALLY-HUB-IO/ally"]
   },
   {
