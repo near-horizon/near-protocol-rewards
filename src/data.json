@@ -107,12 +107,12 @@
   },
   {
     "project": "MintroAI",
-    "wallet": "truthdeal.near",
-    "website": "https://mintro.ai",
+    "wallet": "mintroai.near",
+    "website": "https://mintro.ai/",
     "repository": [
-      "truthdeal/mintroai-landing-page",
-      "truthdeal/mintroai-dapp",
-      "truthdeal/mintroai-backend"
+      "MintroAI/mintroai-landing-page" , 
+      "MintroAI/mintroai-dapp" , 
+      "MintroAI/mintroai-backend"
     ]
   },
   { 
