@@ -87,7 +87,7 @@
     "project": "Verity",
     "wallet": "verity_anchor.near",
     "website": "https://verity0.vercel.app", 
-    "repository": ["Get-Verity-AI/MVP", "https://github.com/kimboher/Verity1"]
+    "repository": ["Get-Verity-AI/MVP", "kimboher/Verity1"]
   },
   {
     "project": "VibesFlow AI",
